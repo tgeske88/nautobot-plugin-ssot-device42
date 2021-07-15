@@ -40,7 +40,7 @@ namespace.configure(
         "nautobot_device42_sync": {
             "nautobot_ver": "1.0.3",
             "project_name": "nautobot_device42_sync",
-            "python_ver": "3.6",
+            "python_ver": "3.7",
             "local": False,
             "compose_dir": os.path.join(os.path.dirname(__file__), "development"),
             "compose_files": [
@@ -81,7 +81,10 @@ def docker_compose(context, command, **kwargs):
         command (str): Command string to append to the "docker-compose ..." command, such as "build", "up", etc.
         **kwargs: Passed through to the context.run() call.
     """
-    build_env = {"NAUTOBOT_VER": context.nautobot_device42_sync.nautobot_ver, "PYTHON_VER": context.nautobot_device42_sync.python_ver}
+    build_env = {
+        "NAUTOBOT_VER": context.nautobot_device42_sync.nautobot_ver,
+        "PYTHON_VER": context.nautobot_device42_sync.python_ver,
+    }
     compose_command = f'docker-compose --project-name {context.nautobot_device42_sync.project_name} --project-directory "{context.nautobot_device42_sync.compose_dir}"'
     for compose_file in context.nautobot_device42_sync.compose_files:
         compose_file_path = os.path.join(context.nautobot_device42_sync.compose_dir, compose_file)
