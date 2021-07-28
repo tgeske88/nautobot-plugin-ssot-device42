@@ -244,16 +244,30 @@ NAPALM_ARGS = {}
 PAGINATE_COUNT = int(os.environ.get("PAGINATE_COUNT", 50))
 
 # Enable installed plugins. Add the name of each plugin to the list.
-PLUGINS = ["nautobot_device42_sync"]
+PLUGINS = ["nautobot_ssot", "nautobot_device42_sync"]
 
 # Plugins configuration settings. These settings are used by various plugins that the user may have installed.
 # Each key in the dictionary is the name of an installed plugin and its value is a dictionary of settings.
-# PLUGINS_CONFIG = {
-#     'my_plugin': {
-#         'foo': 'bar',
-#         'buzz': 'bazz'
-#     }
-# }
+PLUGINS_CONFIG = {
+    "nautobot_ssot": {
+        "hide_example_jobs": True,
+    },
+    "nautobot_device42_sync": {
+        "device42_host": os.getenv("DEVICE42_HOST", ""),
+        "device42_username": os.getenv("DEVICE42_USERNAME", ""),
+        "device42_password": os.getenv("DEVICE42_PASSWORD", ""),
+        "verify_ssl": False,
+        "defaults": {
+            "site": "",
+            "site_status": "Active",
+            "manufacturer": "",
+            "device_type": "",
+            "device_role": "",
+            "role_color": "Grey",
+            "device": "",
+        },
+    },
+}
 
 # When determining the primary IP address for a device, IPv6 is preferred over IPv4 by default. Set this to True to
 # prefer IPv4 instead.
