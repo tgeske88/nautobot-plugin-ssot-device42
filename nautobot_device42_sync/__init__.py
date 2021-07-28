@@ -1,6 +1,6 @@
 """Plugin declaration for nautobot_device42_sync."""
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
 from nautobot.extras.plugins import PluginConfig
 
