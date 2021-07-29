@@ -5,6 +5,7 @@ from diffsync import DiffSyncModel
 from typing import Optional, List
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot.dcim.models import Site as NautobotSite
+from nautobot.dcim.models import RackGroup as NautobotRackGroup
 from nautobot.dcim.models import Device as NautobotDevice
 import nautobot_device42_sync.diffsync.nbutils as nbutils
 from nautobot_device42_sync.constant import DEFAULTS
@@ -18,13 +19,14 @@ class Building(DiffSyncModel):
     _identifiers = ("name",)
     _shortname = ("name",)
     _attributes = ("address", "latitude", "longitude", "contact_name", "contact_phone")
-    _children = {}
+    _children = {"room": "rooms"}
     name: str
     address: Optional[str]
     latitude: Optional[float]
     longitude: Optional[float]
     contact_name: Optional[str]
     contact_phone: Optional[str]
+    rooms: List["Room"] = list()
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -60,21 +62,36 @@ class Room(DiffSyncModel):
     """Device42 Room model."""
 
     _modelname = "room"
-    _identifiers = ("name",)
+    _identifiers = ("name", "building")
     _shortname = ("name",)
-    _attributes = (
-        "building",
-        "notes",
-    )
-    _children = {
-        "device": "devices",
-    }
+    _attributes = ("notes",)
     name: str
-    room_id: int
-    building_id: int
     building: str
     notes: Optional[str]
-    devices: List["Device"] = list()
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create RackGroup object in Nautobot."""
+        new_rg = NautobotRackGroup(
+            name=ids["name"],
+            slug=slugify(ids["name"]),
+            site=NautobotSite.objects.get(name=ids["building"]),
+            description=attrs["notes"] if attrs.get("notes") else "",
+        )
+        new_rg.validated_save()
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+
+    def update(self, attrs):
+        """Update RackGroup object in Nautobot."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete RackGroup object from Nautobot."""
+        self.diffsync.job.log_warning(f"Room {self.name} will be deleted.")
+        _rg = NautobotRackGroup.objects.get(name=self.name)
+        _rg.delete()
+        super().delete()
+        return self
 
 
 class Vendor(DiffSyncModel):
@@ -185,3 +202,6 @@ class Device(DiffSyncModel):
         device.delete()
         super().delete()
         return self
+
+
+Building.update_forward_refs()

@@ -62,14 +62,3 @@ class Device42API:
         except requests.HTTPError as err:
             raise Exception(f"Request error {url} [{resp.status_code}] {err}")
         return resp.json()
-
-    def get_buildings(self) -> list:
-        """Retrieve all buildings in Device42.
-
-        Returns:
-            list: List of buildings and associated information in Device42.
-        """
-        try:
-            return self.api_call(path="api/1.0/buildings")["buildings"]
-        except requests.HTTPError as err:
-            raise Exception(f"Error retrieving buildings from Device42. {err}")

@@ -2,6 +2,7 @@
 
 from diffsync import DiffSync
 from nautobot.dcim.models import Site
+from nautobot.dcim.models.racks import RackGroup
 from nautobot_device42_sync.diffsync.from_d42 import models
 
 
@@ -41,6 +42,15 @@ class NautobotAdapter(DiffSync):
             except AttributeError:
                 continue
 
+    def load_rackgroups(self):
+        """Add Nautobot RackGroup objects as DiffSync Room models."""
+        for rg in RackGroup.objects.all():
+            _building_name = Site.objects.get(name=rg.site).name
+            try:
+                self.add(self.room(name=rg.name, building=_building_name, notes=rg.description))
+            except AttributeError:
+                continue
+
     def load_interface(self, interface_record, device_model):
         """Import a single Nautobot Interface object as a DiffSync Interface model."""
         interface = self.interface(
@@ -57,3 +67,4 @@ class NautobotAdapter(DiffSync):
         """Load data from Nautobot."""
         # Import all Nautobot Site records as Buildings
         self.load_sites()
+        self.load_rackgroups()

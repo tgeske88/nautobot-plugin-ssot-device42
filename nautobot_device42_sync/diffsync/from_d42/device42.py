@@ -6,6 +6,7 @@ from diffsync import DiffSync
 from nautobot_device42_sync.diffsync.from_d42 import models
 from nautobot_device42_sync.diffsync.d42utils import Device42API
 from nautobot_device42_sync.constant import PLUGIN_CFG
+from nautobot_device42_sync.constant import DEFAULTS
 from decimal import Decimal
 
 
@@ -55,9 +56,21 @@ class Device42Adapter(DiffSync):
                 longitude=round(Decimal(record["longitude"] if record["longitude"] else 0.0), 6),
                 contact_name=record["contact_name"] if record.get("contact_name") else "",
                 contact_phone=record["contact_phone"] if record.get("contact_phone") else "",
-                rooms=record["rooms"] if record.get("rooms") else None,
+                rooms=record["rooms"] if record.get("rooms") else [],
             )
             self.add(building)
+
+    def load_rooms(self):
+        """Load Device42 rooms."""
+        for record in self._device42.api_call(path="api/1.0/rooms")["rooms"]:
+            room = self.room(
+                name=record["name"],
+                building=record["building"] if record.get("building") else DEFAULTS.get("site"),
+                notes=record["notes"] if record.get("notes") else "",
+            )
+            self.add(room)
+            _site = self.get(models.Building, record.get("building"))
+            _site.add_child(child=room)
 
     def load_devices(self):
         """Load Device42 devices."""
@@ -74,4 +87,5 @@ class Device42Adapter(DiffSync):
     def load(self):
         """Load data from Device42."""
         self.load_buildings()
+        self.load_rooms()
         # self.load_devices()
