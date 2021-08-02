@@ -2,7 +2,7 @@
 
 from diffsync import DiffSync
 from nautobot.dcim.models import Site
-from nautobot.dcim.models.racks import RackGroup
+from nautobot.dcim.models.racks import RackGroup, Rack
 from nautobot_device42_sync.diffsync.from_d42 import models
 
 
@@ -11,6 +11,7 @@ class NautobotAdapter(DiffSync):
 
     building = models.Building
     room = models.Room
+    rack = models.Rack
     vendor = models.Vendor
     hardware = models.Hardware
     device = models.Device
@@ -29,27 +30,43 @@ class NautobotAdapter(DiffSync):
         """Add Nautobot Site objects as DiffSync Building models."""
         for site in Site.objects.all():
             try:
-                self.add(
-                    self.building(
-                        name=site.name,
-                        address=site.physical_address,
-                        latitude=site.latitude,
-                        longitude=site.longitude,
-                        contact_name=site.contact_name,
-                        contact_phone=site.contact_phone,
-                    )
+                building = self.building(
+                    name=site.name,
+                    address=site.physical_address,
+                    latitude=site.latitude,
+                    longitude=site.longitude,
+                    contact_name=site.contact_name,
+                    contact_phone=site.contact_phone,
                 )
+                self.add(building)
             except AttributeError:
                 continue
 
     def load_rackgroups(self):
         """Add Nautobot RackGroup objects as DiffSync Room models."""
         for rg in RackGroup.objects.all():
-            _building_name = Site.objects.get(name=rg.site).name
             try:
-                self.add(self.room(name=rg.name, building=_building_name, notes=rg.description))
+                room = self.room(name=rg.name, building=Site.objects.get(name=rg.site).name, notes=rg.description)
+                self.add(room)
+                _site = self.get(self.building, Site.objects.get(name=rg.site).name)
+                _site.add_child(child=room)
             except AttributeError:
                 continue
+
+    def load_racks(self):
+        """Add Nautobot Rack objects as DiffSync Rack models."""
+        for rack in Rack.objects.all():
+            _building_name = Site.objects.get(name=rack.site).name
+            new_rack = self.rack(
+                name=rack.name,
+                building=_building_name,
+                room=RackGroup.objects.get(name=rack.group, site__name=_building_name).name,
+                height=rack.u_height,
+                numbering_start_from_bottom="no" if rack.desc_units else "yes",
+            )
+            self.add(new_rack)
+            _room = self.get(self.room, {"name": rack.group, "building": _building_name})
+            _room.add_child(child=new_rack)
 
     def load_interface(self, interface_record, device_model):
         """Import a single Nautobot Interface object as a DiffSync Interface model."""
@@ -58,7 +75,7 @@ class NautobotAdapter(DiffSync):
             name=interface_record.name,
             device_name=device_model.name,
             description=interface_record.description,
-            pk=interface_record.pk,
+            pk=interface_record.id,
         )
         self.add(interface)
         device_model.add_child(interface)
@@ -68,3 +85,4 @@ class NautobotAdapter(DiffSync):
         # Import all Nautobot Site records as Buildings
         self.load_sites()
         self.load_rackgroups()
+        self.load_racks()

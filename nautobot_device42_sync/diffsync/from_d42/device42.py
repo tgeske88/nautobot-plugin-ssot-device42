@@ -6,7 +6,6 @@ from diffsync import DiffSync
 from nautobot_device42_sync.diffsync.from_d42 import models
 from nautobot_device42_sync.diffsync.d42utils import Device42API
 from nautobot_device42_sync.constant import PLUGIN_CFG
-from nautobot_device42_sync.constant import DEFAULTS
 from decimal import Decimal
 
 
@@ -15,6 +14,7 @@ class Device42Adapter(DiffSync):
 
     building = models.Building
     room = models.Room
+    rack = models.Rack
     vendor = models.Vendor
     hardware = models.Hardware
     device = models.Device
@@ -60,21 +60,43 @@ class Device42Adapter(DiffSync):
             )
             self.add(building)
 
-    def load_rooms(self):
+    def load_rooms(self, job=None):
         """Load Device42 rooms."""
         for record in self._device42.api_call(path="api/1.0/rooms")["rooms"]:
-            room = self.room(
-                name=record["name"],
-                building=record["building"] if record.get("building") else DEFAULTS.get("site"),
-                notes=record["notes"] if record.get("notes") else "",
-            )
-            self.add(room)
-            _site = self.get(models.Building, record.get("building"))
-            _site.add_child(child=room)
+            if record.get("building"):
+                room = self.room(
+                    name=record["name"],
+                    building=record["building"],
+                    notes=record["notes"] if record.get("notes") else "",
+                )
+                self.add(room)
+                _site = self.get(self.building, record.get("building"))
+                _site.add_child(child=room)
+            else:
+                job.log_error(f"{record['name']} is missing Building and won't be imported.")
+
+    def load_racks(self, job=None):
+        """Load Device42 racks."""
+        for record in self._device42.api_call(path="api/1.0/racks")["racks"]:
+            if record.get("building") and record.get("room"):
+                rack = self.rack(
+                    name=record["name"],
+                    building=record["building"],
+                    room=record["room"],
+                    height=record["size"] if record.get("size") else 1,
+                    numbering_start_from_bottom=record["numbering_start_from_bottom"],
+                )
+                self.add(rack)
+                _room = self.get(
+                    self.room, {"name": record["room"], "building": record["building"], "room": record["room"]}
+                )
+                _room.add_child(child=rack)
+            else:
+                job.log_error(f"{record['name']} is missing Building and Room and won't be imported.")
 
     def load_devices(self):
         """Load Device42 devices."""
-        for device_record in self._device42.api_call(path="api/2.0/devices/")["Devices"]:
+        for device_record in self._device42.api_call(path="api/2.0/devices/")["devices"]:
             device = self.device(
                 device_name=device_record["name"],
                 hardware=self._device42_hardwares[device_record["hardware_id"]]["name"]
@@ -88,4 +110,5 @@ class Device42Adapter(DiffSync):
         """Load data from Device42."""
         self.load_buildings()
         self.load_rooms()
+        self.load_racks()
         # self.load_devices()

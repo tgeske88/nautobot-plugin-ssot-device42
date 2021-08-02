@@ -7,6 +7,7 @@ from django.templatetags.static import static
 from nautobot.extras.jobs import Job, BooleanVar
 from nautobot_ssot.jobs.base import DataSource, DataMapping
 from diffsync import DiffSyncFlags
+from diffsync.exceptions import ObjectNotCreated
 from nautobot_device42_sync.diffsync.from_d42.device42 import Device42Adapter
 from nautobot_device42_sync.diffsync.from_d42.nautobot import NautobotAdapter
 from nautobot_device42_sync.constant import PLUGIN_CFG
@@ -67,6 +68,8 @@ class Device42DataSource(DataSource, Job):
             except HTTPError as err:
                 self.log_failure(message="Sync failed.")
                 raise err
+            except ObjectNotCreated as err:
+                self.log_debug(f"Unable to create object. {err}")
             self.log_success(message="Sync complete.")
 
 
