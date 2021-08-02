@@ -18,7 +18,8 @@ class Device42Adapter(DiffSync):
     vendor = models.Vendor
     hardware = models.Hardware
     device = models.Device
-    top_level = ["building"]
+
+    top_level = ["building", "vendor", "hardware", "device"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Device42Adapter.
@@ -94,6 +95,12 @@ class Device42Adapter(DiffSync):
             else:
                 job.log_error(f"{record['name']} is missing Building and Room and won't be imported.")
 
+    def load_vendors(self):
+        """Load Device42 vendors."""
+        for _vendor in self._device42.api_call(path="api/1.0/vendors")["vendors"]:
+            vendor = self.vendor(name=_vendor["name"])
+            self.add(vendor)
+
     def load_devices(self):
         """Load Device42 devices."""
         for device_record in self._device42.api_call(path="api/2.0/devices/")["devices"]:
@@ -111,4 +118,5 @@ class Device42Adapter(DiffSync):
         self.load_buildings()
         self.load_rooms()
         self.load_racks()
+        self.load_vendors()
         # self.load_devices()
