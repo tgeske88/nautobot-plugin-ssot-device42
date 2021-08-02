@@ -9,6 +9,7 @@ from nautobot.dcim.models import Site as NautobotSite
 from nautobot.dcim.models.racks import RackGroup as NautobotRackGroup
 from nautobot.dcim.models.racks import Rack as NautobotRack
 from nautobot.dcim.models import Manufacturer as NautobotManufacturer
+from nautobot.dcim.models import DeviceType as NautobotDeviceType
 from nautobot.dcim.models import Device as NautobotDevice
 import nautobot_device42_sync.diffsync.nbutils as nbutils
 from nautobot_device42_sync.constant import DEFAULTS
@@ -185,32 +186,49 @@ class Hardware(DiffSyncModel):
     """Device42 Hardware model."""
 
     _modelname = "hardware"
-    _identifiers = (
-        "name",
-        "hardware_id",
-    )
+    _identifiers = ("name",)
     _shortname = ("name",)
     _attributes = (
-        "size",
-        "type",
-        "depth",
-        "part_no",
         "manufacturer",
-        "watts",
-        "network_device",
-        "blade_host",
+        "size",
+        "depth",
+        "part_number",
     )
     _children = {}
     name: str
-    hardware_id: int
-    size: float
-    type: Optional[str]
-    depth: str
-    part_no: Optional[str]
     manufacturer: str
-    watts: Optional[int]
-    network_device: Optional[bool]
-    blade_host: Optional[bool]
+    size: float
+    depth: Optional[str]
+    part_number: Optional[str]
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create DeviceType object in Nautobot."""
+        try:
+            NautobotDeviceType.objects.get(slug=slugify(ids["name"]))
+        except NautobotDeviceType.DoesNotExist:
+            new_dt = NautobotDeviceType(
+                model=ids["name"],
+                slug=slugify(ids["name"]),
+                manufacturer=NautobotManufacturer.objects.get(slug=slugify(attrs["manufacturer"])),
+                part_number=attrs["part_number"] if attrs.get("part_number") else "",
+                u_height=int(attrs["size"]) if attrs.get("size") else 1,
+                is_full_depth=True if attrs.get("depth") == "Full Depth" else False,
+            )
+            new_dt.validated_save()
+            return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+
+    def update(self, attrs):
+        """Update DeviceType object in Nautobot."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete DeviceType object from Nautobot."""
+        self.diffsync.job.log_warning(f"DeviceType {self.name} will be deleted.")
+        _dt = NautobotDeviceType.objects.get(name=self.name)
+        _dt.delete()
+        super().delete()
+        return self
 
 
 class Device(DiffSyncModel):
@@ -269,3 +287,4 @@ class Device(DiffSyncModel):
 Building.update_forward_refs()
 Room.update_forward_refs()
 Rack.update_forward_refs()
+Vendor.update_forward_refs()

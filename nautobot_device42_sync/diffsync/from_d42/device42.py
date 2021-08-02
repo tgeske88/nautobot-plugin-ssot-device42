@@ -2,7 +2,7 @@
 
 from django.utils.functional import classproperty
 from diffsync import DiffSync
-
+from diffsync.exceptions import ObjectAlreadyExists
 from nautobot_device42_sync.diffsync.from_d42 import models
 from nautobot_device42_sync.diffsync.d42utils import Device42API
 from nautobot_device42_sync.constant import PLUGIN_CFG
@@ -19,7 +19,7 @@ class Device42Adapter(DiffSync):
     hardware = models.Hardware
     device = models.Device
 
-    top_level = ["building", "vendor", "hardware", "device"]
+    top_level = ["building", "vendor", "device"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Device42Adapter.
@@ -101,6 +101,24 @@ class Device42Adapter(DiffSync):
             vendor = self.vendor(name=_vendor["name"])
             self.add(vendor)
 
+    def load_hardware_models(self):
+        """Load Device42 hardware models."""
+        for _model in self._device42.api_call(path="api/1.0/hardwares/")["models"]:
+            if _model.get("manufacturer"):
+                model = self.hardware(
+                    name=_model["name"],
+                    manufacturer=_model["manufacturer"] if _model.get("manufacturer") else "Unknown",
+                    size=_model["size"] if _model.get("size") else 1,
+                    depth=_model["depth"] if _model.get("depth") else 1,
+                    part_number=_model["part_no"],
+                )
+                try:
+                    self.add(model)
+                    _manu = self.get(self.vendor, _model["manufacturer"])
+                    _manu.add_child(model)
+                except ObjectAlreadyExists as err:
+                    print(err)
+
     def load_devices(self):
         """Load Device42 devices."""
         for device_record in self._device42.api_call(path="api/2.0/devices/")["devices"]:
@@ -119,4 +137,5 @@ class Device42Adapter(DiffSync):
         self.load_rooms()
         self.load_racks()
         self.load_vendors()
+        self.load_hardware_models()
         # self.load_devices()

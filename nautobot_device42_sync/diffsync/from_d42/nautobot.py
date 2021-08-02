@@ -2,7 +2,7 @@
 
 from diffsync import DiffSync
 from nautobot.dcim.models import Site
-from nautobot.dcim.models.devices import Manufacturer
+from nautobot.dcim.models.devices import Manufacturer, DeviceType
 from nautobot.dcim.models.racks import RackGroup, Rack
 from nautobot_device42_sync.diffsync.from_d42 import models
 
@@ -17,10 +17,15 @@ class NautobotAdapter(DiffSync):
     hardware = models.Hardware
     device = models.Device
 
-    top_level = ["building", "vendor", "hardware", "device"]
+    top_level = ["building", "vendor", "device"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
-        """Initialize the Device42 DiffSync adapter."""
+        """Initialize the Device42 DiffSync adapter.
+
+        Args:
+            job (object, optional): Nautobot job. Defaults to None.
+            sync (object, optional): Nautobot DiffSync. Defaults to None.
+        """
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
@@ -73,6 +78,20 @@ class NautobotAdapter(DiffSync):
             new_manu = self.vendor(name=manu.name)
             self.add(new_manu)
 
+    def load_device_types(self):
+        """Add Nautobot DeviceType objects as DiffSync Hardware models."""
+        for dt in DeviceType.objects.all():
+            dtype = self.hardware(
+                name=dt["model"],
+                manufacturer=dt["manufacturer"],
+                size=dt["u_height"],
+                depth="Full Depth" if dt["is_full_depth"] else "Half Depth",
+                part_number=dt["part_number"],
+            )
+            self.add(dtype)
+            _manu = self.get(self.vendor, dt["manufacturer"])
+            _manu.add_child(dtype)
+
     def load_interface(self, interface_record, device_model):
         """Import a single Nautobot Interface object as a DiffSync Interface model."""
         interface = self.interface(
@@ -92,3 +111,4 @@ class NautobotAdapter(DiffSync):
         self.load_rackgroups()
         self.load_racks()
         self.load_manufacturers()
+        self.load_device_types()
