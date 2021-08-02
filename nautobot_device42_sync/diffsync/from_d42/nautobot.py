@@ -2,6 +2,7 @@
 
 from diffsync import DiffSync
 from nautobot.dcim.models import Site
+from nautobot.dcim.models.devices import Manufacturer
 from nautobot.dcim.models.racks import RackGroup, Rack
 from nautobot_device42_sync.diffsync.from_d42 import models
 
@@ -16,9 +17,7 @@ class NautobotAdapter(DiffSync):
     hardware = models.Hardware
     device = models.Device
 
-    top_level = [
-        "building",
-    ]
+    top_level = ["building", "vendor", "hardware", "device"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize the Device42 DiffSync adapter."""
@@ -68,6 +67,12 @@ class NautobotAdapter(DiffSync):
             _room = self.get(self.room, {"name": rack.group, "building": _building_name})
             _room.add_child(child=new_rack)
 
+    def load_manufacturers(self):
+        """Add Nautobot Manufacturer objects as DiffSync Vendor models."""
+        for manu in Manufacturer.objects.all():
+            new_manu = self.vendor(name=manu.name)
+            self.add(new_manu)
+
     def load_interface(self, interface_record, device_model):
         """Import a single Nautobot Interface object as a DiffSync Interface model."""
         interface = self.interface(
@@ -86,3 +91,4 @@ class NautobotAdapter(DiffSync):
         self.load_sites()
         self.load_rackgroups()
         self.load_racks()
+        self.load_manufacturers()

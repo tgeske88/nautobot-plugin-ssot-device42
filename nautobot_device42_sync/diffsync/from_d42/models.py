@@ -8,6 +8,7 @@ from nautobot.extras.models import Status as NautobotStatus
 from nautobot.dcim.models import Site as NautobotSite
 from nautobot.dcim.models.racks import RackGroup as NautobotRackGroup
 from nautobot.dcim.models.racks import Rack as NautobotRack
+from nautobot.dcim.models import Manufacturer as NautobotManufacturer
 from nautobot.dcim.models import Device as NautobotDevice
 import nautobot_device42_sync.diffsync.nbutils as nbutils
 from nautobot_device42_sync.constant import DEFAULTS
@@ -105,15 +106,12 @@ class Rack(DiffSyncModel):
     _identifiers = ("name", "building", "room")
     _shortname = ("name",)
     _attributes = ("height", "numbering_start_from_bottom")
-    _children = {
-        "device": "devices",
-    }
+    _children = {}
     name: str
     building: str
     room: str
     height: int
     numbering_start_from_bottom: str
-    devices: List["Device"] = list()
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -150,20 +148,37 @@ class Vendor(DiffSyncModel):
     _modelname = "vendor"
     _identifiers = ("name",)
     _shortname = ("name",)
-    _attributes = (
-        "contact_info",
-        "escalation_1",
-        "home_page",
-    )
+    _attributes = ()
     _children = {
         "hardware": "models",
     }
     name: str
-    vendor_id: int
-    contact_info: Optional[str]
-    escalation_1: Optional[str]
-    home_page: Optional[str]
     models: List["Hardware"] = list()
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Manufacturer object in Nautobot."""
+        try:
+            NautobotManufacturer.objects.get(slug=slugify(ids["name"]))
+        except NautobotManufacturer.DoesNotExist:
+            new_manu = NautobotManufacturer(
+                name=ids["name"],
+                slug=slugify(ids["name"]),
+            )
+            new_manu.validated_save()
+            return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Manufactuer object in Nautobot."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Manufactuer object from Nautobot."""
+        self.diffsync.job.log_warning(f"Manufacturer {self.name} will be deleted.")
+        _manu = NautobotManufacturer.objects.get(name=self.name)
+        _manu.delete()
+        super().delete()
+        return self
 
 
 class Hardware(DiffSyncModel):
@@ -185,9 +200,7 @@ class Hardware(DiffSyncModel):
         "network_device",
         "blade_host",
     )
-    _children = {
-        "device": "devices",
-    }
+    _children = {}
     name: str
     hardware_id: int
     size: float
@@ -198,7 +211,6 @@ class Hardware(DiffSyncModel):
     watts: Optional[int]
     network_device: Optional[bool]
     blade_host: Optional[bool]
-    devices: List["Device"] = list()
 
 
 class Device(DiffSyncModel):
