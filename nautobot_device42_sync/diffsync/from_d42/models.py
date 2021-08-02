@@ -3,9 +3,11 @@
 from django.utils.text import slugify
 from diffsync import DiffSyncModel
 from typing import Optional, List
+from nautobot.core.settings_funcs import is_truthy
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot.dcim.models import Site as NautobotSite
-from nautobot.dcim.models import RackGroup as NautobotRackGroup
+from nautobot.dcim.models.racks import RackGroup as NautobotRackGroup
+from nautobot.dcim.models.racks import Rack as NautobotRack
 from nautobot.dcim.models import Device as NautobotDevice
 import nautobot_device42_sync.diffsync.nbutils as nbutils
 from nautobot_device42_sync.constant import DEFAULTS
@@ -65,9 +67,11 @@ class Room(DiffSyncModel):
     _identifiers = ("name", "building")
     _shortname = ("name",)
     _attributes = ("notes",)
+    _children = {"rack": "racks"}
     name: str
     building: str
     notes: Optional[str]
+    racks: List["Rack"] = list()
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -90,6 +94,52 @@ class Room(DiffSyncModel):
         self.diffsync.job.log_warning(f"Room {self.name} will be deleted.")
         _rg = NautobotRackGroup.objects.get(name=self.name)
         _rg.delete()
+        super().delete()
+        return self
+
+
+class Rack(DiffSyncModel):
+    """Device42 Rack model."""
+
+    _modelname = "rack"
+    _identifiers = ("name", "building", "room")
+    _shortname = ("name",)
+    _attributes = ("height", "numbering_start_from_bottom")
+    _children = {
+        "device": "devices",
+    }
+    name: str
+    building: str
+    room: str
+    height: int
+    numbering_start_from_bottom: str
+    devices: List["Device"] = list()
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Rack object in Nautobot."""
+        _site = NautobotSite.objects.get(name=ids["building"])
+        _rg = NautobotRackGroup.objects.get(name=ids["room"], site__name=ids["building"])
+        new_rack = NautobotRack(
+            name=ids["name"],
+            site=_site,
+            group=_rg,
+            status=NautobotStatus.objects.get(name=DEFAULTS.get("rack_status")),
+            u_height=attrs["height"] if attrs.get("height") else 1,
+            desc_units=not (is_truthy(attrs["numbering_start_from_bottom"])),
+        )
+        new_rack.validated_save()
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Rack object in Nautobot."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Rack object from Nautobot."""
+        self.diffsync.job.log_warning(f"Rack {self.name} will be deleted.")
+        _rack = NautobotRack.objects.get(name=self.name, site=NautobotSite.objects.get(name=self.building))
+        _rack.delete()
         super().delete()
         return self
 
@@ -205,3 +255,5 @@ class Device(DiffSyncModel):
 
 
 Building.update_forward_refs()
+Room.update_forward_refs()
+Rack.update_forward_refs()

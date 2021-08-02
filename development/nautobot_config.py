@@ -258,13 +258,12 @@ PLUGINS_CONFIG = {
         "device42_password": os.getenv("DEVICE42_PASSWORD", ""),
         "verify_ssl": False,
         "defaults": {
-            "site": "",
             "site_status": "Active",
+            "rack_status": "Active",
             "manufacturer": "",
             "device_type": "",
             "device_role": "",
             "role_color": "Grey",
-            "device": "",
         },
     },
 }
