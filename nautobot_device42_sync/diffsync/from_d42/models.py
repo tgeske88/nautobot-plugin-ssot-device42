@@ -11,6 +11,7 @@ from nautobot.dcim.models.racks import Rack as NautobotRack
 from nautobot.dcim.models import Manufacturer as NautobotManufacturer
 from nautobot.dcim.models import DeviceType as NautobotDeviceType
 from nautobot.dcim.models import Device as NautobotDevice
+from nautobot.virtualization.models import Cluster as NautobotCluster
 import nautobot_device42_sync.diffsync.nbutils as nbutils
 from nautobot_device42_sync.constant import DEFAULTS
 from decimal import Decimal
@@ -54,11 +55,16 @@ class Building(DiffSyncModel):
         return super().update(attrs)
 
     def delete(self):
-        """Delete Site object from Nautobot."""
+        """Delete Site object from Nautobot.
+
+        Because Site has a direct relationship with many other objects it can't be deleted before anything else.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
         self.diffsync.job.log_warning(f"Site {self.name} will be deleted.")
-        _site = NautobotSite.objects.get(name=self.name)
-        _site.delete()
         super().delete()
+        site = NautobotSite.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["site"].append(site)  # pylint: disable=protected-access
         return self
 
 
@@ -92,11 +98,16 @@ class Room(DiffSyncModel):
         return super().update(attrs)
 
     def delete(self):
-        """Delete RackGroup object from Nautobot."""
-        self.diffsync.job.log_warning(f"Room {self.name} will be deleted.")
-        _rg = NautobotRackGroup.objects.get(name=self.name)
-        _rg.delete()
+        """Delete RackGroup object from Nautobot.
+
+        Because RackGroup has a direct relationship to Rack objects it can't be deleted before any Racks.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
+        self.diffsync.job.log_warning(f"RackGroup {self.name} will be deleted.")
         super().delete()
+        rackgroup = NautobotRackGroup.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["rackgroup"].append(rackgroup)  # pylint: disable=protected-access
         return self
 
 
@@ -135,11 +146,16 @@ class Rack(DiffSyncModel):
         return super().update(attrs)
 
     def delete(self):
-        """Delete Rack object from Nautobot."""
+        """Delete Rack object from Nautobot.
+
+        Because Rack has a direct relationship with Devices it can't be deleted before they are.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
         self.diffsync.job.log_warning(f"Rack {self.name} will be deleted.")
-        _rack = NautobotRack.objects.get(name=self.name, site=NautobotSite.objects.get(name=self.building))
-        _rack.delete()
         super().delete()
+        rack = NautobotRack.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["rack"].append(rack)  # pylint: disable=protected-access
         return self
 
 
@@ -150,15 +166,13 @@ class Vendor(DiffSyncModel):
     _identifiers = ("name",)
     _shortname = ("name",)
     _attributes = ()
-    _children = {
-        "hardware": "models",
-    }
+    _children = {}
     name: str
-    models: List["Hardware"] = list()
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Manufacturer object in Nautobot."""
+        diffsync.job.log_debug(message=f"Creating Manufacturer {ids['name']}")
         try:
             NautobotManufacturer.objects.get(slug=slugify(ids["name"]))
         except NautobotManufacturer.DoesNotExist:
@@ -174,11 +188,16 @@ class Vendor(DiffSyncModel):
         return super().update(attrs)
 
     def delete(self):
-        """Delete Manufactuer object from Nautobot."""
+        """Delete Manufacturer object from Nautobot.
+
+        Because Manufacturer has a direct relationship with DeviceTypes and other objects it can't be deleted before them.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
         self.diffsync.job.log_warning(f"Manufacturer {self.name} will be deleted.")
-        _manu = NautobotManufacturer.objects.get(name=self.name)
-        _manu.delete()
         super().delete()
+        _manu = NautobotManufacturer.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["manufacturer"].append(_manu)  # pylint: disable=protected-access
         return self
 
 
@@ -204,6 +223,7 @@ class Hardware(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create DeviceType object in Nautobot."""
+        diffsync.job.log_debug(message=f"Creating DeviceType {ids['name']}")
         try:
             NautobotDeviceType.objects.get(slug=slugify(ids["name"]))
         except NautobotDeviceType.DoesNotExist:
@@ -223,11 +243,60 @@ class Hardware(DiffSyncModel):
         return super().update(attrs)
 
     def delete(self):
-        """Delete DeviceType object from Nautobot."""
+        """Delete DeviceType object from Nautobot.
+
+        Because DeviceType has a direct relationship with Devices it can't be deleted before all Devices are.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
         self.diffsync.job.log_warning(f"DeviceType {self.name} will be deleted.")
-        _dt = NautobotDeviceType.objects.get(name=self.name)
-        _dt.delete()
         super().delete()
+        _dt = NautobotDeviceType.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["device_type"].append(_dt)  # pylint: disable=protected-access
+        return self
+
+
+class Cluster(DiffSyncModel):
+    """Device42 Cluster model."""
+
+    _modelname = "cluster"
+    _identifiers = ("name",)
+    _shortname = ("name",)
+    _attributes = ("ctype", "building")
+    _children = {"device": "devices"}
+    name: str
+    ctype: str
+    building: Optional[str]
+    devices: List["Device"] = list()
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Cluster object in Nautobot."""
+        # diffsync.job.log_debug(message=f"Creating cluster {ids['name']}.")
+        ctype = nbutils.verify_cluster_type("network")
+        new_cluster = NautobotCluster(
+            name=ids["name"],
+            type=ctype,
+            site=NautobotSite.objects.get(name=attrs["building"]) if attrs.get("building") else None,
+        )
+        new_cluster.validated_save()
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Cluster object in Nautobot."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Cluster object from Nautobot.
+
+        Because Cluster has a direct relationship with Devices it can't be deleted before they are.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
+        self.diffsync.job.log_warning(f"Cluster {self.name} will be deleted.")
+        super().delete()
+        _cluster = NautobotCluster.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["cluster"].append(_cluster)  # pylint: disable=protected-access
         return self
 
 
@@ -235,52 +304,97 @@ class Device(DiffSyncModel):
     """Device42 Device model."""
 
     _modelname = "device"
-    _identifiers = (
-        "name",
-        "device_id",
-    )
+    _identifiers = ("name",)
     _shortname = ("name",)
     _attributes = (
-        "asset_no",
+        "dtype",
+        "building",
+        "room",
+        "rack",
+        "rack_position",
+        "rack_orientation",
+        "hardware",
+        "os",
+        "in_service",
+        "ip_addresses",
+        "interfaces",
         "serial_no",
-        "type",
+        "tags",
+        "cluster_host",
     )
     _children = {}
     name: str
-    device_id: int
-    type: str
-    site: str
-    hardware: str
-    primary_ip4: str
-    asset_no: Optional[str]
+    dtype: str
+    building: Optional[str]
+    room: Optional[str]
+    rack: Optional[str]
+    rack_position: Optional[float]
+    rack_orientation: Optional[str]
+    hardware: Optional[str]
+    os: Optional[str]
+    in_service: Optional[bool]
+    ip_addresses: Optional[List[str]] = list()
+    interfaces: Optional[List[dict]] = list()
     serial_no: Optional[str]
-    tags: List[Optional[str]] = list()
+    tags: Optional[List[str]] = list()
+    cluster_host: Optional[str]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device object in Nautobot."""
-        new_device = NautobotDevice(
-            name=ids["name"],
-            status=attrs["status"] if attrs.get("status") else DEFAULTS.get("status"),
-            site=attrs["site"] if attrs.get("site") else nbutils.verify_site(DEFAULTS.get("site")),
-            device_type=attrs["hardware"] if attrs.get("device_type") else DEFAULTS.get("device_type"),
-            device_role=attrs["role"] if attrs.get("role") else DEFAULTS.get("role"),
-            asset_tag=attrs["asset_no"],
-            serial=attrs["serial_no"],
-        )
-        new_device.validated_save()
-        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+        diffsync.job.log_debug(message=f"Creating device {ids['name']}.")
+        if attrs["in_service"]:
+            _status = NautobotStatus.objects.get(name="Active")
+        else:
+            _status = NautobotStatus.objects.get(name="Offline")
+        if attrs.get("building"):
+            try:
+                _dt = NautobotDeviceType.objects.get(model=attrs["hardware"])
+                new_device = NautobotDevice(
+                    name=ids["name"],
+                    status=_status,
+                    site=NautobotSite.objects.get(name=attrs["building"]),
+                    rack=NautobotRack.objects.get(
+                        name=attrs["rack"], site__name=attrs["building"], group__name=attrs["room"]
+                    ),
+                    position=int(attrs["rack_position"]) if attrs["rack_position"] else None,
+                    face=attrs["rack_orientation"] if attrs["rack_orientation"] else "front",
+                    device_type=_dt,
+                    device_role=nbutils.verify_device_role(role_name=DEFAULTS.get("device_role")),
+                    serial=attrs["serial_no"] if attrs.get("serial_no") else "",
+                )
+                if attrs.get("os"):
+                    new_device.platform = nbutils.verify_platform(
+                        platform_name=attrs["os"],
+                        manu=NautobotDeviceType.objects.get(model=attrs["hardware"]).manufacturer,
+                        napalm_driver=attrs["os"],
+                    )
+                if attrs.get("cluster_host"):
+                    new_device.cluster = NautobotCluster.objects.get(name=attrs["cluster_host"])
+                new_device.validated_save()
+                return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+            except NautobotDeviceType.DoesNotExist:
+                diffsync.job.log_warning(
+                    message=f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}."
+                )
+        else:
+            diffsync.job.log_warning(f"Device {ids['name']} is missing a Building and won't be created.")
 
-    def update(self, diffsync, attrs):
+    def update(self, attrs):
         """Update Device object in Nautobot."""
-        return super().update(attrs, diffsync)
+        return super().update(attrs)
 
     def delete(self):
-        """Delete Device object from Nautobot."""
+        """Delete Device object from Nautobot.
+
+        Because Device has a direct relationship with Ports and IP Addresses it can't be deleted before they are.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
         self.diffsync.job.log_warning(f"Device {self.name} will be deleted.")
-        device = NautobotDevice.objects.get(name=self.name)
-        device.delete()
         super().delete()
+        _dev = NautobotDevice.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["device"].append(_dev)  # pylint: disable=protected-access
         return self
 
 
@@ -288,3 +402,4 @@ Building.update_forward_refs()
 Room.update_forward_refs()
 Rack.update_forward_refs()
 Vendor.update_forward_refs()
+Cluster.update_forward_refs()
