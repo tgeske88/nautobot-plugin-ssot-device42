@@ -260,10 +260,8 @@ PLUGINS_CONFIG = {
         "defaults": {
             "site_status": "Active",
             "rack_status": "Active",
-            "manufacturer": "",
-            "device_type": "",
-            "device_role": "",
-            "role_color": "Grey",
+            "device_role": "Unknown",
+            "role_color": "9e9e9e",
         },
     },
 }
@@ -293,7 +291,7 @@ RELEASE_CHECK_URL = None
 # RELEASE_CHECK_URL = 'https://api.github.com/repos/nautobot/nautobot/releases'
 
 # Maximum execution time for background tasks, in seconds.
-RQ_DEFAULT_TIMEOUT = 300
+RQ_DEFAULT_TIMEOUT = 600
 
 # The length of time (in seconds) for which a user will remain logged into the web UI before being prompted to
 # re-authenticate. (Default: 1209600 [14 days])

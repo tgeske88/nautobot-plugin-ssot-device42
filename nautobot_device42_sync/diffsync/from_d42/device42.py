@@ -2,11 +2,13 @@
 
 from django.utils.functional import classproperty
 from diffsync import DiffSync
-from diffsync.exceptions import ObjectAlreadyExists
+from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
+from nautobot.core.settings_funcs import is_truthy
 from nautobot_device42_sync.diffsync.from_d42 import models
 from nautobot_device42_sync.diffsync.d42utils import Device42API
 from nautobot_device42_sync.constant import PLUGIN_CFG
 from decimal import Decimal
+import re
 
 
 class Device42Adapter(DiffSync):
@@ -17,9 +19,10 @@ class Device42Adapter(DiffSync):
     rack = models.Rack
     vendor = models.Vendor
     hardware = models.Hardware
+    cluster = models.Cluster
     device = models.Device
 
-    top_level = ["building", "vendor", "device"]
+    top_level = ["building", "vendor", "hardware", "cluster", "device"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Device42Adapter.
@@ -38,6 +41,7 @@ class Device42Adapter(DiffSync):
             password=PLUGIN_CFG["device42_password"],
             verify=PLUGIN_CFG["verify_ssl"],
         )
+        self._device42_clusters = self._device42.get_cluster_members()
 
     @classproperty
     def _device42_hardwares(self):
@@ -47,8 +51,30 @@ class Device42Adapter(DiffSync):
                 self._device42_hardware_dict[hardware["hardware_id"]] = hardware
         return self._device42_hardware_dict
 
+    @classmethod
+    def sanitize_string(self, san_str: str):
+        """Sanitize string to ensure it doesn't have invisible characters."""
+        return san_str.replace("\u200b", "")
+
+    def get_cidrs(self, address_list: list) -> list:
+        """Return list of CIDRs from list of dicts of IP Addresses from Device42.
+
+        Args:
+            address_list (list): List of dicts of IP addresses for a device in Device42.
+
+        Returns:
+            list: List of the CIDRs of the IP addresses for a device.
+        """
+        ip_list = []
+        for _ip in address_list:
+            _netmask = re.search(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?P<mask>\d+)", _ip["subnet"])
+            if _netmask:
+                ip_list.append(f"{_ip['ip']}/{_netmask.group('mask')}")
+        return ip_list
+
     def load_buildings(self):
         """Load Device42 buildings."""
+        self.job.log_debug("Loading buildings from Device42.")
         for record in self._device42.api_call(path="api/1.0/buildings")["buildings"]:
             building = self.building(
                 name=record["name"],
@@ -61,8 +87,9 @@ class Device42Adapter(DiffSync):
             )
             self.add(building)
 
-    def load_rooms(self, job=None):
+    def load_rooms(self):
         """Load Device42 rooms."""
+        self.job.log_debug("Loading rooms from Device42.")
         for record in self._device42.api_call(path="api/1.0/rooms")["rooms"]:
             if record.get("building"):
                 room = self.room(
@@ -74,10 +101,11 @@ class Device42Adapter(DiffSync):
                 _site = self.get(self.building, record.get("building"))
                 _site.add_child(child=room)
             else:
-                job.log_error(f"{record['name']} is missing Building and won't be imported.")
+                self.job.log_warning(f"{record['name']} is missing Building and won't be imported.")
 
-    def load_racks(self, job=None):
+    def load_racks(self):
         """Load Device42 racks."""
+        self.job.log_debug("Loading racks from Device42.")
         for record in self._device42.api_call(path="api/1.0/racks")["racks"]:
             if record.get("building") and record.get("room"):
                 rack = self.rack(
@@ -87,49 +115,132 @@ class Device42Adapter(DiffSync):
                     height=record["size"] if record.get("size") else 1,
                     numbering_start_from_bottom=record["numbering_start_from_bottom"],
                 )
-                self.add(rack)
-                _room = self.get(
-                    self.room, {"name": record["room"], "building": record["building"], "room": record["room"]}
-                )
-                _room.add_child(child=rack)
+                try:
+                    self.add(rack)
+                    _room = self.get(
+                        self.room, {"name": record["room"], "building": record["building"], "room": record["room"]}
+                    )
+                    _room.add_child(child=rack)
+                except ObjectAlreadyExists as err:
+                    self.job.log_warning(f"Rack already exists. {err}")
             else:
-                job.log_error(f"{record['name']} is missing Building and Room and won't be imported.")
+                self.job.log_warning(f"{record['name']} is missing Building and Room and won't be imported.")
 
     def load_vendors(self):
         """Load Device42 vendors."""
+        self.job.log_debug("Loading vendors from Device42.")
         for _vendor in self._device42.api_call(path="api/1.0/vendors")["vendors"]:
             vendor = self.vendor(name=_vendor["name"])
             self.add(vendor)
 
     def load_hardware_models(self):
         """Load Device42 hardware models."""
+        self.job.log_debug("Loading hardware models from Device42.")
         for _model in self._device42.api_call(path="api/1.0/hardwares/")["models"]:
             if _model.get("manufacturer"):
                 model = self.hardware(
                     name=_model["name"],
                     manufacturer=_model["manufacturer"] if _model.get("manufacturer") else "Unknown",
                     size=_model["size"] if _model.get("size") else 1,
-                    depth=_model["depth"] if _model.get("depth") else 1,
+                    depth=_model["depth"] if _model.get("depth") else "",
                     part_number=_model["part_no"],
                 )
                 try:
                     self.add(model)
-                    _manu = self.get(self.vendor, _model["manufacturer"])
-                    _manu.add_child(model)
                 except ObjectAlreadyExists as err:
-                    print(err)
+                    self.job.log_warning(f"Hardware model already exists. {err}")
 
-    def load_devices(self):
-        """Load Device42 devices."""
-        for device_record in self._device42.api_call(path="api/2.0/devices/")["devices"]:
-            device = self.device(
-                device_name=device_record["name"],
-                hardware=self._device42_hardwares[device_record["hardware_id"]]["name"]
-                if device_record.get("hardware_id")
-                else None,
-                serial=device_record["serial_no"],
+    def get_cluster_host(self, device: str) -> str or bool:
+        """Get name of cluster host if device is in a cluster.
+
+        Args:
+            device (str): Name of device to see if part of cluster.
+
+        Returns:
+            str or bool: Name of cluster device is part of or returns False.
+        """
+        for _cluster, _info in self._device42_clusters.items():
+            if device in _info["members"]:
+                return _cluster
+        return False
+
+    def load_cluster(self, cluster_name: dict) -> models.Cluster:
+        """Load Device42 clusters into DiffSync model.
+
+        Args:
+            cluster_name (dict): Name of cluster to be added to DiffSync model.
+
+        Returns:
+            models.Cluster: Cluster model that has been created or found.
+        """
+        try:
+            _cluster = self.get(self.cluster, cluster_name)
+        except ObjectAlreadyExists as err:
+            self.job.log_warning(f"Cluster {cluster_name} already has been added. {err}")
+        except ObjectNotFound:
+            self.job.log_debug(f"Cluster {cluster_name} being added.")
+            _cluster = self.cluster(
+                name=cluster_name,
+                ctype="network",
             )
-            self.add(device)
+            self.add(_cluster)
+        return _cluster
+
+    def load_devices_and_clusters(self):
+        """Load Device42 devices."""
+        # Get all Devices from Device42
+        self.job.log_debug("Retrieving devices from Device42.")
+        _devices = self._device42.api_call(path="api/1.0/devices/all/?is_it_switch=yes")["Devices"]
+
+        # Add all Clusters first
+        self.job.log_debug("Loading clusters...")
+        for _record in _devices:
+            if _record.get("type") == "cluster":
+                _cluster = self.load_cluster(_record["name"])
+                _cluster.building = _record["building"] if _record.get("building") else ""
+                if _record.get("name") in self._device42_clusters.keys():
+                    self._device42_clusters[_record.get("name")]["is_network"] = _record.get("is_it_switch")
+                else:
+                    self.job.log_warning(
+                        f"Cluster {_record['name']} has no cluster members. Please validate this is correct."
+                    )
+
+        # Then iterate through again and add Devices and if are part of a cluster, add to Cluster
+        self.job.log_debug("Loading devices...")
+        for _record in _devices:
+            # self.job.log_debug(f"Record for {_record['name']}: {_record}.")
+            if _record.get("type") != "cluster":
+                _device = self.device(
+                    name=_record["name"],
+                    dtype=_record["type"],
+                    building=_record["building"] if _record.get("building") else "",
+                    room=_record["room"] if _record.get("room") else "",
+                    rack=_record["rack"] if _record.get("rack") else "",
+                    rack_position=int(_record["start_at"]) if _record.get("start_at") else None,
+                    rack_orientation="front" if _record.get("orientation") == 1 else "rear",
+                    hardware=self.sanitize_string(_record["hw_model"]) if _record.get("hw_model") else "",
+                    os=_record.get("os"),
+                    in_service=_record.get("in_service"),
+                    ip_addresses=self.get_cidrs(_record["ip_addresses"]) if _record.get("ip_addresses") else [],
+                    serial_no=_record["serial_no"],
+                    tags=_record["tags"],
+                )
+                try:
+                    cluster_host = self.get_cluster_host(_record["name"])
+                    if cluster_host:
+                        if is_truthy(self._device42_clusters[cluster_host]["is_network"]) is False:
+                            self.job.log_warning(
+                                f"{cluster_host} has network device members but isn't marked as network. This should be corrected in Device42."
+                            )
+                        _clus = self.load_cluster(cluster_host)
+                        _device.cluster_host = cluster_host
+                        self.job.log_debug(f"Device {_record['name']} being added.")
+                        self.add(_device)
+                        _clus.add_child(_device)
+                    else:
+                        self.add(_device)
+                except ObjectAlreadyExists as err:
+                    self.job.log_warning(f"Device already added. {err}")
 
     def load(self):
         """Load data from Device42."""
@@ -138,4 +249,4 @@ class Device42Adapter(DiffSync):
         self.load_racks()
         self.load_vendors()
         self.load_hardware_models()
-        # self.load_devices()
+        self.load_devices_and_clusters()

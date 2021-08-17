@@ -1,10 +1,14 @@
 """DiffSync adapter class for Nautobot as source-of-truth."""
 
+from typing import DefaultDict
 from diffsync import DiffSync
 from nautobot.dcim.models import Site
-from nautobot.dcim.models.devices import Manufacturer, DeviceType
+from nautobot.dcim.models.devices import Manufacturer, DeviceType, Device
 from nautobot.dcim.models.racks import RackGroup, Rack
+from nautobot.extras.choices import LogLevelChoices
+from nautobot.virtualization.models import Cluster
 from nautobot_device42_sync.diffsync.from_d42 import models
+from django.db.models import ProtectedError
 
 
 class NautobotAdapter(DiffSync):
@@ -15,9 +19,10 @@ class NautobotAdapter(DiffSync):
     rack = models.Rack
     vendor = models.Vendor
     hardware = models.Hardware
+    cluster = models.Cluster
     device = models.Device
 
-    top_level = ["building", "vendor", "device"]
+    top_level = ["building", "vendor", "hardware", "cluster", "device"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize the Device42 DiffSync adapter.
@@ -29,6 +34,38 @@ class NautobotAdapter(DiffSync):
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
+        self._objects_to_delete = DefaultDict()
+
+    def sync_complete(self, source: DiffSync, *args, **kwargs):
+        """Clean up function for DiffSync sync.
+
+        Once the sync is complete, this function runs deleting any objects
+        from Nautobot that need to be deleted in a specific order.
+
+        Args:
+            source (DiffSync): DiffSync
+        """
+        # print(f"Objects to delete: {self._objects_to_delete}")
+        # for grouping in (
+        #     "device",
+        #     "site",
+        #     "region",
+        #     "device_type",
+        #     "device_role",
+        #     "manufacturer",
+        #     "vrf",
+        #     "peering_role",
+        #     "asn",
+        #     "ip_address",
+        # ):
+        #     for nautobot_object in self._objects_to_delete[grouping]:
+        #         try:
+        #             nautobot_object.delete()
+        #         except ProtectedError:
+        #             self.log(
+        #                 f"Deletion failed protected object: {nautobot_object}", log_level=LogLevelChoices.LOG_FAILURE
+        #             )
+        #     self._objects_to_delete[grouping] = []
 
     def load_sites(self):
         """Add Nautobot Site objects as DiffSync Building models."""
@@ -82,15 +119,46 @@ class NautobotAdapter(DiffSync):
         """Add Nautobot DeviceType objects as DiffSync Hardware models."""
         for dt in DeviceType.objects.all():
             dtype = self.hardware(
-                name=dt["model"],
-                manufacturer=dt["manufacturer"],
-                size=dt["u_height"],
-                depth="Full Depth" if dt["is_full_depth"] else "Half Depth",
-                part_number=dt["part_number"],
+                name=dt.model,
+                manufacturer=dt.manufacturer.name,
+                size=dt.u_height,
+                depth="Full Depth" if dt.is_full_depth else "Half Depth",
+                part_number=dt.part_number,
             )
             self.add(dtype)
-            _manu = self.get(self.vendor, dt["manufacturer"])
-            _manu.add_child(dtype)
+
+    def load_clusters(self):
+        """Add Nautobot Cluster objects as DiffSync Cluster models."""
+        for clus in Cluster.objects.all():
+            _clus = self.cluster(
+                name=clus.name,
+                ctype="cluster",
+                building=clus.site,
+            )
+            self.add(_clus)
+
+    def load_devices(self):
+        """Add Nautobot Device objects as DiffSync Device models."""
+        for dev in Device.objects.all():
+            self.job.log_debug(message=f"Loading Device: {dev.name}.")
+            _dev = self.device(
+                name=dev.name,
+                dtype="physical",
+                building=dev.site.name,
+                room=dev.rack.group.name,
+                rack=dev.rack.name,
+                rack_position=dev.position,
+                rack_orientation=dev.face,
+                hardware=dev.device_type.model,
+                os=dev.platform.napalm_driver if dev.platform else "",
+                in_service=True if dev.status == "Active" else False,
+                serial_no=dev.serial if dev.serial else "",
+                # tags=dev.tags,
+            )
+            self.add(_dev)
+            if dev.cluster:
+                _clus = self.get(self.cluster, {"name": dev.cluster})
+                _clus.add_child(_dev)
 
     def load_interface(self, interface_record, device_model):
         """Import a single Nautobot Interface object as a DiffSync Interface model."""
@@ -112,3 +180,5 @@ class NautobotAdapter(DiffSync):
         self.load_racks()
         self.load_manufacturers()
         self.load_device_types()
+        self.load_clusters()
+        self.load_devices()
