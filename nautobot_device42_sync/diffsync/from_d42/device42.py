@@ -21,6 +21,7 @@ class Device42Adapter(DiffSync):
     hardware = models.Hardware
     cluster = models.Cluster
     device = models.Device
+    port = models.Port
 
     top_level = ["building", "vendor", "hardware", "cluster", "device"]
 
@@ -85,7 +86,10 @@ class Device42Adapter(DiffSync):
                 contact_phone=record["contact_phone"] if record.get("contact_phone") else "",
                 rooms=record["rooms"] if record.get("rooms") else [],
             )
-            self.add(building)
+            try:
+                self.add(building)
+            except ObjectAlreadyExists as err:
+                self.job.log_debug(f"{record['name']} is already loaded. {err}")
 
     def load_rooms(self):
         """Load Device42 rooms."""
@@ -97,11 +101,14 @@ class Device42Adapter(DiffSync):
                     building=record["building"],
                     notes=record["notes"] if record.get("notes") else "",
                 )
-                self.add(room)
-                _site = self.get(self.building, record.get("building"))
-                _site.add_child(child=room)
+                try:
+                    self.add(room)
+                    _site = self.get(self.building, record.get("building"))
+                    _site.add_child(child=room)
+                except ObjectAlreadyExists as err:
+                    self.job.log_debug(f"{record['name']} is already loaded. {err}")
             else:
-                self.job.log_warning(f"{record['name']} is missing Building and won't be imported.")
+                self.job.log_debug(f"{record['name']} is missing Building and won't be imported.")
 
     def load_racks(self):
         """Load Device42 racks."""
@@ -122,9 +129,9 @@ class Device42Adapter(DiffSync):
                     )
                     _room.add_child(child=rack)
                 except ObjectAlreadyExists as err:
-                    self.job.log_warning(f"Rack already exists. {err}")
+                    self.job.log_debug(f"Rack {record['name']} already exists. {err}")
             else:
-                self.job.log_warning(f"{record['name']} is missing Building and Room and won't be imported.")
+                self.job.log_debug(f"{record['name']} is missing Building and Room and won't be imported.")
 
     def load_vendors(self):
         """Load Device42 vendors."""
@@ -148,7 +155,7 @@ class Device42Adapter(DiffSync):
                 try:
                     self.add(model)
                 except ObjectAlreadyExists as err:
-                    self.job.log_warning(f"Hardware model already exists. {err}")
+                    self.job.log_debug(f"Hardware model already exists. {err}")
 
     def get_cluster_host(self, device: str) -> str or bool:
         """Get name of cluster host if device is in a cluster.
@@ -176,7 +183,7 @@ class Device42Adapter(DiffSync):
         try:
             _cluster = self.get(self.cluster, cluster_name)
         except ObjectAlreadyExists as err:
-            self.job.log_warning(f"Cluster {cluster_name} already has been added. {err}")
+            self.job.log_debug(f"Cluster {cluster_name} already has been added. {err}")
         except ObjectNotFound:
             self.job.log_debug(f"Cluster {cluster_name} being added.")
             _cluster = self.cluster(
@@ -201,7 +208,7 @@ class Device42Adapter(DiffSync):
                 if _record.get("name") in self._device42_clusters.keys():
                     self._device42_clusters[_record.get("name")]["is_network"] = _record.get("is_it_switch")
                 else:
-                    self.job.log_warning(
+                    self.job.log_debug(
                         f"Cluster {_record['name']} has no cluster members. Please validate this is correct."
                     )
 
@@ -240,7 +247,33 @@ class Device42Adapter(DiffSync):
                     else:
                         self.add(_device)
                 except ObjectAlreadyExists as err:
-                    self.job.log_warning(f"Device already added. {err}")
+                    self.job.log_debug(f"Device already added. {err}")
+
+    def load_ports(self):
+        """Load Device42 ports."""
+        print("Retrieving ports from Device42.")
+        phy_ports = self._device42.get_physical_intfs()
+        logical_ports = self._device42.get_logical_intfs()
+        _ports = phy_ports + logical_ports
+        for _port in _ports:
+            if _port.get("port_name"):
+                try:
+                    new_port = self.port(
+                        name=_port["port_name"],
+                        device=_port["device_name"],
+                        enabled=is_truthy(_port["up_admin"]),
+                        mtu=_port["mtu"],
+                        description=_port["description"],
+                        mac_addr=_port["hwaddress"],
+                        type=self._device42.get_intf_type(intf_record=_port),
+                    )
+                    self.add(new_port)
+                    _dev = self.get(self.device, _port["device_name"])
+                    _dev.add_child(new_port)
+                except ObjectAlreadyExists as err:
+                    print(f"Port already exists. {err}")
+                except ObjectNotFound as err:
+                    print(f"Device {_port['device_name']} not found. {err}")
 
     def load(self):
         """Load data from Device42."""
@@ -250,3 +283,4 @@ class Device42Adapter(DiffSync):
         self.load_vendors()
         self.load_hardware_models()
         self.load_devices_and_clusters()
+        self.load_ports()

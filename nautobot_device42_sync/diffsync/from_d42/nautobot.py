@@ -1,8 +1,8 @@
 """DiffSync adapter class for Nautobot as source-of-truth."""
 
-from typing import DefaultDict
 from diffsync import DiffSync
 from nautobot.dcim.models import Site
+from nautobot.dcim.models.device_components import Interface
 from nautobot.dcim.models.devices import Manufacturer, DeviceType, Device
 from nautobot.dcim.models.racks import RackGroup, Rack
 from nautobot.extras.choices import LogLevelChoices
@@ -14,6 +14,19 @@ from django.db.models import ProtectedError
 class NautobotAdapter(DiffSync):
     """Nautobot adapter for DiffSync."""
 
+    _objects_to_delete = {
+        "device": [],
+        "site": [],
+        "rack_group": [],
+        "rack": [],
+        "manufacturer": [],
+        "device_type": [],
+        "vrf": [],
+        "ip_address": [],
+        "cluster": [],
+        "port": [],
+    }
+
     building = models.Building
     room = models.Room
     rack = models.Rack
@@ -21,6 +34,7 @@ class NautobotAdapter(DiffSync):
     hardware = models.Hardware
     cluster = models.Cluster
     device = models.Device
+    port = models.Port
 
     top_level = ["building", "vendor", "hardware", "cluster", "device"]
 
@@ -34,7 +48,6 @@ class NautobotAdapter(DiffSync):
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
-        self._objects_to_delete = DefaultDict()
 
     def sync_complete(self, source: DiffSync, *args, **kwargs):
         """Clean up function for DiffSync sync.
@@ -45,27 +58,25 @@ class NautobotAdapter(DiffSync):
         Args:
             source (DiffSync): DiffSync
         """
-        # print(f"Objects to delete: {self._objects_to_delete}")
-        # for grouping in (
-        #     "device",
-        #     "site",
-        #     "region",
-        #     "device_type",
-        #     "device_role",
-        #     "manufacturer",
-        #     "vrf",
-        #     "peering_role",
-        #     "asn",
-        #     "ip_address",
-        # ):
-        #     for nautobot_object in self._objects_to_delete[grouping]:
-        #         try:
-        #             nautobot_object.delete()
-        #         except ProtectedError:
-        #             self.log(
-        #                 f"Deletion failed protected object: {nautobot_object}", log_level=LogLevelChoices.LOG_FAILURE
-        #             )
-        #     self._objects_to_delete[grouping] = []
+        for grouping in (
+            "device",
+            "site",
+            "rack_group",
+            "rack",
+            "manufacturer",
+            "vrf",
+            "ip_address",
+            "cluster",
+            "port",
+        ):
+            for nautobot_object in self._objects_to_delete[grouping]:
+                try:
+                    nautobot_object.delete()
+                except ProtectedError:
+                    self.log(
+                        f"Deletion failed protected object: {nautobot_object}", log_level=LogLevelChoices.LOG_FAILURE
+                    )
+            self._objects_to_delete[grouping] = []
 
     def load_sites(self):
         """Add Nautobot Site objects as DiffSync Building models."""
@@ -160,17 +171,26 @@ class NautobotAdapter(DiffSync):
                 _clus = self.get(self.cluster, {"name": dev.cluster})
                 _clus.add_child(_dev)
 
-    def load_interface(self, interface_record, device_model):
-        """Import a single Nautobot Interface object as a DiffSync Interface model."""
-        interface = self.interface(
-            diffsync=self,
-            name=interface_record.name,
-            device_name=device_model.name,
-            description=interface_record.description,
-            pk=interface_record.id,
-        )
-        self.add(interface)
-        device_model.add_child(interface)
+    def load_interfaces(self):
+        """Add Nautobot Interface objects as DiffSync Port models."""
+        for port in Interface.objects.all():
+            print(f"Loading Interface: {port.name}.")
+            if port.mac_address:
+                _mac_addr = str(port.mac_address).strip(":").lower()
+            else:
+                _mac_addr = None
+            _port = self.port(
+                name=port.name,
+                device=port.device.name,
+                enabled=port.enabled,
+                mtu=port.mtu,
+                description=port.description,
+                mac_addr=_mac_addr,
+                type=port.type,
+            )
+            self.add(_port)
+            _dev = self.get(self.device, port.device.name)
+            _dev.add_child(_port)
 
     def load(self):
         """Load data from Nautobot."""
@@ -182,3 +202,4 @@ class NautobotAdapter(DiffSync):
         self.load_device_types()
         self.load_clusters()
         self.load_devices()
+        self.load_interfaces()
