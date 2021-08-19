@@ -7,6 +7,7 @@ from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from nautobot.core.settings_funcs import is_truthy
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
+from nautobot_device42_sync.diffsync.from_d42.models import ipam
 from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type
 from nautobot_device42_sync.constant import PLUGIN_CFG
 
@@ -44,8 +45,9 @@ class Device42Adapter(DiffSync):
     cluster = dcim.Cluster
     device = dcim.Device
     port = dcim.Port
+    vrf = ipam.VRFGroup
 
-    top_level = ["building", "vendor", "hardware", "cluster", "device"]
+    top_level = ["building", "vendor", "hardware", "cluster", "device", "vrf"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Device42Adapter.
@@ -276,6 +278,19 @@ class Device42Adapter(DiffSync):
                 except ObjectNotFound as err:
                     self.job.log_debug(f"Device {_port['device_name']} not found. {err}")
 
+    def load_vrfgroups(self):
+        """Load Device42 VRFGroups."""
+        self.job.log_debug("Retrieving VRF groups from Device42.")
+        for _grp in self._device42.api_call(path="api/v1.0/vrfgroup/")["vrfgroup"]:
+            try:
+                new_vrf = self.vrf(
+                    name=_grp["name"],
+                    description=_grp["description"],
+                )
+                self.add(new_vrf)
+            except ObjectAlreadyExists as err:
+                self.job.log_debug(f"VRF Group {_grp['name']} already exists. {err}")
+
     def load(self):
         """Load data from Device42."""
         self.load_buildings()
@@ -285,3 +300,4 @@ class Device42Adapter(DiffSync):
         self.load_hardware_models()
         self.load_devices_and_clusters()
         self.load_ports()
+        self.load_vrfgroups()

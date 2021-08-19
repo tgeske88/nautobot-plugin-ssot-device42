@@ -6,9 +6,11 @@ from nautobot.dcim.models import Site
 from nautobot.dcim.models.device_components import Interface
 from nautobot.dcim.models.devices import Manufacturer, DeviceType, Device
 from nautobot.dcim.models.racks import RackGroup, Rack
+from nautobot.ipam.models import VRF
 from nautobot.extras.choices import LogLevelChoices
 from nautobot.virtualization.models import Cluster
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
+from nautobot_device42_sync.diffsync.from_d42.models import ipam
 
 
 class NautobotAdapter(DiffSync):
@@ -35,8 +37,9 @@ class NautobotAdapter(DiffSync):
     cluster = dcim.Cluster
     device = dcim.Device
     port = dcim.Port
+    vrf = ipam.VRFGroup
 
-    top_level = ["building", "vendor", "hardware", "cluster", "device"]
+    top_level = ["building", "vendor", "hardware", "cluster", "device", "vrf"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize the Device42 DiffSync adapter.
@@ -155,7 +158,7 @@ class NautobotAdapter(DiffSync):
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
         for dev in Device.objects.all():
-            self.job.log_debug("Loading Device: {dev.name}.")
+            self.job.log_debug(f"Loading Device: {dev.name}.")
             _dev = self.device(
                 name=dev.name,
                 dtype="physical",
@@ -178,7 +181,7 @@ class NautobotAdapter(DiffSync):
     def load_interfaces(self):
         """Add Nautobot Interface objects as DiffSync Port models."""
         for port in Interface.objects.all():
-            print(f"Loading Interface: {port.name}.")
+            self.job.log_debug(f"Loading Interface: {port.name} for {port.device}.")
             if port.mac_address:
                 _mac_addr = str(port.mac_address).strip(":").lower()
             else:
@@ -196,6 +199,16 @@ class NautobotAdapter(DiffSync):
             _dev = self.get(self.device, port.device.name)
             _dev.add_child(_port)
 
+    def load_vrfs(self):
+        """Add Nautobot VRF objects as DiffSync VRFGroup models."""
+        self.job.log_debug(f"Loading VRF: {self.name}.")
+        for vrf in VRF.objects.all():
+            _vrf = self.vrf(
+                name=vrf.name,
+                description=vrf.description,
+            )
+            self.add(_vrf)
+
     def load(self):
         """Load data from Nautobot."""
         # Import all Nautobot Site records as Buildings
@@ -207,3 +220,4 @@ class NautobotAdapter(DiffSync):
         self.load_clusters()
         self.load_devices()
         self.load_interfaces()
+        self.load_vrfs()
