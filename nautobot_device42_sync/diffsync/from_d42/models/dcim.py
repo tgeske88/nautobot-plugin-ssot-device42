@@ -1,8 +1,9 @@
 """DiffSyncModel subclasses for Nautobot-to-Device42 data sync."""
 
+from typing import Optional, List
+from decimal import Decimal
 from django.utils.text import slugify
 from diffsync import DiffSyncModel
-from typing import Optional, List
 from nautobot.core.settings_funcs import is_truthy
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot.dcim.models import Site as NautobotSite
@@ -13,9 +14,8 @@ from nautobot.dcim.models import DeviceType as NautobotDeviceType
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.virtualization.models import Cluster as NautobotCluster
-import nautobot_device42_sync.diffsync.nbutils as nbutils
+from nautobot_device42_sync.diffsync import nbutils
 from nautobot_device42_sync.constant import DEFAULTS
-from decimal import Decimal
 
 
 class Building(DiffSyncModel):
@@ -182,7 +182,7 @@ class Vendor(DiffSyncModel):
                 slug=slugify(ids["name"]),
             )
             new_manu.validated_save()
-            return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
         """Update Manufactuer object in Nautobot."""
@@ -234,10 +234,10 @@ class Hardware(DiffSyncModel):
                 manufacturer=NautobotManufacturer.objects.get(slug=slugify(attrs["manufacturer"])),
                 part_number=attrs["part_number"] if attrs.get("part_number") else "",
                 u_height=int(attrs["size"]) if attrs.get("size") else 1,
-                is_full_depth=True if attrs.get("depth") == "Full Depth" else False,
+                is_full_depth=bool(attrs.get("depth") == "Full Depth"),
             )
             new_dt.validated_save()
-            return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
         """Update DeviceType object in Nautobot."""
@@ -340,7 +340,7 @@ class Device(DiffSyncModel):
     cluster_host: Optional[str]
 
     @classmethod
-    def create(cls, diffsync, ids, attrs):
+    def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
         """Create Device object in Nautobot."""
         diffsync.job.log_debug(f"Creating device {ids['name']}.")
         if attrs["in_service"]:
@@ -413,7 +413,7 @@ class Port(DiffSyncModel):
     type: Optional[str]
 
     @classmethod
-    def create(cls, diffsync, ids, attrs):
+    def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
         """Create Interface object in Nautobot."""
         diffsync.job.log_debug("Creating Interface {ids['name']}.")
         try:

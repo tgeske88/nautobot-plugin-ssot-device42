@@ -1,27 +1,49 @@
 """DiffSync adapter for Device42."""
 
+from decimal import Decimal
+import re
 from django.utils.functional import classproperty
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from nautobot.core.settings_funcs import is_truthy
-from nautobot_device42_sync.diffsync.from_d42 import models
-from nautobot_device42_sync.diffsync.d42utils import Device42API
+from nautobot_device42_sync.diffsync.from_d42.models import dcim
+from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type
 from nautobot_device42_sync.constant import PLUGIN_CFG
-from decimal import Decimal
-import re
+
+
+def sanitize_string(san_str: str):
+    """Sanitize string to ensure it doesn't have invisible characters."""
+    return san_str.replace("\u200b", "")
+
+
+def get_cidrs(address_list: list) -> list:
+    """Return list of CIDRs from list of dicts of IP Addresses from Device42.
+
+    Args:
+        address_list (list): List of dicts of IP addresses for a device in Device42.
+
+    Returns:
+        list: List of the CIDRs of the IP addresses for a device.
+    """
+    ip_list = []
+    for _ip in address_list:
+        _netmask = re.search(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?P<mask>\d+)", _ip["subnet"])
+        if _netmask:
+            ip_list.append(f"{_ip['ip']}/{_netmask.group('mask')}")
+    return ip_list
 
 
 class Device42Adapter(DiffSync):
     """DiffSync adapter using requests to communicate to Device42 server."""
 
-    building = models.Building
-    room = models.Room
-    rack = models.Rack
-    vendor = models.Vendor
-    hardware = models.Hardware
-    cluster = models.Cluster
-    device = models.Device
-    port = models.Port
+    building = dcim.Building
+    room = dcim.Room
+    rack = dcim.Rack
+    vendor = dcim.Vendor
+    hardware = dcim.Hardware
+    cluster = dcim.Cluster
+    device = dcim.Device
+    port = dcim.Port
 
     top_level = ["building", "vendor", "hardware", "cluster", "device"]
 
@@ -51,27 +73,6 @@ class Device42Adapter(DiffSync):
             for hardware in device42_hardware_list["models"]:
                 self._device42_hardware_dict[hardware["hardware_id"]] = hardware
         return self._device42_hardware_dict
-
-    @classmethod
-    def sanitize_string(self, san_str: str):
-        """Sanitize string to ensure it doesn't have invisible characters."""
-        return san_str.replace("\u200b", "")
-
-    def get_cidrs(self, address_list: list) -> list:
-        """Return list of CIDRs from list of dicts of IP Addresses from Device42.
-
-        Args:
-            address_list (list): List of dicts of IP addresses for a device in Device42.
-
-        Returns:
-            list: List of the CIDRs of the IP addresses for a device.
-        """
-        ip_list = []
-        for _ip in address_list:
-            _netmask = re.search(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?P<mask>\d+)", _ip["subnet"])
-            if _netmask:
-                ip_list.append(f"{_ip['ip']}/{_netmask.group('mask')}")
-        return ip_list
 
     def load_buildings(self):
         """Load Device42 buildings."""
@@ -171,7 +172,7 @@ class Device42Adapter(DiffSync):
                 return _cluster
         return False
 
-    def load_cluster(self, cluster_name: dict) -> models.Cluster:
+    def load_cluster(self, cluster_name: dict) -> dcim.Cluster:
         """Load Device42 clusters into DiffSync model.
 
         Args:
@@ -225,10 +226,10 @@ class Device42Adapter(DiffSync):
                     rack=_record["rack"] if _record.get("rack") else "",
                     rack_position=int(_record["start_at"]) if _record.get("start_at") else None,
                     rack_orientation="front" if _record.get("orientation") == 1 else "rear",
-                    hardware=self.sanitize_string(_record["hw_model"]) if _record.get("hw_model") else "",
+                    hardware=sanitize_string(_record["hw_model"]) if _record.get("hw_model") else "",
                     os=_record.get("os"),
                     in_service=_record.get("in_service"),
-                    ip_addresses=self.get_cidrs(_record["ip_addresses"]) if _record.get("ip_addresses") else [],
+                    ip_addresses=get_cidrs(_record["ip_addresses"]) if _record.get("ip_addresses") else [],
                     serial_no=_record["serial_no"],
                     tags=_record["tags"],
                 )
@@ -265,7 +266,7 @@ class Device42Adapter(DiffSync):
                         mtu=_port["mtu"],
                         description=_port["description"],
                         mac_addr=_port["hwaddress"],
-                        type=self._device42.get_intf_type(intf_record=_port),
+                        type=get_intf_type(intf_record=_port),
                     )
                     self.add(new_port)
                     _dev = self.get(self.device, _port["device_name"])
