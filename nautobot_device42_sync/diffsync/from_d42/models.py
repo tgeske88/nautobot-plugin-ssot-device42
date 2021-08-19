@@ -173,7 +173,7 @@ class Vendor(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Manufacturer object in Nautobot."""
-        diffsync.job.log_debug(message=f"Creating Manufacturer {ids['name']}")
+        diffsync.job.log_debug(f"Creating Manufacturer {ids['name']}")
         try:
             NautobotManufacturer.objects.get(slug=slugify(ids["name"]))
         except NautobotManufacturer.DoesNotExist:
@@ -224,7 +224,7 @@ class Hardware(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create DeviceType object in Nautobot."""
-        diffsync.job.log_debug(message=f"Creating DeviceType {ids['name']}")
+        diffsync.job.log_debug(f"Creating DeviceType {ids['name']}")
         try:
             NautobotDeviceType.objects.get(slug=slugify(ids["name"]))
         except NautobotDeviceType.DoesNotExist:
@@ -273,7 +273,7 @@ class Cluster(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Cluster object in Nautobot."""
-        # diffsync.job.log_debug(message=f"Creating cluster {ids['name']}.")
+        diffsync.job.log_debug(f"Creating cluster {ids['name']}.")
         ctype = nbutils.verify_cluster_type("network")
         new_cluster = NautobotCluster(
             name=ids["name"],
@@ -342,7 +342,7 @@ class Device(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device object in Nautobot."""
-        diffsync.job.log_debug(message=f"Creating device {ids['name']}.")
+        diffsync.job.log_debug(f"Creating device {ids['name']}.")
         if attrs["in_service"]:
             _status = NautobotStatus.objects.get(name="Active")
         else:
@@ -415,7 +415,7 @@ class Port(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Interface object in Nautobot."""
-        # diffsync.job.log_debug("Creating Interface {ids['name']}.")
+        diffsync.job.log_debug("Creating Interface {ids['name']}.")
         try:
             if ids.get("device"):
                 new_intf = NautobotInterface(
