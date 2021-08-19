@@ -1,5 +1,6 @@
 """DiffSync adapter class for Nautobot as source-of-truth."""
 
+from django.db.models import ProtectedError
 from diffsync import DiffSync
 from nautobot.dcim.models import Site
 from nautobot.dcim.models.device_components import Interface
@@ -7,8 +8,7 @@ from nautobot.dcim.models.devices import Manufacturer, DeviceType, Device
 from nautobot.dcim.models.racks import RackGroup, Rack
 from nautobot.extras.choices import LogLevelChoices
 from nautobot.virtualization.models import Cluster
-from nautobot_device42_sync.diffsync.from_d42 import models
-from django.db.models import ProtectedError
+from nautobot_device42_sync.diffsync.from_d42.models import dcim
 
 
 class NautobotAdapter(DiffSync):
@@ -27,14 +27,14 @@ class NautobotAdapter(DiffSync):
         "port": [],
     }
 
-    building = models.Building
-    room = models.Room
-    rack = models.Rack
-    vendor = models.Vendor
-    hardware = models.Hardware
-    cluster = models.Cluster
-    device = models.Device
-    port = models.Port
+    building = dcim.Building
+    room = dcim.Room
+    rack = dcim.Rack
+    vendor = dcim.Vendor
+    hardware = dcim.Hardware
+    cluster = dcim.Cluster
+    device = dcim.Device
+    port = dcim.Port
 
     top_level = ["building", "vendor", "hardware", "cluster", "device"]
 
@@ -73,7 +73,7 @@ class NautobotAdapter(DiffSync):
                 try:
                     nautobot_object.delete()
                 except ProtectedError:
-                    self.log(
+                    self.job.log(
                         f"Deletion failed protected object: {nautobot_object}", log_level=LogLevelChoices.LOG_FAILURE
                     )
             self._objects_to_delete[grouping] = []
@@ -96,11 +96,15 @@ class NautobotAdapter(DiffSync):
 
     def load_rackgroups(self):
         """Add Nautobot RackGroup objects as DiffSync Room models."""
-        for rg in RackGroup.objects.all():
+        for _rg in RackGroup.objects.all():
             try:
-                room = self.room(name=rg.name, building=Site.objects.get(name=rg.site).name, notes=rg.description)
+                room = self.room(
+                    name=_rg.name,
+                    building=Site.objects.get(name=_rg.site).name,
+                    notes=_rg.description,
+                )
                 self.add(room)
-                _site = self.get(self.building, Site.objects.get(name=rg.site).name)
+                _site = self.get(self.building, Site.objects.get(name=_rg.site).name)
                 _site.add_child(child=room)
             except AttributeError:
                 continue
@@ -128,13 +132,13 @@ class NautobotAdapter(DiffSync):
 
     def load_device_types(self):
         """Add Nautobot DeviceType objects as DiffSync Hardware models."""
-        for dt in DeviceType.objects.all():
+        for _dt in DeviceType.objects.all():
             dtype = self.hardware(
-                name=dt.model,
-                manufacturer=dt.manufacturer.name,
-                size=dt.u_height,
-                depth="Full Depth" if dt.is_full_depth else "Half Depth",
-                part_number=dt.part_number,
+                name=_dt.model,
+                manufacturer=_dt.manufacturer.name,
+                size=_dt.u_height,
+                depth="Full Depth" if _dt.is_full_depth else "Half Depth",
+                part_number=_dt.part_number,
             )
             self.add(dtype)
 
@@ -162,7 +166,7 @@ class NautobotAdapter(DiffSync):
                 rack_orientation=dev.face,
                 hardware=dev.device_type.model,
                 os=dev.platform.napalm_driver if dev.platform else "",
-                in_service=True if dev.status == "Active" else False,
+                in_service=bool(dev.status == "Active"),
                 serial_no=dev.serial if dev.serial else "",
                 # tags=dev.tags,
             )

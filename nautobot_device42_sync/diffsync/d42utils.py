@@ -4,6 +4,86 @@ import requests
 import urllib3
 
 
+def merge_offset_dicts(orig_dict: dict, offset_dict: dict) -> dict:
+    """Method to merge two dicts and merge a list if found.
+
+    Args:
+        orig_dict (dict): Dict to have data merged from.
+        offset_dict (dict): Dict to be merged into with offset data. Expects this to be like orig_dict but with offset data.
+
+    Returns:
+        dict: Dict with merged data from both dicts.
+    """
+    out = {}
+    for key, value in offset_dict.items():
+        if key in orig_dict and key in offset_dict:
+            if isinstance(value, list):
+                out[key] = orig_dict[key] + value
+            else:
+                out[key] = value
+    return out
+
+
+def get_intf_type(intf_record: dict) -> str:  # pylint: disable=inconsistent-return-statements
+    """Method to determine an Interface type based on a few factors.
+
+    Those factors include:
+        - Port type
+        - Port Speed Note: `port_speed` was used instead of `speedcapable` as `speedcapable` reported nothing.
+        - Discovered type for port
+
+    Anything explicitly not matched will go to `other`.
+    """
+    PHY_INTF_MAP = {  # pylint: disable=invalid-name
+        "10 Mbps": "other",
+        "50 Mbps": "other",
+        "100 Mbps": "100base-tx",
+        "1.0 Gbps": "1000base-t",
+        "10 Gbps": "10gbase-t",
+        "25 Gbps": "25gbase-x-sfp28",
+        "40 Gbps": "40gbase-x-qsfpp",
+        "50 Gbps": "50gbase-x-sfp28",
+        "100 Gbps": "100gbase-x-qsfp28",
+        "200 Gbps": "200gbase-x-qsfp56",
+        "400 Gbps": "400gbase-x-qsfpdd",
+        "10000": "other",
+        "20000": "other",
+        "1000000": "1000base-t",
+        "10000000": "10gbase-t",
+        "1000000000": "100gbase-x-qsfp28",
+    }
+
+    FC_INTF_MAP = {  # pylint: disable=invalid-name
+        "1.0 Gbps": "1gfc-sfp",
+        "2.0 Gbps": "2gfc-sfp",
+        "4.0 Gbps": "4gfc-sfp",
+        "4 Gbps": "4gfc-sfp",
+        "8.0 Gbps": "8gfc-sfpp",
+        "16.0 Gbps": "16gfc-sfpp",
+        "32.0 Gbps": "32gfc-sfp28",
+        "64.0 Gbps": "64gfc-qsfpp",
+        "128.0 Gbps": "128gfc-sfp28",
+    }
+
+    # if switch is physical and name is from PHY_INTF_MAP dict
+    if intf_record["port_type"] == "physical":
+        if intf_record["port_speed"] in PHY_INTF_MAP and "ethernet" in intf_record["discovered_type"]:
+            print(f"Matched on intf mapping. {intf_record['port_speed']}")
+            return PHY_INTF_MAP[intf_record["port_speed"]]
+        if intf_record["discovered_type"] == "fibreChannel" and intf_record["port_speed"] in FC_INTF_MAP:
+            print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
+            return FC_INTF_MAP[intf_record["port_speed"]]
+    elif intf_record["port_type"] == "logical":
+        if intf_record["discovered_type"] == "softwareLoopback" or intf_record["discovered_type"] == "propVirtual":
+            print(f"Virtual interface matched. {intf_record['port_name']} {intf_record['device_name']}.")
+            return "virtual"
+        if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
+            print(f"PortChannel matched. {intf_record['port_name']} {intf_record['device_name']}")
+            return "lag"
+    else:
+        return "other"
+
+
 class Device42API:
     """Device42 API class."""
 
@@ -27,25 +107,6 @@ class Device42API:
         if not full_path.endswith("/"):
             return full_path
         return full_path
-
-    def merge_offset_dicts(self, orig_dict: dict, offset_dict: dict) -> dict:
-        """Method to merge two dicts and merge a list if found.
-
-        Args:
-            orig_dict (dict): Dict to have data merged from.
-            offset_dict (dict): Dict to be merged into with offset data. Expects this to be like orig_dict but with offset data.
-
-        Returns:
-            dict: Dict with merged data from both dicts.
-        """
-        out = {}
-        for key, value in offset_dict.items():
-            if key in orig_dict and key in offset_dict:
-                if isinstance(value, list):
-                    out[key] = orig_dict[key] + value
-                else:
-                    out[key] = value
-        return out
 
     def api_call(self, path: str, method: str = "GET", params: dict = None, payload: dict = None):
         """Method to send Request to Device42 of type `method`. Defaults to GET request.
@@ -111,7 +172,7 @@ class Device42API:
                     verify=self.verify,
                 )
                 response.raise_for_status()
-                return_data = self.merge_offset_dicts(return_data, response.json())
+                return_data = merge_offset_dicts(return_data, response.json())
                 # print(
                 #     f"Number of devices: {len(return_data['Devices'])}.\noffset: {return_data.get('offset')}.\nlimit: {return_data.get('limit')}."
                 # )
@@ -158,70 +219,6 @@ class Device42API:
             _i["cluster"]: {"members": [x.strip() for x in _i["members"].split("%3B")], "is_network": "no"}
             for _i in _results
         }
-
-    def get_intf_type(self, intf_record: dict) -> str:
-        """Method to determine an Interface type based on a few factors.
-
-        Those factors include:
-            - Port type
-            - Port Speed Note: `port_speed` was used instead of `speedcapable` as `speedcapable` reported nothing.
-            - Discovered type for port
-
-        Anything explicitly not matched will go to `other`.
-        """
-        PHY_INTF_MAP = {
-            "10 Mbps": "other",
-            "50 Mbps": "other",
-            "100 Mbps": "100base-tx",
-            "1.0 Gbps": "1000base-t",
-            "10 Gbps": "10gbase-t",
-            "25 Gbps": "25gbase-x-sfp28",
-            "40 Gbps": "40gbase-x-qsfpp",
-            "50 Gbps": "50gbase-x-sfp28",
-            "100 Gbps": "100gbase-x-qsfp28",
-            "200 Gbps": "200gbase-x-qsfp56",
-            "400 Gbps": "400gbase-x-qsfpdd",
-            "10000": "other",
-            "20000": "other",
-            "1000000": "1000base-t",
-            "10000000": "10gbase-t",
-            "1000000000": "100gbase-x-qsfp28",
-        }
-
-        FC_INTF_MAP = {
-            "1.0 Gbps": "1gfc-sfp",
-            "2.0 Gbps": "2gfc-sfp",
-            "4.0 Gbps": "4gfc-sfp",
-            "4 Gbps": "4gfc-sfp",
-            "8.0 Gbps": "8gfc-sfpp",
-            "16.0 Gbps": "16gfc-sfpp",
-            "32.0 Gbps": "32gfc-sfp28",
-            "64.0 Gbps": "64gfc-qsfpp",
-            "128.0 Gbps": "128gfc-sfp28",
-        }
-
-        # if switch is physical and name is from PHY_INTF_MAP dict
-        if intf_record["port_type"] == "physical":
-            if intf_record["port_speed"] in PHY_INTF_MAP and "ethernet" in intf_record["discovered_type"]:
-                print(f"Matched on intf mapping. {intf_record['port_speed']}")
-                return PHY_INTF_MAP[intf_record["port_speed"]]
-            elif intf_record["discovered_type"] == "fibreChannel" and intf_record["port_speed"] in FC_INTF_MAP:
-                print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
-                return FC_INTF_MAP[intf_record["port_speed"]]
-            else:
-                return "other"
-        elif intf_record["port_type"] == "logical":
-            if intf_record["discovered_type"] == "softwareLoopback":
-                print(f"Loopback matched. {intf_record['port_name']} {intf_record['device_name']}.")
-                return "virtual"
-            elif intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
-                print(f"PortChannel matched. {intf_record['port_name']} {intf_record['device_name']}")
-                return "lag"
-            elif intf_record["discovered_type"] == "propVirtual":
-                print(f"Virtual interface matched. {intf_record['port_name']} {intf_record['device_name']}")
-                return "virtual"
-            else:
-                return "other"
 
     def get_physical_intfs(self) -> dict:
         """Method to get all physical interfaces from Device42.
