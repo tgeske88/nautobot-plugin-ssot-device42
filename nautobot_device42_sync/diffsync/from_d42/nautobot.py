@@ -151,7 +151,7 @@ class NautobotAdapter(DiffSync):
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
         for dev in Device.objects.all():
-            self.job.log_debug(message=f"Loading Device: {dev.name}.")
+            self.job.log_debug("Loading Device: {dev.name}.")
             _dev = self.device(
                 name=dev.name,
                 dtype="physical",

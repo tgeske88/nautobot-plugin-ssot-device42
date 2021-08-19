@@ -251,7 +251,7 @@ class Device42Adapter(DiffSync):
 
     def load_ports(self):
         """Load Device42 ports."""
-        print("Retrieving ports from Device42.")
+        self.job.log_debug("Retrieving ports from Device42.")
         phy_ports = self._device42.get_physical_intfs()
         logical_ports = self._device42.get_logical_intfs()
         _ports = phy_ports + logical_ports
@@ -271,9 +271,9 @@ class Device42Adapter(DiffSync):
                     _dev = self.get(self.device, _port["device_name"])
                     _dev.add_child(new_port)
                 except ObjectAlreadyExists as err:
-                    print(f"Port already exists. {err}")
+                    self.job.log_debug(f"Port already exists. {err}")
                 except ObjectNotFound as err:
-                    print(f"Device {_port['device_name']} not found. {err}")
+                    self.job.log_debug(f"Device {_port['device_name']} not found. {err}")
 
     def load(self):
         """Load data from Device42."""
