@@ -158,3 +158,89 @@ class Device42API:
             _i["cluster"]: {"members": [x.strip() for x in _i["members"].split("%3B")], "is_network": "no"}
             for _i in _results
         }
+
+    def get_intf_type(self, intf_record: dict) -> str:
+        """Method to determine an Interface type based on a few factors.
+
+        Those factors include:
+            - Port type
+            - Port Speed Note: `port_speed` was used instead of `speedcapable` as `speedcapable` reported nothing.
+            - Discovered type for port
+
+        Anything explicitly not matched will go to `other`.
+        """
+        PHY_INTF_MAP = {
+            "10 Mbps": "other",
+            "50 Mbps": "other",
+            "100 Mbps": "100base-tx",
+            "1.0 Gbps": "1000base-t",
+            "10 Gbps": "10gbase-t",
+            "25 Gbps": "25gbase-x-sfp28",
+            "40 Gbps": "40gbase-x-qsfpp",
+            "50 Gbps": "50gbase-x-sfp28",
+            "100 Gbps": "100gbase-x-qsfp28",
+            "200 Gbps": "200gbase-x-qsfp56",
+            "400 Gbps": "400gbase-x-qsfpdd",
+            "10000": "other",
+            "20000": "other",
+            "1000000": "1000base-t",
+            "10000000": "10gbase-t",
+            "1000000000": "100gbase-x-qsfp28",
+        }
+
+        FC_INTF_MAP = {
+            "1.0 Gbps": "1gfc-sfp",
+            "2.0 Gbps": "2gfc-sfp",
+            "4.0 Gbps": "4gfc-sfp",
+            "4 Gbps": "4gfc-sfp",
+            "8.0 Gbps": "8gfc-sfpp",
+            "16.0 Gbps": "16gfc-sfpp",
+            "32.0 Gbps": "32gfc-sfp28",
+            "64.0 Gbps": "64gfc-qsfpp",
+            "128.0 Gbps": "128gfc-sfp28",
+        }
+
+        # if switch is physical and name is from PHY_INTF_MAP dict
+        if intf_record["port_type"] == "physical":
+            if intf_record["port_speed"] in PHY_INTF_MAP and "ethernet" in intf_record["discovered_type"]:
+                print(f"Matched on intf mapping. {intf_record['port_speed']}")
+                return PHY_INTF_MAP[intf_record["port_speed"]]
+            elif intf_record["discovered_type"] == "fibreChannel" and intf_record["port_speed"] in FC_INTF_MAP:
+                print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
+                return FC_INTF_MAP[intf_record["port_speed"]]
+            else:
+                return "other"
+        elif intf_record["port_type"] == "logical":
+            if intf_record["discovered_type"] == "softwareLoopback":
+                print(f"Loopback matched. {intf_record['port_name']} {intf_record['device_name']}.")
+                return "virtual"
+            elif intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
+                print(f"PortChannel matched. {intf_record['port_name']} {intf_record['device_name']}")
+                return "lag"
+            elif intf_record["discovered_type"] == "propVirtual":
+                print(f"Virtual interface matched. {intf_record['port_name']} {intf_record['device_name']}")
+                return "virtual"
+            else:
+                return "other"
+
+    def get_physical_intfs(self) -> dict:
+        """Method to get all physical interfaces from Device42.
+
+        This retrieves only the information we care about via DOQL in one giant json blob instead of multiple API calls.
+
+        Returns:
+            dict: Dict of interface information from DOQL query.
+        """
+        query = "SELECT m.port as port_name , m.description , m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port_type like '%physical%' GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, d.name"
+        return self.doql_query(query=query)
+
+    def get_logical_intfs(self) -> dict:
+        """Method to get all logical interfaces from Device42.
+
+        This retrieves only the information we care about via DOQL in one giant json blob instead of multiple API calls.
+
+        Returns:
+            dict: Dict of interface information from DOQL query.
+        """
+        query = "SELECT m.port as port_name , m.description , m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port_type like '%logical%' GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, d.name"
+        return self.doql_query(query=query)

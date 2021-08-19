@@ -11,6 +11,7 @@ from nautobot.dcim.models.racks import Rack as NautobotRack
 from nautobot.dcim.models import Manufacturer as NautobotManufacturer
 from nautobot.dcim.models import DeviceType as NautobotDeviceType
 from nautobot.dcim.models import Device as NautobotDevice
+from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.virtualization.models import Cluster as NautobotCluster
 import nautobot_device42_sync.diffsync.nbutils as nbutils
 from nautobot_device42_sync.constant import DEFAULTS
@@ -317,12 +318,11 @@ class Device(DiffSyncModel):
         "os",
         "in_service",
         "ip_addresses",
-        "interfaces",
         "serial_no",
         "tags",
         "cluster_host",
     )
-    _children = {}
+    _children = {"port": "interfaces"}
     name: str
     dtype: str
     building: Optional[str]
@@ -334,7 +334,7 @@ class Device(DiffSyncModel):
     os: Optional[str]
     in_service: Optional[bool]
     ip_addresses: Optional[List[str]] = list()
-    interfaces: Optional[List[dict]] = list()
+    interfaces: Optional[List["Port"]] = list()
     serial_no: Optional[str]
     tags: Optional[List[str]] = list()
     cluster_host: Optional[str]
@@ -374,11 +374,9 @@ class Device(DiffSyncModel):
                 new_device.validated_save()
                 return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
             except NautobotDeviceType.DoesNotExist:
-                diffsync.job.log_warning(
-                    message=f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}."
-                )
+                diffsync.job.log_debug(f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}.")
         else:
-            diffsync.job.log_warning(f"Device {ids['name']} is missing a Building and won't be created.")
+            diffsync.job.log_debug(f"Device {ids['name']} is missing a Building and won't be created.")
 
     def update(self, attrs):
         """Update Device object in Nautobot."""
@@ -398,8 +396,63 @@ class Device(DiffSyncModel):
         return self
 
 
+class Port(DiffSyncModel):
+    """Device42 Port model."""
+
+    _modelname = "port"
+    _identifiers = ("device", "name")
+    _shortname = ("name",)
+    _attributes = ("enabled", "mtu", "description", "mac_addr", "type")
+    _children = {}
+    name: str
+    device: str
+    enabled: Optional[bool]
+    mtu: Optional[int]
+    description: Optional[str]
+    mac_addr: Optional[str]
+    type: Optional[str]
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Interface object in Nautobot."""
+        # diffsync.job.log_debug("Creating Interface {ids['name']}.")
+        try:
+            if ids.get("device"):
+                new_intf = NautobotInterface(
+                    name=ids["name"],
+                    device=NautobotDevice.objects.get(name=ids["device"]),
+                    enabled=is_truthy(attrs["enabled"]),
+                    mtu=attrs["mtu"] if attrs.get("mtu") else None,
+                    description=attrs["description"],
+                    type=attrs["type"],
+                    mac_address=attrs["mac_addr"][:12] if attrs.get("mac_addr") else None,
+                )
+                new_intf.validated_save()
+                return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+        except NautobotDevice.DoesNotExist as err:
+            print(f"{ids['name']} doesn't exist. {err}")
+
+    def update(self, attrs):
+        """Update Interface object in Nautobot."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Interface object from Nautobot.
+
+        Because Interface has a direct relationship with Cables and IP Addresses it can't be deleted before they are.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
+        print(f"Interface {self.name} for {self.device} will be deleted.")
+        super().delete()
+        _dev = NautobotInterface.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["port"].append(_dev)  # pylint: disable=protected-access
+        return self
+
+
 Building.update_forward_refs()
 Room.update_forward_refs()
 Rack.update_forward_refs()
 Vendor.update_forward_refs()
 Cluster.update_forward_refs()
+Device.update_forward_refs()

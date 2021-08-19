@@ -7,9 +7,9 @@
 import os
 import sys
 
-from distutils.util import strtobool
 from django.core.exceptions import ImproperlyConfigured
 from nautobot.core import settings
+from nautobot.core.settings_funcs import is_truthy
 
 # Enforce required configuration parameters
 for key in [
@@ -24,22 +24,6 @@ for key in [
 ]:
     if not os.environ.get(key):
         raise ImproperlyConfigured(f"Required environment variable {key} is missing.")
-
-
-def is_truthy(arg):
-    """Convert "truthy" strings into Booleans.
-
-    Examples:
-        >>> is_truthy('yes')
-        True
-    Args:
-        arg (str): Truthy string (True values are y, yes, t, true, on and 1; false values are n, no,
-        f, false, off and 0. Raises ValueError if val is anything else.
-    """
-    if isinstance(arg, bool):
-        return arg
-    return bool(strtobool(arg))
-
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
 
@@ -93,6 +77,21 @@ CACHES = {
 
 # RQ_QUEUES is not set here because it just uses the default that gets imported
 # up top via `from nautobot.core.settings import *`.
+RQ_QUEUES = {
+    "default": {
+        "USE_REDIS_CACHE": "default",
+        "DEFAULT_TIMEOUT": 3600,
+    },
+    "check_releases": {
+        "USE_REDIS_CACHE": "default",
+    },
+    "custom_fields": {
+        "USE_REDIS_CACHE": "default",
+    },
+    "webhooks": {
+        "USE_REDIS_CACHE": "default",
+    },
+}
 
 # REDIS CACHEOPS
 CACHEOPS_REDIS = f"{REDIS_SCHEME}://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1"
@@ -290,13 +289,9 @@ RELEASE_CHECK_TIMEOUT = 24 * 3600
 RELEASE_CHECK_URL = None
 # RELEASE_CHECK_URL = 'https://api.github.com/repos/nautobot/nautobot/releases'
 
-# Maximum execution time for background tasks, in seconds.
-RQ_DEFAULT_TIMEOUT = 600
-
 # The length of time (in seconds) for which a user will remain logged into the web UI before being prompted to
 # re-authenticate. (Default: 1209600 [14 days])
 SESSION_COOKIE_AGE = 1209600  # 2 weeks, in seconds
-
 
 # By default, Nautobot will store session data in the database. Alternatively, a file path can be specified here to use
 # local file storage instead. (This can be useful for enabling authentication on a standby instance with read-only
