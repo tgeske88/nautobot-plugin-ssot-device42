@@ -1,4 +1,4 @@
-"""DiffSyncModel subclasses for Nautobot-to-Device42 data sync."""
+"""DiffSyncModel DCIM subclasses for Nautobot Device42 data sync."""
 
 from typing import Optional, List
 from decimal import Decimal
@@ -342,12 +342,12 @@ class Device(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
         """Create Device object in Nautobot."""
-        diffsync.job.log_debug(f"Creating device {ids['name']}.")
         if attrs["in_service"]:
             _status = NautobotStatus.objects.get(name="Active")
         else:
             _status = NautobotStatus.objects.get(name="Offline")
         if attrs.get("building"):
+            diffsync.job.log_debug(f"Creating device {ids['name']}.")
             try:
                 _dt = NautobotDeviceType.objects.get(model=attrs["hardware"])
                 new_device = NautobotDevice(
@@ -415,7 +415,7 @@ class Port(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
         """Create Interface object in Nautobot."""
-        diffsync.job.log_debug("Creating Interface {ids['name']}.")
+        diffsync.job.log_debug(f"Creating Interface {ids['name']} for {ids['device']}.")
         try:
             if ids.get("device"):
                 new_intf = NautobotInterface(

@@ -73,6 +73,7 @@ def get_intf_type(intf_record: dict) -> str:  # pylint: disable=inconsistent-ret
         if intf_record["discovered_type"] == "fibreChannel" and intf_record["port_speed"] in FC_INTF_MAP:
             print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
             return FC_INTF_MAP[intf_record["port_speed"]]
+        return "other"
     elif intf_record["port_type"] == "logical":
         if intf_record["discovered_type"] == "softwareLoopback" or intf_record["discovered_type"] == "propVirtual":
             print(f"Virtual interface matched. {intf_record['port_name']} {intf_record['device_name']}.")
@@ -80,7 +81,6 @@ def get_intf_type(intf_record: dict) -> str:  # pylint: disable=inconsistent-ret
         if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
             print(f"PortChannel matched. {intf_record['port_name']} {intf_record['device_name']}")
             return "lag"
-    else:
         return "other"
 
 
