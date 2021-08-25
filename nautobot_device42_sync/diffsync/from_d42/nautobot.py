@@ -1,12 +1,13 @@
 """DiffSync adapter class for Nautobot as source-of-truth."""
 
+import ipaddress
 from django.db.models import ProtectedError
 from diffsync import DiffSync
 from nautobot.dcim.models import Site
 from nautobot.dcim.models.device_components import Interface
 from nautobot.dcim.models.devices import Manufacturer, DeviceType, Device
 from nautobot.dcim.models.racks import RackGroup, Rack
-from nautobot.ipam.models import VRF
+from nautobot.ipam.models import VRF, Prefix
 from nautobot.extras.choices import LogLevelChoices
 from nautobot.virtualization.models import Cluster
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
@@ -27,6 +28,7 @@ class NautobotAdapter(DiffSync):
         "ip_address": [],
         "cluster": [],
         "port": [],
+        "subnet": [],
     }
 
     building = dcim.Building
@@ -38,8 +40,17 @@ class NautobotAdapter(DiffSync):
     device = dcim.Device
     port = dcim.Port
     vrf = ipam.VRFGroup
+    subnet = ipam.Subnet
 
-    top_level = ["building", "vendor", "hardware", "cluster", "device", "vrf"]
+    top_level = [
+        "building",
+        "vendor",
+        "hardware",
+        "cluster",
+        "vrf",
+        "subnet",
+        "device",
+    ]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize the Device42 DiffSync adapter.
@@ -209,6 +220,19 @@ class NautobotAdapter(DiffSync):
             )
             self.add(_vrf)
 
+    def load_prefixes(self):
+        """Add Nautobot Prefix objects as DiffSync Subnet models."""
+        for _pf in Prefix.objects.all():
+            self.job.log_debug(f"Loading Prefix: {_pf.prefix}.")
+            ip_net = ipaddress.ip_network(_pf.prefix)
+            new_pf = self.subnet(
+                network=str(ip_net.network_address),
+                mask_bits=str(ip_net.prefixlen),
+                description=_pf.description,
+                vrf=_pf.vrf.name,
+            )
+            self.add(new_pf)
+
     def load(self):
         """Load data from Nautobot."""
         # Import all Nautobot Site records as Buildings
@@ -221,3 +245,4 @@ class NautobotAdapter(DiffSync):
         self.load_devices()
         self.load_interfaces()
         self.load_vrfs()
+        self.load_prefixes()
