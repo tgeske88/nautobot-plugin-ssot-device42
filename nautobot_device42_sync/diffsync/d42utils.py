@@ -2,6 +2,7 @@
 
 import requests
 import urllib3
+from typing import List
 
 
 def merge_offset_dicts(orig_dict: dict, offset_dict: dict) -> dict:
@@ -220,7 +221,7 @@ class Device42API:
             for _i in _results
         }
 
-    def get_physical_intfs(self) -> dict:
+    def get_physical_intfs(self) -> List[dict]:
         """Method to get all physical interfaces from Device42.
 
         This retrieves only the information we care about via DOQL in one giant json blob instead of multiple API calls.
@@ -231,7 +232,7 @@ class Device42API:
         query = "SELECT m.port as port_name , m.description , m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port_type like '%physical%' GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, d.name"
         return self.doql_query(query=query)
 
-    def get_logical_intfs(self) -> dict:
+    def get_logical_intfs(self) -> List[dict]:
         """Method to get all logical interfaces from Device42.
 
         This retrieves only the information we care about via DOQL in one giant json blob instead of multiple API calls.
@@ -240,4 +241,13 @@ class Device42API:
             dict: Dict of interface information from DOQL query.
         """
         query = "SELECT m.port as port_name , m.description , m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port_type like '%logical%' GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, d.name"
+        return self.doql_query(query=query)
+
+    def get_subnets(self) -> List[dict]:
+        """Method to get all subnets and associated data from Device42.
+
+        Returns:
+            dict: Dict of subnets from Device42.
+        """
+        query = "SELECT s.name, s.network, s.mask_bits, v.name as vrf FROM view_subnet_v1 s JOIN view_vrfgroup_v1 v ON s.vrfgroup_fk = v.vrfgroup_pk"
         return self.doql_query(query=query)

@@ -46,8 +46,17 @@ class Device42Adapter(DiffSync):
     device = dcim.Device
     port = dcim.Port
     vrf = ipam.VRFGroup
+    subnet = ipam.Subnet
 
-    top_level = ["building", "vendor", "hardware", "cluster", "device", "vrf"]
+    top_level = [
+        "building",
+        "vendor",
+        "hardware",
+        "cluster",
+        "vrf",
+        "subnet",
+        "device",
+    ]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Device42Adapter.
@@ -281,7 +290,7 @@ class Device42Adapter(DiffSync):
     def load_vrfgroups(self):
         """Load Device42 VRFGroups."""
         self.job.log_debug("Retrieving VRF groups from Device42.")
-        for _grp in self._device42.api_call(path="api/v1.0/vrfgroup/")["vrfgroup"]:
+        for _grp in self._device42.api_call(path="api/1.0/vrfgroup/")["vrfgroup"]:
             try:
                 new_vrf = self.vrf(
                     name=_grp["name"],
@@ -290,6 +299,27 @@ class Device42Adapter(DiffSync):
                 self.add(new_vrf)
             except ObjectAlreadyExists as err:
                 self.job.log_debug(f"VRF Group {_grp['name']} already exists. {err}")
+
+    def load_subnets(self):
+        """Load Device42 Subnets."""
+        self.job.log_debug("Retrieving Subnets from Device42.")
+        for _pf in self._device42.get_subnets():
+            if ":" in _pf["network"] and _pf["mask_bits"] == 32:
+                self.job.log_warning(f"Unable to import Subnet with a 32 mask bits. {_pf['network']} {_pf['name']}.")
+                continue
+            if _pf["mask_bits"] != 0:
+                try:
+                    new_pf = self.subnet(
+                        network=_pf["network"],
+                        mask_bits=_pf["mask_bits"],
+                        description=_pf["name"],
+                        vrf=_pf["vrf"],
+                    )
+                    self.add(new_pf)
+                except ObjectAlreadyExists as err:
+                    self.job.log_debug(f"Subnet {_pf['network']} {_pf['mask_bits']} {_pf['vrf']} {err}")
+            else:
+                self.job.log_warning(f"Unable to import Subnet with a 0 mask bits. {_pf['network']} {_pf['name']}.")
 
     def load(self):
         """Load data from Device42."""
@@ -301,3 +331,4 @@ class Device42Adapter(DiffSync):
         self.load_devices_and_clusters()
         self.load_ports()
         self.load_vrfgroups()
+        self.load_subnets()
