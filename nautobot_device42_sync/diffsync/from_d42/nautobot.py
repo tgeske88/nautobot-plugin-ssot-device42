@@ -154,7 +154,7 @@ class NautobotAdapter(DiffSync):
                         if _range:
                             _nip = IPAddress(
                                 address=f"{_ans}/{_range.prefix_length}",
-                                vrf=_range.vrf.name,
+                                vrf=_range.vrf,
                                 status=Status.objects.get(name="Active"),
                                 description="Management address via DNS",
                             )
