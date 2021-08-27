@@ -16,6 +16,7 @@ from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.virtualization.models import Cluster as NautobotCluster
 from nautobot_device42_sync.diffsync import nbutils
 from nautobot_device42_sync.constant import DEFAULTS
+from nautobot_device42_sync.diffsync.from_d42.models.ipam import IPAddress
 
 
 class Building(DiffSyncModel):
@@ -317,7 +318,6 @@ class Device(DiffSyncModel):
         "hardware",
         "os",
         "in_service",
-        "ip_addresses",
         "serial_no",
         "tags",
         "cluster_host",
@@ -333,7 +333,6 @@ class Device(DiffSyncModel):
     hardware: Optional[str]
     os: Optional[str]
     in_service: Optional[bool]
-    ip_addresses: Optional[List[str]] = list()
     interfaces: Optional[List["Port"]] = list()
     serial_no: Optional[str]
     tags: Optional[List[str]] = list()
@@ -411,6 +410,7 @@ class Port(DiffSyncModel):
     description: Optional[str]
     mac_addr: Optional[str]
     type: Optional[str]
+    ipaddrs: Optional[List["IPAddress"]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
@@ -445,7 +445,9 @@ class Port(DiffSyncModel):
         """
         print(f"Interface {self.name} for {self.device} will be deleted.")
         super().delete()
-        _dev = NautobotInterface.objects.get(**self.get_identifiers())
+        _dev = NautobotInterface.objects.get(
+            name=self.get_identifiers()["name"], device__name=self.get_identifiers()["device"]
+        )
         self.diffsync._objects_to_delete["port"].append(_dev)  # pylint: disable=protected-access
         return self
 

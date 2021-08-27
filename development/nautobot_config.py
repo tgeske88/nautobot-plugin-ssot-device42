@@ -262,6 +262,7 @@ PLUGINS_CONFIG = {
             "device_role": "Unknown",
             "role_color": "9e9e9e",
         },
+        "use_dns": True,
     },
 }
 
