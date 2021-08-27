@@ -1,7 +1,6 @@
 """DiffSync adapter for Device42."""
 
 from decimal import Decimal
-import re
 from django.utils.functional import classproperty
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
@@ -17,23 +16,6 @@ def sanitize_string(san_str: str):
     return san_str.replace("\u200b", "")
 
 
-def get_cidrs(address_list: list) -> list:
-    """Return list of CIDRs from list of dicts of IP Addresses from Device42.
-
-    Args:
-        address_list (list): List of dicts of IP addresses for a device in Device42.
-
-    Returns:
-        list: List of the CIDRs of the IP addresses for a device.
-    """
-    ip_list = []
-    for _ip in address_list:
-        _netmask = re.search(r"(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?P<mask>\d+)", _ip["subnet"])
-        if _netmask:
-            ip_list.append(f"{_ip['ip']}/{_netmask.group('mask')}")
-    return ip_list
-
-
 class Device42Adapter(DiffSync):
     """DiffSync adapter using requests to communicate to Device42 server."""
 
@@ -47,6 +29,7 @@ class Device42Adapter(DiffSync):
     port = dcim.Port
     vrf = ipam.VRFGroup
     subnet = ipam.Subnet
+    ipaddr = ipam.IPAddress
 
     top_level = [
         "building",
@@ -56,6 +39,7 @@ class Device42Adapter(DiffSync):
         "vrf",
         "subnet",
         "device",
+        "ipaddr",
     ]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
@@ -120,7 +104,8 @@ class Device42Adapter(DiffSync):
                 except ObjectAlreadyExists as err:
                     self.job.log_debug(f"{record['name']} is already loaded. {err}")
             else:
-                self.job.log_debug(f"{record['name']} is missing Building and won't be imported.")
+                # self.job.log_debug(f"{record['name']} is missing Building and won't be imported.")
+                continue
 
     def load_racks(self):
         """Load Device42 racks."""
@@ -143,7 +128,8 @@ class Device42Adapter(DiffSync):
                 except ObjectAlreadyExists as err:
                     self.job.log_debug(f"Rack {record['name']} already exists. {err}")
             else:
-                self.job.log_debug(f"{record['name']} is missing Building and Room and won't be imported.")
+                # self.job.log_debug(f"{record['name']} is missing Building and Room and won't be imported.")
+                continue
 
     def load_vendors(self):
         """Load Device42 vendors."""
@@ -167,7 +153,8 @@ class Device42Adapter(DiffSync):
                 try:
                     self.add(model)
                 except ObjectAlreadyExists as err:
-                    self.job.log_debug(f"Hardware model already exists. {err}")
+                    # self.job.log_debug(f"Hardware model already exists. {err}")
+                    continue
 
     def get_cluster_host(self, device: str) -> str or bool:
         """Get name of cluster host if device is in a cluster.
@@ -197,7 +184,7 @@ class Device42Adapter(DiffSync):
         except ObjectAlreadyExists as err:
             self.job.log_debug(f"Cluster {cluster_name} already has been added. {err}")
         except ObjectNotFound:
-            self.job.log_debug(f"Cluster {cluster_name} being added.")
+            # self.job.log_debug(f"Cluster {cluster_name} being added.")
             _cluster = self.cluster(
                 name=cluster_name,
                 ctype="network",
@@ -240,7 +227,6 @@ class Device42Adapter(DiffSync):
                     hardware=sanitize_string(_record["hw_model"]) if _record.get("hw_model") else "",
                     os=_record.get("os"),
                     in_service=_record.get("in_service"),
-                    ip_addresses=get_cidrs(_record["ip_addresses"]) if _record.get("ip_addresses") else [],
                     serial_no=_record["serial_no"],
                     tags=_record["tags"],
                 )
@@ -253,13 +239,14 @@ class Device42Adapter(DiffSync):
                             )
                         _clus = self.load_cluster(cluster_host)
                         _device.cluster_host = cluster_host
-                        self.job.log_debug(f"Device {_record['name']} being added.")
+                        # self.job.log_debug(f"Device {_record['name']} being added.")
                         self.add(_device)
                         _clus.add_child(_device)
                     else:
                         self.add(_device)
                 except ObjectAlreadyExists as err:
-                    self.job.log_debug(f"Device already added. {err}")
+                    # self.job.log_debug(f"Device already added. {err}")
+                    continue
 
     def load_ports(self):
         """Load Device42 ports."""
@@ -283,9 +270,11 @@ class Device42Adapter(DiffSync):
                     _dev = self.get(self.device, _port["device_name"])
                     _dev.add_child(new_port)
                 except ObjectAlreadyExists as err:
-                    self.job.log_debug(f"Port already exists. {err}")
+                    # self.job.log_debug(f"Port already exists. {err}")
+                    continue
                 except ObjectNotFound as err:
-                    self.job.log_debug(f"Device {_port['device_name']} not found. {err}")
+                    # self.job.log_debug(f"Device {_port['device_name']} not found. {err}")
+                    continue
 
     def load_vrfgroups(self):
         """Load Device42 VRFGroups."""
@@ -298,7 +287,8 @@ class Device42Adapter(DiffSync):
                 )
                 self.add(new_vrf)
             except ObjectAlreadyExists as err:
-                self.job.log_debug(f"VRF Group {_grp['name']} already exists. {err}")
+                # self.job.log_debug(f"VRF Group {_grp['name']} already exists. {err}")
+                continue
 
     def load_subnets(self):
         """Load Device42 Subnets."""
@@ -317,9 +307,29 @@ class Device42Adapter(DiffSync):
                     )
                     self.add(new_pf)
                 except ObjectAlreadyExists as err:
-                    self.job.log_debug(f"Subnet {_pf['network']} {_pf['mask_bits']} {_pf['vrf']} {err}")
+                    # self.job.log_debug(f"Subnet {_pf['network']} {_pf['mask_bits']} {_pf['vrf']} {err}")
+                    continue
             else:
-                self.job.log_warning(f"Unable to import Subnet with a 0 mask bits. {_pf['network']} {_pf['name']}.")
+                # self.job.log_warning(f"Unable to import Subnet with a 0 mask bits. {_pf['network']} {_pf['name']}.")
+                continue
+
+    def load_ip_addresses(self):
+        """Load Device42 IP Addresses."""
+        self.job.log_debug("Retrieving IP Addresses from Device42.")
+        for _ip in self._device42.get_ip_addrs():
+            try:
+                new_ip = self.ipaddr(
+                    address=f"{_ip['ip_address']}/{str(_ip['netmask'])}",
+                    available=_ip["available"],
+                    label=_ip["label"],
+                    device=_ip["device"],
+                    interface=_ip["port_name"],
+                    vrf=_ip["vrf"],
+                )
+                self.add(new_ip)
+            except ObjectAlreadyExists as err:
+                # self.job.log_debug(f"IP Address {_ip['ip_address']} {_ip['netmask']} already exists.{err}")
+                continue
 
     def load(self):
         """Load data from Device42."""
@@ -332,3 +342,4 @@ class Device42Adapter(DiffSync):
         self.load_ports()
         self.load_vrfgroups()
         self.load_subnets()
+        self.load_ip_addresses()

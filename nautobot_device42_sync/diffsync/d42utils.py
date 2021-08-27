@@ -69,18 +69,18 @@ def get_intf_type(intf_record: dict) -> str:  # pylint: disable=inconsistent-ret
     # if switch is physical and name is from PHY_INTF_MAP dict
     if intf_record["port_type"] == "physical":
         if intf_record["port_speed"] in PHY_INTF_MAP and "ethernet" in intf_record["discovered_type"]:
-            print(f"Matched on intf mapping. {intf_record['port_speed']}")
+            # print(f"Matched on intf mapping. {intf_record['port_speed']}")
             return PHY_INTF_MAP[intf_record["port_speed"]]
         if intf_record["discovered_type"] == "fibreChannel" and intf_record["port_speed"] in FC_INTF_MAP:
-            print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
+            # print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
             return FC_INTF_MAP[intf_record["port_speed"]]
         return "other"
     elif intf_record["port_type"] == "logical":
         if intf_record["discovered_type"] == "softwareLoopback" or intf_record["discovered_type"] == "propVirtual":
-            print(f"Virtual interface matched. {intf_record['port_name']} {intf_record['device_name']}.")
+            # print(f"Virtual interface matched. {intf_record['port_name']} {intf_record['device_name']}.")
             return "virtual"
         if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
-            print(f"PortChannel matched. {intf_record['port_name']} {intf_record['device_name']}")
+            # print(f"PortChannel matched. {intf_record['port_name']} {intf_record['device_name']}")
             return "lag"
         return "other"
 
@@ -250,4 +250,13 @@ class Device42API:
             dict: Dict of subnets from Device42.
         """
         query = "SELECT s.name, s.network, s.mask_bits, v.name as vrf FROM view_subnet_v1 s JOIN view_vrfgroup_v1 v ON s.vrfgroup_fk = v.vrfgroup_pk"
+        return self.doql_query(query=query)
+
+    def get_ip_addrs(self) -> List[dict]:
+        """Method to get all IP addresses and relevant data from Device42 via DOQL.
+
+        Returns:
+            List[dict]: List of dicts with info about each IP address.
+        """
+        query = "SELECT i.ip_address, i.available, i.label, np.port AS port_name, s.network as subnet, s.mask_bits as netmask, v.name as vrf, d.name as device FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_device_v1 d ON d.device_pk = i.device_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0"
         return self.doql_query(query=query)

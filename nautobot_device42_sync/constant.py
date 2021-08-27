@@ -6,3 +6,5 @@ from django.conf import settings
 PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_device42_sync"]
 
 DEFAULTS = PLUGIN_CFG.get("defaults")
+
+USE_DNS = PLUGIN_CFG.get("use_dns")
