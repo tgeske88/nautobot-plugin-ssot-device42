@@ -1,7 +1,7 @@
 """DiffSyncModel IPAM subclasses for Nautobot Device42 data sync."""
 
 import re
-from typing import Optional
+from typing import Optional, List
 from diffsync import DiffSyncModel
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NautobotDevice
@@ -19,15 +19,19 @@ class VRFGroup(DiffSyncModel):
     _modelname = "vrf"
     _identifiers = ("name",)
     _shortname = ("name",)
-    _attributes = ("description",)
+    _attributes = ("description", "tags")
     _children = {}
     name: str
     description: Optional[str]
+    tags: Optional[List[str]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create VRF object in Nautobot."""
         _vrf = NautobotVRF(name=ids["name"], description=attrs["description"])
+        if attrs.get("tags"):
+            for _tag in nbutils.get_tags(attrs["tags"]):
+                _vrf.tags.add(_tag)
         _vrf.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
@@ -63,12 +67,13 @@ class Subnet(DiffSyncModel):
         "mask_bits",
         "vrf",
     )
-    _attributes = ("description",)
+    _attributes = ("description", "tags")
     _children = {}
     network: str
     mask_bits: int
     description: Optional[str]
     vrf: Optional[str]
+    tags: Optional[List[str]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -79,6 +84,9 @@ class Subnet(DiffSyncModel):
             description=attrs["description"],
             status=NautobotStatus.objects.get(name="Active"),
         )
+        if attrs.get("tags"):
+            for _tag in nbutils.get_tags(attrs["tags"]):
+                _pf.tags.add(_tag)
         _pf.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
@@ -102,7 +110,7 @@ class IPAddress(DiffSyncModel):
     _modelname = "ipaddr"
     _identifiers = ("address",)
     _shortname = ("address",)
-    _attributes = ("label", "device", "interface", "vrf")
+    _attributes = ("label", "device", "interface", "vrf", "tags")
     _children = {}
 
     address: str
@@ -111,6 +119,7 @@ class IPAddress(DiffSyncModel):
     device: Optional[str]
     interface: Optional[str]
     vrf: Optional[str]
+    tags: Optional[List[str]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -133,6 +142,9 @@ class IPAddress(DiffSyncModel):
         if attrs.get("interface"):
             if re.search(r"[Ll]oopback", attrs["interface"]):
                 _ip.role = "loopback"
+        if attrs.get("tags"):
+            for _tag in nbutils.get_tags(attrs["tags"]):
+                _ip.tags.add(_tag)
         _ip.validated_save()
 
         # Define regex match for Management interface (ex Management/Mgmt/mgmt/management)

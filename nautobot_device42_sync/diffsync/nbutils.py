@@ -1,12 +1,18 @@
 """Utility functions for Nautobot ORM."""
 from django.utils.text import slugify
+from faker import Factory
+from taggit.managers import TaggableManager
+from typing import List
 from nautobot.dcim.models import DeviceRole, Manufacturer, Platform, Device, Interface
+from nautobot.extras.models import Tag
 from nautobot.ipam.models import IPAddress
 from nautobot.virtualization.models import ClusterType
-from nautobot_device42_sync.constant import DEFAULTS
 
 
-def verify_device_role(role_name: str, role_color: str = DEFAULTS.get("role_color")) -> DeviceRole:
+fake = Factory.create()
+
+
+def verify_device_role(role_name: str, role_color: str = fake.hex_color().strip("#")) -> DeviceRole:
     """Verifies DeviceRole object exists in Nautobot. If not, creates it.
 
     Args:
@@ -114,3 +120,53 @@ def set_primary_ip_and_mgmt(ip: IPAddress, dev: Device, intf: Interface):
     dev.validated_save()
     intf.mgmt_only = True
     intf.validated_save()
+
+
+def get_or_create_tag(tag_name: str) -> Tag:
+    """Finds or creates a Tag that matches `tag_name`.
+
+    Args:
+        tag_name (str): Name of Tag to be created.
+
+    Returns:
+        Tag: Tag object that was found or created.
+    """
+    try:
+        _tag = Tag.objects.get(slug=slugify(tag_name))
+    except Tag.DoesNotExist:
+        new_tag = Tag(
+            name=tag_name,
+            slug=slugify(tag_name),
+            color=fake.hex_color().strip("#"),
+        )
+        new_tag.validated_save()
+        _tag = new_tag
+    return _tag
+
+
+def get_tags(tag_list: List[str]) -> List[Tag]:
+    """Gets list of Tags from list of strings.
+
+    This is the opposite of the `get_tag_strings` function.
+
+    Args:
+        tag_list (List[str]): List of Tags as strings to find.
+
+    Returns:
+        (List[Tag]): List of Tag object primary keys matching list of strings passed in.
+    """
+    return [get_or_create_tag(x) for x in tag_list if x != ""]
+
+
+def get_tag_strings(list_tags: TaggableManager) -> List[str]:
+    """Gets string values of all Tags in a list.
+
+    This is the opposite of the `get_tags` function.
+
+    Args:
+        list_tags (TaggableManager): List of Tag objects to convert to strings.
+
+    Returns:
+        List[str]: List of string values matching the Tags passed in.
+    """
+    return [x for x in list_tags.names()]
