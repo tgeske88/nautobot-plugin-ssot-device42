@@ -25,7 +25,7 @@ class Building(DiffSyncModel):
     _modelname = "building"
     _identifiers = ("name",)
     _shortname = ("name",)
-    _attributes = ("address", "latitude", "longitude", "contact_name", "contact_phone")
+    _attributes = ("address", "latitude", "longitude", "contact_name", "contact_phone", "tags")
     _children = {"room": "rooms"}
     name: str
     address: Optional[str]
@@ -34,6 +34,7 @@ class Building(DiffSyncModel):
     contact_name: Optional[str]
     contact_phone: Optional[str]
     rooms: List["Room"] = list()
+    tags: Optional[List[str]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -49,6 +50,9 @@ class Building(DiffSyncModel):
             contact_name=attrs["contact_name"] if attrs.get("contact_name") else "",
             contact_phone=attrs["contact_phone"] if attrs.get("contact_phone") else "",
         )
+        if attrs.get("tags"):
+            for _tag in nbutils.get_tags(attrs["tags"]):
+                new_site.tags.add(_tag)
         new_site.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
@@ -119,13 +123,14 @@ class Rack(DiffSyncModel):
     _modelname = "rack"
     _identifiers = ("name", "building", "room")
     _shortname = ("name",)
-    _attributes = ("height", "numbering_start_from_bottom")
+    _attributes = ("height", "numbering_start_from_bottom", "tags")
     _children = {}
     name: str
     building: str
     room: str
     height: int
     numbering_start_from_bottom: str
+    tags: Optional[List[str]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -140,6 +145,9 @@ class Rack(DiffSyncModel):
             u_height=attrs["height"] if attrs.get("height") else 1,
             desc_units=not (is_truthy(attrs["numbering_start_from_bottom"])),
         )
+        if attrs.get("tags"):
+            for _tag in nbutils.get_tags(attrs["tags"]):
+                new_rack.tags.add(_tag)
         new_rack.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
@@ -264,12 +272,13 @@ class Cluster(DiffSyncModel):
     _modelname = "cluster"
     _identifiers = ("name",)
     _shortname = ("name",)
-    _attributes = ("ctype", "building")
+    _attributes = ("ctype", "building", "tags")
     _children = {"device": "devices"}
     name: str
     ctype: str
     building: Optional[str]
     devices: List["Device"] = list()
+    tags: Optional[List[str]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -281,6 +290,9 @@ class Cluster(DiffSyncModel):
             type=ctype,
             site=NautobotSite.objects.get(name=attrs["building"]) if attrs.get("building") else None,
         )
+        if attrs.get("tags"):
+            for _tag in nbutils.get_tags(attrs["tags"]):
+                new_cluster.tags.add(_tag)
         new_cluster.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
@@ -335,7 +347,7 @@ class Device(DiffSyncModel):
     in_service: Optional[bool]
     interfaces: Optional[List["Port"]] = list()
     serial_no: Optional[str]
-    tags: Optional[List[str]] = list()
+    tags: Optional[List[str]]
     cluster_host: Optional[str]
 
     @classmethod
@@ -370,6 +382,9 @@ class Device(DiffSyncModel):
                     )
                 if attrs.get("cluster_host"):
                     new_device.cluster = NautobotCluster.objects.get(name=attrs["cluster_host"])
+                if attrs.get("tags"):
+                    for _tag in nbutils.get_tags(attrs["tags"]):
+                        new_device.tags.add(_tag)
                 new_device.validated_save()
                 return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
             except NautobotDeviceType.DoesNotExist:
@@ -401,7 +416,7 @@ class Port(DiffSyncModel):
     _modelname = "port"
     _identifiers = ("device", "name")
     _shortname = ("name",)
-    _attributes = ("enabled", "mtu", "description", "mac_addr", "type")
+    _attributes = ("enabled", "mtu", "description", "mac_addr", "type", "tags")
     _children = {}
     name: str
     device: str
@@ -411,6 +426,7 @@ class Port(DiffSyncModel):
     mac_addr: Optional[str]
     type: Optional[str]
     ipaddrs: Optional[List["IPAddress"]]
+    tags: Optional[List[str]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
@@ -427,6 +443,9 @@ class Port(DiffSyncModel):
                     type=attrs["type"],
                     mac_address=attrs["mac_addr"][:12] if attrs.get("mac_addr") else None,
                 )
+                if attrs.get("tags"):
+                    for _tag in nbutils.get_tags(attrs["tags"]):
+                        new_intf.tags.add(_tag)
                 new_intf.validated_save()
                 return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
         except NautobotDevice.DoesNotExist as err:

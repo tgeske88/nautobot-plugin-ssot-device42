@@ -81,6 +81,7 @@ class Device42Adapter(DiffSync):
                 contact_name=record["contact_name"] if record.get("contact_name") else "",
                 contact_phone=record["contact_phone"] if record.get("contact_phone") else "",
                 rooms=record["rooms"] if record.get("rooms") else [],
+                tags=record["tags"] if record.get("tags") else [],
             )
             try:
                 self.add(building)
@@ -96,6 +97,7 @@ class Device42Adapter(DiffSync):
                     name=record["name"],
                     building=record["building"],
                     notes=record["notes"] if record.get("notes") else "",
+                    tags=record["tags"] if record.get("tags") else [],
                 )
                 try:
                     self.add(room)
@@ -118,6 +120,7 @@ class Device42Adapter(DiffSync):
                     room=record["room"],
                     height=record["size"] if record.get("size") else 1,
                     numbering_start_from_bottom=record["numbering_start_from_bottom"],
+                    tags=record["tags"] if record.get("tags") else [],
                 )
                 try:
                     self.add(rack)
@@ -204,6 +207,7 @@ class Device42Adapter(DiffSync):
             if _record.get("type") == "cluster":
                 _cluster = self.load_cluster(_record["name"])
                 _cluster.building = _record["building"] if _record.get("building") else ""
+                _cluster.tags = _record["tags"] if _record.get("tags") else []
                 if _record.get("name") in self._device42_clusters.keys():
                     self._device42_clusters[_record.get("name")]["is_network"] = _record.get("is_it_switch")
                 else:
@@ -228,7 +232,7 @@ class Device42Adapter(DiffSync):
                     os=_record.get("os"),
                     in_service=_record.get("in_service"),
                     serial_no=_record["serial_no"],
-                    tags=_record["tags"],
+                    tags=_record["tags"] if _record.get("tags") else [],
                 )
                 try:
                     cluster_host = self.get_cluster_host(_record["name"])
@@ -265,6 +269,7 @@ class Device42Adapter(DiffSync):
                         description=_port["description"],
                         mac_addr=_port["hwaddress"],
                         type=get_intf_type(intf_record=_port),
+                        tags=_port["tags"].split(",") if _port.get("tags") else [],
                     )
                     self.add(new_port)
                     _dev = self.get(self.device, _port["device_name"])
@@ -284,6 +289,7 @@ class Device42Adapter(DiffSync):
                 new_vrf = self.vrf(
                     name=_grp["name"],
                     description=_grp["description"],
+                    tags=_grp["tags"] if _grp.get("vrf") else [],
                 )
                 self.add(new_vrf)
             except ObjectAlreadyExists as err:
@@ -304,6 +310,7 @@ class Device42Adapter(DiffSync):
                         mask_bits=_pf["mask_bits"],
                         description=_pf["name"],
                         vrf=_pf["vrf"],
+                        tags=_pf["tags"].split(",") if _pf.get("tags") else [],
                     )
                     self.add(new_pf)
                 except ObjectAlreadyExists as err:
@@ -325,6 +332,7 @@ class Device42Adapter(DiffSync):
                     device=_ip["device"],
                     interface=_ip["port_name"],
                     vrf=_ip["vrf"],
+                    tags=_ip["tags"].split(",") if _ip.get("tags") else [],
                 )
                 self.add(new_ip)
             except ObjectAlreadyExists as err:
