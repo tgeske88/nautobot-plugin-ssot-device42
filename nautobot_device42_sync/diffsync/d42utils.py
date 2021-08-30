@@ -157,7 +157,7 @@ class Device42API:
         # Handle Device42 pagination
         counter = 0
         pagination = False
-        if isinstance(return_data, dict):
+        if isinstance(return_data, dict) and return_data.get("total_count"):
             while (return_data.get("offset") + return_data.get("limit")) < return_data.get("total_count"):
                 pagination = True
                 # print("Handling paginated response from Device42.")

@@ -263,6 +263,7 @@ PLUGINS_CONFIG = {
             "role_color": "9e9e9e",
         },
         "use_dns": True,
+        "role_prepend": "ansible-group-",
     },
 }
 
