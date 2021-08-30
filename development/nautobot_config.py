@@ -260,9 +260,10 @@ PLUGINS_CONFIG = {
             "site_status": "Active",
             "rack_status": "Active",
             "device_role": "Unknown",
-            "role_color": "9e9e9e",
         },
         "use_dns": True,
+        "customer_is_facility": True,
+        "facility_prepend": "sitecode-",
         "role_prepend": "ansible-group-",
     },
 }
