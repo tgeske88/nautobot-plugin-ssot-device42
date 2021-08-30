@@ -51,6 +51,17 @@ class Building(DiffSyncModel):
     tags: Optional[List[str]]
 
     @classmethod
+    def _get_facility(cls, diffsync, tags: List[str]):
+        """Determine Site facility from a specified Tag."""
+        if PLUGIN_CFG.get("facility_prepend"):
+            for _tag in tags:
+                if re.search(PLUGIN_CFG.get("facility_prepend"), _tag):
+                    return re.sub(PLUGIN_CFG.get("facility_prepend"), "", _tag)
+        else:
+            diffsync.job.log_failure("The `facility_prepend` setting is missing or invalid.")
+            raise MissingConfigSetting("facility_prepend")
+
+    @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Site object in Nautobot."""
         def_site_status = NautobotStatus.objects.get(name=DEFAULTS.get("site_status"))
@@ -67,6 +78,9 @@ class Building(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 new_site.tags.add(_tag)
+            _facility = cls._get_facility(diffsync, tags=attrs["tags"])
+            if _facility:
+                new_site.facility = _facility.upper()
         new_site.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
@@ -375,7 +389,7 @@ class Device(DiffSyncModel):
             DEFAULTS["device_role"]: The Default device role defined in plugin settings.
         """
         if not PLUGIN_CFG.get("role_prepend"):
-            diffsync.job.log_failure(f"You must have the `role_prepend` setting configured.")
+            diffsync.job.log_failure("You must have the `role_prepend` setting configured.")
             raise MissingConfigSetting(setting="role_prepend")
         _prepend = PLUGIN_CFG.get("role_prepend")
         for _tag in tag_list:
