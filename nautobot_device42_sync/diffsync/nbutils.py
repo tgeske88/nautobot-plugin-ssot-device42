@@ -12,7 +12,7 @@ from nautobot.virtualization.models import ClusterType
 fake = Factory.create()
 
 
-def verify_device_role(role_name: str, role_color: str = fake.hex_color().strip("#")) -> DeviceRole:
+def verify_device_role(role_name: str, role_color: str = None) -> DeviceRole:
     """Verifies DeviceRole object exists in Nautobot. If not, creates it.
 
     Args:
@@ -22,8 +22,10 @@ def verify_device_role(role_name: str, role_color: str = fake.hex_color().strip(
     Returns:
         DeviceRole: Created DeviceRole object.
     """
+    if not role_color:
+        role_color = fake.hex_color().strip("#")
     try:
-        role_obj = DeviceRole.objects.get(name=role_name)
+        role_obj = DeviceRole.objects.get(slug=slugify(role_name))
     except DeviceRole.DoesNotExist:
         role_obj = DeviceRole(name=role_name, slug=slugify(role_name), color=role_color)
         role_obj.validated_save()

@@ -1,5 +1,6 @@
 """DiffSyncModel DCIM subclasses for Nautobot Device42 data sync."""
 
+import re
 from typing import Optional, List
 from decimal import Decimal
 from django.utils.text import slugify
@@ -15,8 +16,21 @@ from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.virtualization.models import Cluster as NautobotCluster
 from nautobot_device42_sync.diffsync import nbutils
-from nautobot_device42_sync.constant import DEFAULTS
+from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
 from nautobot_device42_sync.diffsync.from_d42.models.ipam import IPAddress
+
+
+class MissingConfigSetting(Exception):
+    """Exception raised for missing configuration settings.
+
+    Attributes:
+        message (str): Returned explanation of Error.
+    """
+
+    def __init__(self, setting):
+        self.setting = setting
+        self.message = f"Missing configuration setting - {setting}!"
+        super().__init__(self.message)
 
 
 class Building(DiffSyncModel):
@@ -351,6 +365,25 @@ class Device(DiffSyncModel):
     cluster_host: Optional[str]
 
     @classmethod
+    def _find_device_role_from_tags(cls, diffsync, tag_list: List[str]) -> str or bool:
+        """Determine a Device role based upon a Tag matching the `role_prepend` setting.
+
+        Args:
+            tag_list (List[str]): List of Tags as strings to search.
+
+        Returns:
+            DEFAULTS["device_role"]: The Default device role defined in plugin settings.
+        """
+        if not PLUGIN_CFG.get("role_prepend"):
+            diffsync.job.log_failure(f"You must have the `role_prepend` setting configured.")
+            raise MissingConfigSetting(setting="role_prepend")
+        _prepend = PLUGIN_CFG.get("role_prepend")
+        for _tag in tag_list:
+            if re.search(_prepend, _tag):
+                return re.sub(_prepend, "", _tag)
+        return DEFAULTS.get("device_role")
+
+    @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
         """Create Device object in Nautobot."""
         if attrs["in_service"]:
@@ -359,6 +392,10 @@ class Device(DiffSyncModel):
             _status = NautobotStatus.objects.get(name="Offline")
         if attrs.get("building"):
             diffsync.job.log_debug(f"Creating device {ids['name']}.")
+            if attrs.get("tags") and len(attrs["tags"]) > 0:
+                _role = nbutils.verify_device_role(cls._find_device_role_from_tags(diffsync, tag_list=attrs["tags"]))
+            else:
+                _role = nbutils.verify_device_role(role_name=DEFAULTS.get("device_role"))
             try:
                 _dt = NautobotDeviceType.objects.get(model=attrs["hardware"])
                 new_device = NautobotDevice(
@@ -371,7 +408,7 @@ class Device(DiffSyncModel):
                     position=int(attrs["rack_position"]) if attrs["rack_position"] else None,
                     face=attrs["rack_orientation"] if attrs["rack_orientation"] else "front",
                     device_type=_dt,
-                    device_role=nbutils.verify_device_role(role_name=DEFAULTS.get("device_role")),
+                    device_role=_role,
                     serial=attrs["serial_no"] if attrs.get("serial_no") else "",
                 )
                 if attrs.get("os"):
