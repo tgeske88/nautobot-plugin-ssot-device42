@@ -304,6 +304,7 @@ class Cluster(DiffSyncModel):
     _children = {"device": "devices"}
     name: str
     ctype: str
+    customer: Optional[str]
     building: Optional[str]
     devices: List["Device"] = list()
     tags: Optional[List[str]]
@@ -351,6 +352,7 @@ class Device(DiffSyncModel):
     _attributes = (
         "dtype",
         "building",
+        "customer",
         "room",
         "rack",
         "rack_position",
@@ -366,6 +368,7 @@ class Device(DiffSyncModel):
     name: str
     dtype: str
     building: Optional[str]
+    customer: Optional[str]
     room: Optional[str]
     rack: Optional[str]
     rack_position: Optional[float]
@@ -398,13 +401,32 @@ class Device(DiffSyncModel):
         return DEFAULTS.get("device_role")
 
     @classmethod
+    def _get_site(cls, diffsync, ids, attrs):
+        if PLUGIN_CFG.get("customer_is_facility") and attrs.get("customer"):
+            try:
+                _site = NautobotSite.objects.get(facility=attrs["customer"])
+                return _site
+            except NautobotSite.DoesNotExist as err:
+                diffsync.job.log_debug("Unable to find Site by facility. Attempting by Building.")
+
+        if attrs.get("building"):
+            try:
+                _site = NautobotSite.objects.get(name=attrs["building"])
+                return _site
+            except NautobotSite.DoesNotExist as err:
+                diffsync.job.log_debug(f"Unable to find Site. {err}")
+        else:
+            diffsync.job.log_debug(f"Device {ids['name']} is missing Building or Customer.")
+            return False
+
+    @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
         """Create Device object in Nautobot."""
         if attrs["in_service"]:
             _status = NautobotStatus.objects.get(name="Active")
         else:
             _status = NautobotStatus.objects.get(name="Offline")
-        if attrs.get("building"):
+        if attrs.get("building") or attrs.get("customer"):
             diffsync.job.log_debug(f"Creating device {ids['name']}.")
             if attrs.get("tags") and len(attrs["tags"]) > 0:
                 _role = nbutils.verify_device_role(cls._find_device_role_from_tags(diffsync, tag_list=attrs["tags"]))
@@ -412,19 +434,24 @@ class Device(DiffSyncModel):
                 _role = nbutils.verify_device_role(role_name=DEFAULTS.get("device_role"))
             try:
                 _dt = NautobotDeviceType.objects.get(model=attrs["hardware"])
+                _site = cls._get_site(diffsync, ids, attrs)
+                if not _site:
+                    diffsync.job.log_debug(f"Can't create {ids['name']} as unable to determine Site.")
+                    return None
                 new_device = NautobotDevice(
-                    name=ids["name"],
+                    name=ids["name"][:64],
                     status=_status,
-                    site=NautobotSite.objects.get(name=attrs["building"]),
-                    rack=NautobotRack.objects.get(
-                        name=attrs["rack"], site__name=attrs["building"], group__name=attrs["room"]
-                    ),
-                    position=int(attrs["rack_position"]) if attrs["rack_position"] else None,
-                    face=attrs["rack_orientation"] if attrs["rack_orientation"] else "front",
+                    site=_site,
                     device_type=_dt,
                     device_role=_role,
                     serial=attrs["serial_no"] if attrs.get("serial_no") else "",
                 )
+                if attrs.get("rack"):
+                    new_device.rack = NautobotRack.objects.get(
+                        name=attrs["rack"], site=_site, group__name=attrs["room"]
+                    )
+                    new_device.position = int(attrs["rack_position"]) if attrs["rack_position"] else None
+                    new_device.face = attrs["rack_orientation"] if attrs["rack_orientation"] else "front"
                 if attrs.get("os"):
                     new_device.platform = nbutils.verify_platform(
                         platform_name=attrs["os"],
@@ -489,7 +516,7 @@ class Port(DiffSyncModel):
                     name=ids["name"],
                     device=NautobotDevice.objects.get(name=ids["device"]),
                     enabled=is_truthy(attrs["enabled"]),
-                    mtu=attrs["mtu"] if attrs.get("mtu") else None,
+                    mtu=attrs["mtu"] if attrs.get("mtu") in range(1, 65537) else None,
                     description=attrs["description"],
                     type=attrs["type"],
                     mac_address=attrs["mac_addr"][:12] if attrs.get("mac_addr") else None,
