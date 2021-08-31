@@ -17,7 +17,7 @@ from nautobot.extras.choices import LogLevelChoices
 from nautobot.virtualization.models import Cluster
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
-from nautobot_device42_sync.constant import USE_DNS
+from nautobot_device42_sync.constant import PLUGIN_CFG, USE_DNS
 from nautobot_device42_sync.diffsync import nbutils
 
 
@@ -240,6 +240,8 @@ class NautobotAdapter(DiffSync):
                 building=clus.site,
                 tags=nbutils.get_tag_strings(clus.tags),
             )
+            if PLUGIN_CFG.get("customer_is_facility"):
+                _clus.customer = clus.facility
             self.add(_clus)
 
     def load_devices(self):
@@ -260,6 +262,8 @@ class NautobotAdapter(DiffSync):
                 serial_no=dev.serial if dev.serial else "",
                 tags=nbutils.get_tag_strings(dev.tags),
             )
+            if PLUGIN_CFG.get("customer_is_facility"):
+                _clus.customer = dev.facility
             self.add(_dev)
             if dev.cluster:
                 _clus = self.get(self.cluster, {"name": dev.cluster})

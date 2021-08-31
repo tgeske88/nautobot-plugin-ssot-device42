@@ -207,6 +207,7 @@ class Device42Adapter(DiffSync):
             if _record.get("type") == "cluster":
                 _cluster = self.load_cluster(_record["name"])
                 _cluster.building = _record["building"] if _record.get("building") else ""
+                _cluster.customer = _record["customer"] if _record.get("customer") else ""
                 _cluster.tags = _record["tags"] if _record.get("tags") else []
                 if _record.get("name") in self._device42_clusters.keys():
                     self._device42_clusters[_record.get("name")]["is_network"] = _record.get("is_it_switch")
@@ -224,6 +225,7 @@ class Device42Adapter(DiffSync):
                     name=_record["name"],
                     dtype=_record["type"],
                     building=_record["building"] if _record.get("building") else "",
+                    customer=_record["customer"] if _record.get("customer") else "",
                     room=_record["room"] if _record.get("room") else "",
                     rack=_record["rack"] if _record.get("rack") else "",
                     rack_position=int(_record["start_at"]) if _record.get("start_at") else None,
