@@ -13,11 +13,30 @@ from nautobot.dcim.models.racks import Rack as NautobotRack
 from nautobot.dcim.models import Manufacturer as NautobotManufacturer
 from nautobot.dcim.models import DeviceType as NautobotDeviceType
 from nautobot.dcim.models import Device as NautobotDevice
+from nautobot.dcim.models import VirtualChassis as NautobotVC
 from nautobot.dcim.models import Interface as NautobotInterface
-from nautobot.virtualization.models import Cluster as NautobotCluster
 from nautobot_device42_sync.diffsync import nbutils
 from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
 from nautobot_device42_sync.diffsync.from_d42.models.ipam import IPAddress
+
+
+def find_device_role_from_tags(diffsync, tag_list: List[str]) -> str or bool:
+    """Determine a Device role based upon a Tag matching the `role_prepend` setting.
+
+    Args:
+        tag_list (List[str]): List of Tags as strings to search.
+
+    Returns:
+        DEFAULTS["device_role"]: The Default device role defined in plugin settings.
+    """
+    if not PLUGIN_CFG.get("role_prepend"):
+        print("You must have the `role_prepend` setting configured.")
+        raise MissingConfigSetting(setting="role_prepend")
+    _prepend = PLUGIN_CFG.get("role_prepend")
+    for _tag in tag_list:
+        if re.search(_prepend, _tag):
+            return re.sub(_prepend, "", _tag)
+    return DEFAULTS.get("device_role")
 
 
 class MissingConfigSetting(Exception):
@@ -300,45 +319,67 @@ class Cluster(DiffSyncModel):
     _modelname = "cluster"
     _identifiers = ("name",)
     _shortname = ("name",)
-    _attributes = ("ctype", "building", "tags")
-    _children = {"device": "devices"}
+    _attributes = ("hardware", "platform", "facility", "members", "tags")
+    _children = {"port": "interfaces"}
     name: str
-    ctype: str
-    customer: Optional[str]
-    building: Optional[str]
-    devices: List["Device"] = list()
+    hardware: str
+    platform: str
+    facility: str
+    members: Optional[List[str]]
+    interfaces: Optional[List["Port"]] = list()
     tags: Optional[List[str]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
-        """Create Cluster object in Nautobot."""
-        diffsync.job.log_debug(f"Creating cluster {ids['name']}.")
-        ctype = nbutils.verify_cluster_type("network")
-        new_cluster = NautobotCluster(
-            name=ids["name"],
-            type=ctype,
-            site=NautobotSite.objects.get(name=attrs["building"]) if attrs.get("building") else None,
-        )
-        if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
-                new_cluster.tags.add(_tag)
-        new_cluster.validated_save()
+        """Create Virtual Chassis object in Nautobot.
+
+        As the master node of the VC needs to be a regular Device, we'll create that and then the VC.
+        Member devices will be added to VC at Device creation.
+        """
+        diffsync.job.log_debug(f"Creating VC Master Device {ids['name']}.")
+        try:
+            new_master = NautobotDevice(
+                name=ids["name"],
+                device_type=NautobotDeviceType.objects.get(model=attrs["hardware"]),
+                device_role=nbutils.verify_device_role(find_device_role_from_tags(diffsync, tag_list=attrs["tags"])),
+                status=NautobotStatus.objects.get(name="Active"),
+                site=NautobotSite.objects.get(facility=attrs["facility"]) if attrs.get("facility") else None,
+            )
+            new_master.validated_save()
+            new_vc = NautobotVC(
+                name=ids["name"],
+                master=new_master,
+            )
+            if attrs.get("tags"):
+                for _tag in nbutils.get_tags(attrs["tags"]):
+                    new_vc.tags.add(_tag)
+            new_vc.validated_save()
+            new_master.virtual_chassis = new_vc
+            new_master.vc_position = 1
+            if attrs.get("tags"):
+                for _tag in nbutils.get_tags(attrs["tags"]):
+                    new_master.tags.add(_tag)
+            new_master.validated_save()
+        except NautobotDeviceType.DoesNotExist as err:
+            print(f"Can't find DeviceType {attrs['hardware']} {err}")
+        except NautobotSite.DoesNotExist as err:
+            print(f"Can't find Site facility {attrs['facility']} {err}")
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
-        """Update Cluster object in Nautobot."""
+        """Update Virtual Chassis object in Nautobot."""
         return super().update(attrs)
 
     def delete(self):
-        """Delete Cluster object from Nautobot.
+        """Delete Virtual Chassis object from Nautobot.
 
-        Because Cluster has a direct relationship with Devices it can't be deleted before they are.
+        Because Virtual Chassis has a direct relationship with Devices it can't be deleted before they are.
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        self.diffsync.job.log_warning(f"Cluster {self.name} will be deleted.")
+        self.diffsync.job.log_warning(f"Virtual Chassis {self.name} will be deleted.")
         super().delete()
-        _cluster = NautobotCluster.objects.get(**self.get_identifiers())
+        _cluster = NautobotVC.objects.get(**self.get_identifiers())
         self.diffsync._objects_to_delete["cluster"].append(_cluster)  # pylint: disable=protected-access
         return self
 
@@ -382,25 +423,6 @@ class Device(DiffSyncModel):
     cluster_host: Optional[str]
 
     @classmethod
-    def _find_device_role_from_tags(cls, diffsync, tag_list: List[str]) -> str or bool:
-        """Determine a Device role based upon a Tag matching the `role_prepend` setting.
-
-        Args:
-            tag_list (List[str]): List of Tags as strings to search.
-
-        Returns:
-            DEFAULTS["device_role"]: The Default device role defined in plugin settings.
-        """
-        if not PLUGIN_CFG.get("role_prepend"):
-            diffsync.job.log_failure("You must have the `role_prepend` setting configured.")
-            raise MissingConfigSetting(setting="role_prepend")
-        _prepend = PLUGIN_CFG.get("role_prepend")
-        for _tag in tag_list:
-            if re.search(_prepend, _tag):
-                return re.sub(_prepend, "", _tag)
-        return DEFAULTS.get("device_role")
-
-    @classmethod
     def _get_site(cls, diffsync, ids, attrs):
         if PLUGIN_CFG.get("customer_is_facility") and attrs.get("customer"):
             try:
@@ -429,7 +451,7 @@ class Device(DiffSyncModel):
         if attrs.get("building") or attrs.get("customer"):
             diffsync.job.log_debug(f"Creating device {ids['name']}.")
             if attrs.get("tags") and len(attrs["tags"]) > 0:
-                _role = nbutils.verify_device_role(cls._find_device_role_from_tags(diffsync, tag_list=attrs["tags"]))
+                _role = nbutils.verify_device_role(find_device_role_from_tags(diffsync, tag_list=attrs["tags"]))
             else:
                 _role = nbutils.verify_device_role(role_name=DEFAULTS.get("device_role"))
             try:
@@ -459,7 +481,12 @@ class Device(DiffSyncModel):
                         napalm_driver=attrs["os"],
                     )
                 if attrs.get("cluster_host"):
-                    new_device.cluster = NautobotCluster.objects.get(name=attrs["cluster_host"])
+                    try:
+                        new_device.virtual_chassis = NautobotVC.objects.get(name=attrs["cluster_host"])
+                        position = len(NautobotDevice.objects.filter(virtual_chassis__name=attrs["cluster_host"]))
+                        new_device.vc_position = position + 1
+                    except NautobotVC.DoesNotExist as err:
+                        print(err)
                 if attrs.get("tags"):
                     for _tag in nbutils.get_tags(attrs["tags"]):
                         new_device.tags.add(_tag)

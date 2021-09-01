@@ -213,11 +213,18 @@ class Device42API:
         Returns:
             dict: Dictionary of all clusters with associated members.
         """
-        query = "SELECT m.name as cluster, string_agg(d.name, '%3B ') as members FROM view_device_v1 m JOIN view_devices_in_cluster_v1 c ON c.parent_device_fk = m.device_pk JOIN view_device_v1 d ON d.device_pk = c.child_device_fk WHERE m.type like '%cluster%' GROUP BY m.name"
+        query = "SELECT m.name as cluster, string_agg(d.name, '%3B ') as members, h.name as hardware, d.network_device, d.os_name as os, b.name as customer, d.tags FROM view_device_v1 m JOIN view_devices_in_cluster_v1 c ON c.parent_device_fk = m.device_pk JOIN view_device_v1 d ON d.device_pk = c.child_device_fk JOIN view_hardware_v1 h ON h.hardware_pk = d.hardware_fk JOIN view_customer_v1 b ON b.customer_pk = d.customer_fk WHERE m.type like '%cluster%' GROUP BY m.name, h.name, d.network_device, d.os_name, b.name, d.tags"
         _results = self.doql_query(query=query)
 
         return {
-            _i["cluster"]: {"members": [x.strip() for x in _i["members"].split("%3B")], "is_network": "no"}
+            _i["cluster"]: {
+                "members": [x.strip() for x in _i["members"].split("%3B")],
+                "is_network": _i["network_device"],
+                "hardware": _i["hardware"],
+                "os": _i["os"],
+                "customer": _i["customer"],
+                "tags": _i["tags"].split(",") if _i.get("tags") else [],
+            }
             for _i in _results
         }
 
