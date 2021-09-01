@@ -492,6 +492,8 @@ class Device(DiffSyncModel):
                         new_device.tags.add(_tag)
                 new_device.validated_save()
                 return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+            except NautobotRack.DoesNotExist:
+                diffsync.job.log_debug(f"Unable to find matching Rack {attrs.get('rack')} for {_site.name}")
             except NautobotDeviceType.DoesNotExist:
                 diffsync.job.log_debug(f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}.")
         else:
