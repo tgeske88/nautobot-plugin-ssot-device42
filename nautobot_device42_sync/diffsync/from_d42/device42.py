@@ -35,9 +35,9 @@ class Device42Adapter(DiffSync):
         "building",
         "vendor",
         "hardware",
-        "cluster",
         "vrf",
         "subnet",
+        "cluster",
         "device",
         "ipaddr",
     ]
@@ -173,48 +173,44 @@ class Device42Adapter(DiffSync):
                 return _cluster
         return False
 
-    def load_cluster(self, cluster_name: dict) -> dcim.Cluster:
+    def load_cluster(self, cluster_info: dict) -> dcim.Cluster:
         """Load Device42 clusters into DiffSync model.
 
         Args:
-            cluster_name (dict): Name of cluster to be added to DiffSync model.
+            cluster_info (dict): Information of cluster to be added to DiffSync model.
 
         Returns:
             models.Cluster: Cluster model that has been created or found.
         """
         try:
-            _cluster = self.get(self.cluster, cluster_name)
+            _cluster = self.get(self.cluster, cluster_info)
         except ObjectAlreadyExists as err:
-            self.job.log_debug(f"Cluster {cluster_name} already has been added. {err}")
+            print(f"Cluster {cluster_info['name']} already has been added. {err}")
         except ObjectNotFound:
-            # self.job.log_debug(f"Cluster {cluster_name} being added.")
+            # print(f"Cluster {cluster_name} being added.")
+            _clus = self._device42_clusters[cluster_info["name"]]
             _cluster = self.cluster(
-                name=cluster_name,
-                ctype="network",
+                name=cluster_info["name"],
+                hardware=_clus["hardware"],
+                platform=_clus["os"],
+                facility=_clus["customer"],
+                members=_clus["members"],
+                tags=cluster_info["tags"],
             )
             self.add(_cluster)
-        return _cluster
 
     def load_devices_and_clusters(self):
         """Load Device42 devices."""
         # Get all Devices from Device42
-        self.job.log_debug("Retrieving devices from Device42.")
+        print("Retrieving devices from Device42.")
         _devices = self._device42.api_call(path="api/1.0/devices/all/?is_it_switch=yes")["Devices"]
 
         # Add all Clusters first
-        self.job.log_debug("Loading clusters...")
+        print("Loading clusters...")
         for _record in _devices:
-            if _record.get("type") == "cluster":
-                _cluster = self.load_cluster(_record["name"])
-                _cluster.building = _record["building"] if _record.get("building") else ""
-                _cluster.customer = _record["customer"] if _record.get("customer") else ""
-                _cluster.tags = _record["tags"] if _record.get("tags") else []
-                if _record.get("name") in self._device42_clusters.keys():
-                    self._device42_clusters[_record.get("name")]["is_network"] = _record.get("is_it_switch")
-                else:
-                    self.job.log_debug(
-                        f"Cluster {_record['name']} has no cluster members. Please validate this is correct."
-                    )
+            if _record.get("type") == "cluster" and _record.get("name") in self._device42_clusters.keys():
+                print(f"Attempting to load cluster {_record['name']}")
+                self.load_cluster(_record)
 
         # Then iterate through again and add Devices and if are part of a cluster, add to Cluster
         self.job.log_debug("Loading devices...")
@@ -243,13 +239,9 @@ class Device42Adapter(DiffSync):
                             self.job.log_warning(
                                 f"{cluster_host} has network device members but isn't marked as network. This should be corrected in Device42."
                             )
-                        _clus = self.load_cluster(cluster_host)
                         _device.cluster_host = cluster_host
                         # self.job.log_debug(f"Device {_record['name']} being added.")
-                        self.add(_device)
-                        _clus.add_child(_device)
-                    else:
-                        self.add(_device)
+                    self.add(_device)
                 except ObjectAlreadyExists as err:
                     # self.job.log_debug(f"Device already added. {err}")
                     continue
@@ -261,7 +253,7 @@ class Device42Adapter(DiffSync):
         logical_ports = self._device42.get_logical_intfs()
         _ports = phy_ports + logical_ports
         for _port in _ports:
-            if _port.get("port_name"):
+            if _port.get("port_name") and _port.get("device_name"):
                 try:
                     new_port = self.port(
                         name=_port["port_name"],
@@ -274,8 +266,12 @@ class Device42Adapter(DiffSync):
                         tags=_port["tags"].split(",") if _port.get("tags") else [],
                     )
                     self.add(new_port)
-                    _dev = self.get(self.device, _port["device_name"])
-                    _dev.add_child(new_port)
+                    try:
+                        _dev = self.get(self.cluster, _port["device_name"])
+                        _dev.add_child(new_port)
+                    except ObjectNotFound:
+                        _dev = self.get(self.device, _port["device_name"])
+                        _dev.add_child(new_port)
                 except ObjectAlreadyExists as err:
                     # self.job.log_debug(f"Port already exists. {err}")
                     continue

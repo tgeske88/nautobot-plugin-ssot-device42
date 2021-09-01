@@ -55,26 +55,6 @@ def verify_platform(platform_name: str, manu: str, napalm_driver: str = "") -> P
     return platform_obj
 
 
-def verify_cluster_type(cluster_type: str) -> ClusterType:
-    """Verifies ClusterType object exists in Nautobot. If not, creates it.
-
-    Args:
-        cluster_type (str): Name for cluster type to be validated/created.
-
-    Returns:
-        ClusterType: Created ClusterType object.
-    """
-    try:
-        clustertype_obj = ClusterType.objects.get(name=cluster_type)
-    except ClusterType.DoesNotExist:
-        clustertype_obj = ClusterType(
-            name=cluster_type,
-            slug=slugify(cluster_type),
-        )
-        clustertype_obj.validated_save()
-    return clustertype_obj
-
-
 def get_or_create_mgmt_intf(intf_name: str, dev: Device) -> Interface:
     """Creates a Management interface with specified name.
 

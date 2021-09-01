@@ -9,12 +9,11 @@ from diffsync import DiffSync
 from nautobot.core.settings_funcs import is_truthy
 from nautobot.dcim.models import Site
 from nautobot.dcim.models.device_components import Interface
-from nautobot.dcim.models.devices import Manufacturer, DeviceType, Device
+from nautobot.dcim.models.devices import Manufacturer, DeviceType, Device, VirtualChassis
 from nautobot.dcim.models.racks import RackGroup, Rack
 from nautobot.extras.models import Status
 from nautobot.ipam.models import VRF, Prefix, IPAddress
 from nautobot.extras.choices import LogLevelChoices
-from nautobot.virtualization.models import Cluster
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
 from nautobot_device42_sync.constant import PLUGIN_CFG, USE_DNS
@@ -32,7 +31,6 @@ class NautobotAdapter(DiffSync):
         "manufacturer": [],
         "device_type": [],
         "vrf": [],
-        "ip_address": [],
         "cluster": [],
         "port": [],
         "subnet": [],
@@ -55,9 +53,9 @@ class NautobotAdapter(DiffSync):
         "building",
         "vendor",
         "hardware",
-        "cluster",
         "vrf",
         "subnet",
+        "cluster",
         "device",
         "ipaddr",
     ]
@@ -89,7 +87,7 @@ class NautobotAdapter(DiffSync):
             "rack",
             "manufacturer",
             "vrf",
-            "ip_address",
+            "ipaddr",
             "cluster",
             "port",
         ):
@@ -231,18 +229,28 @@ class NautobotAdapter(DiffSync):
             )
             self.add(dtype)
 
-    def load_clusters(self):
-        """Add Nautobot Cluster objects as DiffSync Cluster models."""
-        for clus in Cluster.objects.all():
-            _clus = self.cluster(
-                name=clus.name,
-                ctype="cluster",
-                building=clus.site,
-                tags=nbutils.get_tag_strings(clus.tags),
+    # def load_clusters(self):
+    #     """Add Nautobot Cluster objects as DiffSync Cluster models."""
+    #     for clus in Cluster.objects.all():
+    #         _clus = self.cluster(
+    #             name=clus.name,
+    #             ctype="cluster",
+    #             building=clus.site,
+    #         )
+    #         self.add(_clus)
+
+    def load_virtual_chassis(self):
+        """Add Nautobot Virtual Chassis objects as DiffSync"""
+        # We import the master node as a VC
+        for _vc in VirtualChassis.objects.all():
+            new_vc = self.cluster(
+                name=_vc.name,
+                hardware=_vc.master.device_type.name,
+                platform=_vc.master.platform.napalm_driver,
+                facility=_vc.master.site.facility,
+                tags=_vc.tags,
             )
-            if PLUGIN_CFG.get("customer_is_facility"):
-                _clus.customer = clus.facility
-            self.add(_clus)
+            self.add(new_vc)
 
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
@@ -262,12 +270,7 @@ class NautobotAdapter(DiffSync):
                 serial_no=dev.serial if dev.serial else "",
                 tags=nbutils.get_tag_strings(dev.tags),
             )
-            if PLUGIN_CFG.get("customer_is_facility"):
-                _clus.customer = dev.facility
             self.add(_dev)
-            if dev.cluster:
-                _clus = self.get(self.cluster, {"name": dev.cluster})
-                _clus.add_child(_dev)
 
     def load_interfaces(self):
         """Add Nautobot Interface objects as DiffSync Port models."""
@@ -287,9 +290,17 @@ class NautobotAdapter(DiffSync):
                 type=port.type,
                 tags=nbutils.get_tag_strings(port.tags),
             )
-            self.add(_port)
-            _dev = self.get(self.device, port.device.name)
-            _dev.add_child(_port)
+            try:
+                self.add(_port)
+                try:
+                    _dev = self.get(self.cluster, port.device.name)
+                    _dev.add_child(_port)
+                except ObjectNotFound:
+                    _dev = self.get(self.device, port.device.name)
+                    _dev.add_child(_port)
+            except ObjectAlreadyExists as err:
+                self.job.log_debug(f"Port already exists for {port.device_name}. {err}")
+                continue
 
     def load_vrfs(self):
         """Add Nautobot VRF objects as DiffSync VRFGroup models."""
@@ -341,7 +352,7 @@ class NautobotAdapter(DiffSync):
         self.load_racks()
         self.load_manufacturers()
         self.load_device_types()
-        self.load_clusters()
+        self.load_virtual_chassis()
         self.load_devices()
         self.load_interfaces()
         self.load_vrfs()
