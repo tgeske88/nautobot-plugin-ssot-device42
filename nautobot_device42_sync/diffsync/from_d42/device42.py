@@ -5,6 +5,7 @@ from django.utils.functional import classproperty
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from nautobot.core.settings_funcs import is_truthy
+from nautobot.dcim.models import Site
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
 from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type
@@ -30,6 +31,7 @@ class Device42Adapter(DiffSync):
     vrf = ipam.VRFGroup
     subnet = ipam.Subnet
     ipaddr = ipam.IPAddress
+    vlan = ipam.VLAN
 
     top_level = [
         "building",
@@ -37,6 +39,7 @@ class Device42Adapter(DiffSync):
         "hardware",
         "vrf",
         "subnet",
+        "vlan",
         "cluster",
         "device",
         "ipaddr",
@@ -60,6 +63,9 @@ class Device42Adapter(DiffSync):
             verify=PLUGIN_CFG["verify_ssl"],
         )
         self._device42_clusters = self._device42.get_cluster_members()
+
+        # mapping of VLAN PK to VLAN name and ID
+        self.vlan_map = self._device42.get_vlan_info()
 
     @classproperty
     def _device42_hardwares(self):
@@ -248,10 +254,7 @@ class Device42Adapter(DiffSync):
 
     def load_ports(self):
         """Load Device42 ports."""
-        self.job.log_debug("Retrieving ports from Device42.")
-        phy_ports = self._device42.get_physical_intfs()
-        logical_ports = self._device42.get_logical_intfs()
-        _ports = phy_ports + logical_ports
+        _ports = self._device42.get_ports_with_vlans()
         for _port in _ports:
             if _port.get("port_name") and _port.get("device_name"):
                 try:
@@ -264,7 +267,17 @@ class Device42Adapter(DiffSync):
                         mac_addr=_port["hwaddress"],
                         type=get_intf_type(intf_record=_port),
                         tags=_port["tags"].split(",") if _port.get("tags") else [],
+                        mode="access" if len(_port["vlan_pks"]) <= 1 else "tagged",
                     )
+                    vlans = []
+                    for _pk in _port["vlan_pks"]:
+                        if self.vlan_map[_pk]["vid"] != 0:
+                            _vlan = {
+                                "vlan_name": self.vlan_map[_pk]["name"],
+                                "vlan_id": self.vlan_map[_pk]["vid"],
+                            }
+                            vlans.append(_vlan)
+                    new_port.vlans = vlans
                     self.add(new_port)
                     try:
                         _dev = self.get(self.cluster, _port["device_name"])
@@ -337,6 +350,39 @@ class Device42Adapter(DiffSync):
                 # self.job.log_debug(f"IP Address {_ip['ip_address']} {_ip['netmask']} already exists.{err}")
                 continue
 
+    def load_vlans(self):
+        """Load Device42 VLANs."""
+        _vlans = self._device42.get_vlans_with_location()
+        for _info in _vlans:
+            try:
+                if _info.get("building"):
+                    new_vlan = self.get(
+                        self.vlan, {"name": _info["vlan_name"], "vlan_id": _info["vid"], "building": _info["building"]}
+                    )
+                elif _info.get("customer"):
+                    new_vlan = self.get(
+                        self.vlan, {"name": _info["vlan_name"], "vlan_id": _info["vid"], "building": _info["customer"]}
+                    )
+                else:
+                    new_vlan = self.get(
+                        self.vlan, {"name": _info["vlan_name"], "vlan_id": _info["vid"], "building": "Unknown"}
+                    )
+            except ObjectAlreadyExists as err:
+                self.job.log_debug(f"VLAN {_info['vlan_name']} already exists. {err}")
+            except ObjectNotFound:
+                new_vlan = self.vlan(
+                    name=_info["vlan_name"],
+                    vlan_id=int(_info["vid"]),
+                    description=_info["description"],
+                )
+                if _info.get("building"):
+                    new_vlan.building = _info["building"]
+                elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
+                    new_vlan.building = _info["customer"]
+                else:
+                    new_vlan.building = "Unknown"
+                self.add(new_vlan)
+
     def load(self):
         """Load data from Device42."""
         self.load_buildings()
@@ -344,8 +390,9 @@ class Device42Adapter(DiffSync):
         self.load_racks()
         self.load_vendors()
         self.load_hardware_models()
+        self.load_vrfgroups()
+        self.load_vlans()
+        self.load_subnets()
         self.load_devices_and_clusters()
         self.load_ports()
-        self.load_vrfgroups()
-        self.load_subnets()
         self.load_ip_addresses()

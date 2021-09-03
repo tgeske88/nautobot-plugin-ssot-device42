@@ -15,6 +15,7 @@ from nautobot.dcim.models import DeviceType as NautobotDeviceType
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import VirtualChassis as NautobotVC
 from nautobot.dcim.models import Interface as NautobotInterface
+from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot_device42_sync.diffsync import nbutils
 from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
 from nautobot_device42_sync.diffsync.from_d42.models.ipam import IPAddress
@@ -523,7 +524,7 @@ class Port(DiffSyncModel):
     _modelname = "port"
     _identifiers = ("device", "name")
     _shortname = ("name",)
-    _attributes = ("enabled", "mtu", "description", "mac_addr", "type", "tags")
+    _attributes = ("enabled", "mtu", "description", "mac_addr", "type", "mode", "tags", "vlans")
     _children = {}
     name: str
     device: str
@@ -532,8 +533,9 @@ class Port(DiffSyncModel):
     description: Optional[str]
     mac_addr: Optional[str]
     type: Optional[str]
-    ipaddrs: Optional[List["IPAddress"]]
     tags: Optional[List[str]]
+    mode: Optional[str]
+    vlans: Optional[List[dict]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
@@ -541,18 +543,41 @@ class Port(DiffSyncModel):
         diffsync.job.log_debug(f"Creating Interface {ids['name']} for {ids['device']}.")
         try:
             if ids.get("device"):
+                _dev = NautobotDevice.objects.get(name=ids["device"])
                 new_intf = NautobotInterface(
                     name=ids["name"],
-                    device=NautobotDevice.objects.get(name=ids["device"]),
+                    device=_dev,
                     enabled=is_truthy(attrs["enabled"]),
                     mtu=attrs["mtu"] if attrs.get("mtu") in range(1, 65537) else None,
                     description=attrs["description"],
                     type=attrs["type"],
                     mac_address=attrs["mac_addr"][:12] if attrs.get("mac_addr") else None,
+                    mode=attrs["mode"],
                 )
                 if attrs.get("tags"):
                     for _tag in nbutils.get_tags(attrs["tags"]):
                         new_intf.tags.add(_tag)
+                try:
+                    if attrs["mode"] == "access" and len(attrs["vlans"]) == 1:
+                        _vlan = attrs["vlans"][0]
+                        vlan_found = NautobotVLAN.objects.filter(
+                            name=_vlan["vlan_name"], vid=_vlan["vlan_id"], site=_dev.site
+                        )
+                        if vlan_found:
+                            new_intf.untagged_vlan = vlan_found[0]
+                    else:
+                        tagged_vlans = []
+                        for _vlan in attrs["vlans"]:
+                            tagged_vlan = NautobotVLAN.objects.filter(
+                                name=_vlan["vlan_name"], vid=_vlan["vlan_id"], site=_dev.site
+                            )
+                            if not tagged_vlan:
+                                tagged_vlan = NautobotVLAN.objects.filter(name=_vlan["vlan_name"], vid=_vlan["vlan_id"])
+                            if tagged_vlan:
+                                tagged_vlans.append(tagged_vlan[0])
+                        new_intf.tagged_vlans.set(tagged_vlans)
+                except NautobotVLAN.DoesNotExist as err:
+                    diffsync.job.log_debug(f"{err}: {_vlan['vlan_name']} {_vlan['vlan_id']} ")
                 new_intf.validated_save()
                 return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
         except NautobotDevice.DoesNotExist as err:

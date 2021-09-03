@@ -6,17 +6,15 @@ import re
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ProtectedError
 from diffsync import DiffSync
+from diffsync.exceptions import ObjectNotFound, ObjectAlreadyExists
 from nautobot.core.settings_funcs import is_truthy
-from nautobot.dcim.models import Site
-from nautobot.dcim.models.device_components import Interface
-from nautobot.dcim.models.devices import Manufacturer, DeviceType, Device, VirtualChassis
-from nautobot.dcim.models.racks import RackGroup, Rack
+from nautobot.dcim.models import Site, RackGroup, Rack, Manufacturer, DeviceType, Device, VirtualChassis, Interface
+from nautobot.ipam.models import VRF, Prefix, IPAddress, VLAN
 from nautobot.extras.models import Status
-from nautobot.ipam.models import VRF, Prefix, IPAddress
 from nautobot.extras.choices import LogLevelChoices
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
-from nautobot_device42_sync.constant import PLUGIN_CFG, USE_DNS
+from nautobot_device42_sync.constant import USE_DNS
 from nautobot_device42_sync.diffsync import nbutils
 
 
@@ -35,6 +33,7 @@ class NautobotAdapter(DiffSync):
         "port": [],
         "subnet": [],
         "ipaddr": [],
+        "vlan": [],
     }
 
     building = dcim.Building
@@ -48,6 +47,7 @@ class NautobotAdapter(DiffSync):
     vrf = ipam.VRFGroup
     subnet = ipam.Subnet
     ipaddr = ipam.IPAddress
+    vlan = ipam.VLAN
 
     top_level = [
         "building",
@@ -55,6 +55,7 @@ class NautobotAdapter(DiffSync):
         "hardware",
         "vrf",
         "subnet",
+        "vlan",
         "cluster",
         "device",
         "ipaddr",
@@ -90,6 +91,7 @@ class NautobotAdapter(DiffSync):
             "ipaddr",
             "cluster",
             "port",
+            "vlan",
         ):
             for nautobot_object in self._objects_to_delete[grouping]:
                 try:
@@ -123,7 +125,7 @@ class NautobotAdapter(DiffSync):
                     except dns.resolver.NXDOMAIN as err:
                         print(err)
                         continue
-                    except:
+                    except Exception:
                         continue
                     if _dev.primary_ip:
                         if _ans == _dev.primary_ip:
@@ -229,16 +231,6 @@ class NautobotAdapter(DiffSync):
             )
             self.add(dtype)
 
-    # def load_clusters(self):
-    #     """Add Nautobot Cluster objects as DiffSync Cluster models."""
-    #     for clus in Cluster.objects.all():
-    #         _clus = self.cluster(
-    #             name=clus.name,
-    #             ctype="cluster",
-    #             building=clus.site,
-    #         )
-    #         self.add(_clus)
-
     def load_virtual_chassis(self):
         """Add Nautobot Virtual Chassis objects as DiffSync"""
         # We import the master node as a VC
@@ -289,15 +281,27 @@ class NautobotAdapter(DiffSync):
                 mac_addr=_mac_addr,
                 type=port.type,
                 tags=nbutils.get_tag_strings(port.tags),
+                mode=port.mode,
             )
+            if port.mode == "access":
+                _port.vlans = [
+                    {
+                        "vlan_name": _port.untagged_vlan.name,
+                        "vlan_id": str(_port.untagged_vlan.vid),
+                    }
+                ]
+            else:
+                _vlans = []
+                for _vlan in _port.tagged_vlans:
+                    _vlans.append(
+                        {
+                            "vlan_name": _vlan.name,
+                            "vlan_id": _vlan.vid,
+                        }
+                    )
+                _port.vlans = _vlans
             try:
                 self.add(_port)
-                try:
-                    _dev = self.get(self.cluster, port.device.name)
-                    _dev.add_child(_port)
-                except ObjectNotFound:
-                    _dev = self.get(self.device, port.device.name)
-                    _dev.add_child(_port)
             except ObjectAlreadyExists as err:
                 self.job.log_debug(f"Port already exists for {port.device_name}. {err}")
                 continue
@@ -344,6 +348,18 @@ class NautobotAdapter(DiffSync):
                 new_ip.device = _intf.device.name
             self.add(new_ip)
 
+    def load_vlans(self):
+        """Add Nautobot VLAN objects as DiffSync VLAN models."""
+        self.job.log_debug(f"Loading VLAN: {self.name}.")
+        for vlan in VLAN.objects.all():
+            _vlan = self.vlan(
+                name=vlan.name,
+                vlan_id=vlan.vid,
+                description=vlan.description,
+                building=vlan.site.name if vlan.site else "Unknown",
+            )
+            self.add(_vlan)
+
     def load(self):
         """Load data from Nautobot."""
         # Import all Nautobot Site records as Buildings
@@ -352,9 +368,10 @@ class NautobotAdapter(DiffSync):
         self.load_racks()
         self.load_manufacturers()
         self.load_device_types()
+        self.load_vrfs()
+        self.load_vlans()
+        self.load_prefixes()
         self.load_virtual_chassis()
         self.load_devices()
         self.load_interfaces()
-        self.load_vrfs()
-        self.load_prefixes()
         self.load_ip_addresses()
