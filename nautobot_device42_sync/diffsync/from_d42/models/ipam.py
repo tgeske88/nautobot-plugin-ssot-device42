@@ -3,13 +3,18 @@
 import re
 from typing import Optional, List
 from diffsync import DiffSyncModel
+from diffsync.exceptions import ObjectAlreadyExists
 from django.contrib.contenttypes.models import ContentType
+from nautobot.core.settings_funcs import is_truthy
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
+from nautobot.dcim.models import Site as NautobotSite
 from nautobot.ipam.models import VRF as NautobotVRF
 from nautobot.ipam.models import Prefix as NautobotPrefix
 from nautobot.ipam.models import IPAddress as NautobotIPAddress
+from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot.extras.models import Status as NautobotStatus
+from nautobot_device42_sync.constant import PLUGIN_CFG
 from nautobot_device42_sync.diffsync import nbutils
 
 
@@ -182,4 +187,69 @@ class IPAddress(DiffSyncModel):
         super().delete()
         site = NautobotIPAddress.objects.get(**self.get_identifiers())
         self.diffsync._objects_to_delete["ipaddr"].append(site)  # pylint: disable=protected-access
+
+
+class VLAN(DiffSyncModel):
+    """Device42 VLAN model."""
+
+    _modelname = "vlan"
+    _identifiers = (
+        "name",
+        "vlan_id",
+        "building",
+    )
+    _attributes = ("description",)
+    _children = {}
+
+    name: str
+    vlan_id: int
+    description: Optional[str]
+    building: Optional[str]
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create VLAN object in Nautobot."""
+        _vlan = NautobotVLAN(
+            name=ids["name"],
+            vid=ids["vlan_id"],
+            description=attrs["description"],
+            status=NautobotStatus.objects.get(name="Active"),
+        )
+        _site = False
+        if is_truthy(PLUGIN_CFG.get("customer_is_facility")):
+            try:
+                _site = NautobotSite.objects.get(facility=ids["building"])
+            except NautobotSite.DoesNotExist:
+                try:
+                    _site = NautobotSite.objects.get(name=ids["building"])
+                except NautobotSite.DoesNotExist as err:
+                    print(err)
+        elif ids["building"] != "Unknown":
+            try:
+                _site = NautobotSite.objects.get(name=ids["building"])
+            except NautobotSite.DoesNotExist as err:
+                print(err)
+        if _site:
+            _vlan.site = _site
+        try:
+            _vlan.validated_save()
+        except ObjectAlreadyExists as err:
+            diffsync.job.log_debug(f"{ids['name']} already exists. {err}")
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+
+    def update(self, attrs):
+        """Update VLAN object in Nautobot."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete VLAN object from Nautobot.
+
+        Because VLAN has a direct relationship with many other objects it can't be deleted before anything else.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
+        self.diffsync.job.log_warning(f"VLAN {self.name} will be deleted.")
+        super().delete()
+        vlan = NautobotVLAN.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["vlan"].append(vlan)  # pylint: disable=protected-access
         return self

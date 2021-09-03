@@ -5,8 +5,7 @@ from taggit.managers import TaggableManager
 from typing import List
 from nautobot.dcim.models import DeviceRole, Manufacturer, Platform, Device, Interface
 from nautobot.extras.models import Tag
-from nautobot.ipam.models import IPAddress
-from nautobot.virtualization.models import ClusterType
+from nautobot.ipam.models import IPAddress, VLAN
 
 
 fake = Factory.create()

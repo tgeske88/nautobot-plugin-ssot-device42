@@ -1,8 +1,10 @@
 """Utility functions for Device42 API."""
 
+import re
 import requests
 import urllib3
 from typing import List
+from nautobot_device42_sync.constant import PHY_INTF_MAP, FC_INTF_MAP, INTF_NAME_MAP
 
 
 def merge_offset_dicts(orig_dict: dict, offset_dict: dict) -> dict:
@@ -35,46 +37,37 @@ def get_intf_type(intf_record: dict) -> str:  # pylint: disable=inconsistent-ret
 
     Anything explicitly not matched will go to `other`.
     """
-    PHY_INTF_MAP = {  # pylint: disable=invalid-name
-        "10 Mbps": "other",
-        "50 Mbps": "other",
-        "100 Mbps": "100base-tx",
-        "1.0 Gbps": "1000base-t",
-        "10 Gbps": "10gbase-t",
-        "25 Gbps": "25gbase-x-sfp28",
-        "40 Gbps": "40gbase-x-qsfpp",
-        "50 Gbps": "50gbase-x-sfp28",
-        "100 Gbps": "100gbase-x-qsfp28",
-        "200 Gbps": "200gbase-x-qsfp56",
-        "400 Gbps": "400gbase-x-qsfpdd",
-        "10000": "other",
-        "20000": "other",
-        "1000000": "1000base-t",
-        "10000000": "10gbase-t",
-        "1000000000": "100gbase-x-qsfp28",
-    }
+    _port_name = re.search(r"^[a-zA-Z]+-?[a-zA-Z]+", intf_record["port_name"].strip())
 
-    FC_INTF_MAP = {  # pylint: disable=invalid-name
-        "1.0 Gbps": "1gfc-sfp",
-        "2.0 Gbps": "2gfc-sfp",
-        "4.0 Gbps": "4gfc-sfp",
-        "4 Gbps": "4gfc-sfp",
-        "8.0 Gbps": "8gfc-sfpp",
-        "16.0 Gbps": "16gfc-sfpp",
-        "32.0 Gbps": "32gfc-sfp28",
-        "64.0 Gbps": "64gfc-qsfpp",
-        "128.0 Gbps": "128gfc-sfp28",
-    }
+    if _port_name:
+        _port_name = _port_name.group()
 
     # if switch is physical and name is from PHY_INTF_MAP dict
     if intf_record["port_type"] == "physical":
-        if intf_record["port_speed"] in PHY_INTF_MAP and "ethernet" in intf_record["discovered_type"]:
-            # print(f"Matched on intf mapping. {intf_record['port_speed']}")
-            return PHY_INTF_MAP[intf_record["port_speed"]]
-        if intf_record["discovered_type"] == "fibreChannel" and intf_record["port_speed"] in FC_INTF_MAP:
-            # print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
-            return FC_INTF_MAP[intf_record["port_speed"]]
-        return "other"
+        # Due to Device42 not reflecting the true speed capability of a port, just what it's running at, we must check if port is `up`.
+        # If port is not showing as `up` then the `port_speed` field is inaccurate and we must resort to port name.
+        if intf_record["up"]:
+            if intf_record["port_speed"] in PHY_INTF_MAP and "ethernet" in intf_record["discovered_type"]:
+                # print(f"Matched on intf mapping. {intf_record['port_speed']}")
+                return PHY_INTF_MAP[intf_record["port_speed"]]
+            if intf_record["discovered_type"] == "fibreChannel" and intf_record["port_speed"] in FC_INTF_MAP:
+                # print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
+                return FC_INTF_MAP[intf_record["port_speed"]]
+            if intf_record["port_speed"] in PHY_INTF_MAP:
+                # print(f"Matched on intf mapping. {intf_record['port_speed']}")
+                return PHY_INTF_MAP[intf_record["port_speed"]]
+            return "other"
+        else:
+            # Assumption is that `port_speed` is inaccurate and must use `port_name`.
+            if _port_name in INTF_NAME_MAP and intf_record["port_speed"] == INTF_NAME_MAP[_port_name]["ex_speed"]:
+                return INTF_NAME_MAP[_port_name]["itype"]
+            if _port_name in INTF_NAME_MAP:
+                return INTF_NAME_MAP[_port_name]["itype"]
+            else:
+                print(
+                    f"Unable to determine port type based on port name ({_port_name}) or `port_speed` ({intf_record['port_speed']}) for {intf_record['device_name']} {intf_record['port_name']}."
+                )
+                return "other"
     elif intf_record["port_type"] == "logical":
         if intf_record["discovered_type"] == "softwareLoopback" or intf_record["discovered_type"] == "propVirtual":
             # print(f"Virtual interface matched. {intf_record['port_name']} {intf_record['device_name']}.")
@@ -228,26 +221,15 @@ class Device42API:
             for _i in _results
         }
 
-    def get_physical_intfs(self) -> List[dict]:
-        """Method to get all physical interfaces from Device42.
+    def get_ports_with_vlans(self) -> List[dict]:
+        """Method to get all Ports with attached VLANs from Device42.
 
         This retrieves only the information we care about via DOQL in one giant json blob instead of multiple API calls.
 
         Returns:
-            dict: Dict of interface information from DOQL query.
+            List[dict]: Dict of interface information from DOQL query.
         """
-        query = "SELECT m.port as port_name , m.description , m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port_type like '%physical%' GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name"
-        return self.doql_query(query=query)
-
-    def get_logical_intfs(self) -> List[dict]:
-        """Method to get all logical interfaces from Device42.
-
-        This retrieves only the information we care about via DOQL in one giant json blob instead of multiple API calls.
-
-        Returns:
-            dict: Dict of interface information from DOQL query.
-        """
-        query = "SELECT m.port as port_name , m.description , m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port_type like '%logical%' GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name"
+        query = "SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null OR n.hwaddress is not null GROUP BY n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name"
         return self.doql_query(query=query)
 
     def get_subnets(self) -> List[dict]:
@@ -267,3 +249,22 @@ class Device42API:
         """
         query = "SELECT i.ip_address, i.available, i.label, i.tags, np.port AS port_name, s.network as subnet, s.mask_bits as netmask, v.name as vrf, d.name as device FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_device_v1 d ON d.device_pk = i.device_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0"
         return self.doql_query(query=query)
+
+    def get_vlans_with_location(self) -> List[dict]:
+        """Method to get all VLANs with Building and Customer info to attach to find Site.
+
+        Returns:
+            List[dict]: List of dicts of VLANs and location information.
+        """
+        query = "SELECT v.vlan_pk, v.number AS vid, v.description, vn.vlan_name, b.name as building, c.name as customer FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n on n.netport_pk = vn.netport_fk LEFT JOIN view_device_v2 d on d.device_pk = n.device_fk LEFT JOIN view_building_v1 b ON b.building_pk = d.building_fk LEFT JOIN view_customer_v1 c ON c.customer_pk = d.customer_fk WHERE vn.vlan_name is not null and v.number <> 0 GROUP BY v.vlan_pk, v.number, v.description, vn.vlan_name, b.name, c.name"
+        return self.doql_query(query=query)
+
+    def get_vlan_info(self) -> dict:
+        """Method to obtain the VLAN name and ID paired to primary key.
+
+        Returns:
+            dict: Mapping of VLAN primary key to VLAN name and ID.
+        """
+        query = "SELECT v.vlan_pk, v.name, v.number as vid FROM view_vlan_v1 v"
+        doql_vlans = self.doql_query(query=query)
+        return {str(x["vlan_pk"]): {"name": x["name"], "vid": x["vid"]} for x in doql_vlans}
