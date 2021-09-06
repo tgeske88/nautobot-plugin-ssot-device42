@@ -44,37 +44,38 @@ def get_intf_type(intf_record: dict) -> str:  # pylint: disable=inconsistent-ret
 
     # if switch is physical and name is from PHY_INTF_MAP dict
     if intf_record["port_type"] == "physical":
-        # Due to Device42 not reflecting the true speed capability of a port, just what it's running at, we must check if port is `up`.
-        # If port is not showing as `up` then the `port_speed` field is inaccurate and we must resort to port name.
-        if intf_record["up"]:
-            if intf_record["port_speed"] in PHY_INTF_MAP and "ethernet" in intf_record["discovered_type"]:
-                # print(f"Matched on intf mapping. {intf_record['port_speed']}")
-                return PHY_INTF_MAP[intf_record["port_speed"]]
-            if intf_record["discovered_type"] == "fibreChannel" and intf_record["port_speed"] in FC_INTF_MAP:
-                # print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
-                return FC_INTF_MAP[intf_record["port_speed"]]
-            if intf_record["port_speed"] in PHY_INTF_MAP:
-                # print(f"Matched on intf mapping. {intf_record['port_speed']}")
-                return PHY_INTF_MAP[intf_record["port_speed"]]
+        # this handles Mgmt interfaces that didn't have a `discovered_type`.
+        if not intf_record.get("discovered_type"):
             return "other"
-        else:
-            # Assumption is that `port_speed` is inaccurate and must use `port_name`.
-            if _port_name in INTF_NAME_MAP and intf_record["port_speed"] == INTF_NAME_MAP[_port_name]["ex_speed"]:
-                return INTF_NAME_MAP[_port_name]["itype"]
-            if _port_name in INTF_NAME_MAP:
-                return INTF_NAME_MAP[_port_name]["itype"]
-            else:
-                print(
-                    f"Unable to determine port type based on port name ({_port_name}) or `port_speed` ({intf_record['port_speed']}) for {intf_record['device_name']} {intf_record['port_name']}."
-                )
-                return "other"
+        if "ethernet" in intf_record["discovered_type"] and intf_record["port_speed"] in PHY_INTF_MAP:
+            # print(f"Matched on intf mapping. {intf_record['port_speed']}")
+            return PHY_INTF_MAP[intf_record["port_speed"]]
+        if "fibreChannel" in intf_record["discovered_type"] and intf_record["port_speed"] in FC_INTF_MAP:
+            # print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
+            return FC_INTF_MAP[intf_record["port_speed"]]
+        if intf_record["port_speed"] in PHY_INTF_MAP:
+            # print(f"Matched on intf mapping. {intf_record['port_speed']}")
+            return PHY_INTF_MAP[intf_record["port_speed"]]
+        if _port_name in INTF_NAME_MAP:
+            # print(f"Matched on interface name {_port_name}")
+            return INTF_NAME_MAP[_port_name]["itype"]
+        if "gigabitEthernet" in intf_record["discovered_type"]:
+            return "1000base-t"
+        if "dot11" in intf_record["discovered_type"]:
+            return "ieee802.11a"
+        return "other"
     elif intf_record["port_type"] == "logical":
-        if intf_record["discovered_type"] == "softwareLoopback" or intf_record["discovered_type"] == "propVirtual":
+        if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
+            # print(f"LAG matched. {intf_record['port_name']} {intf_record['device_name']}")
+            return "lag"
+        if intf_record["discovered_type"] == "softwareLoopback" or intf_record["discovered_type"] == "l2vlan":
             # print(f"Virtual interface matched. {intf_record['port_name']} {intf_record['device_name']}.")
             return "virtual"
-        if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
-            # print(f"PortChannel matched. {intf_record['port_name']} {intf_record['device_name']}")
-            return "lag"
+        if intf_record["discovered_type"] == "propVirtual":
+            if re.search(r"[pP]ort-?[cC]hannel", _port_name):
+                return "lag"
+            else:
+                return "virtual"
         return "other"
 
 
@@ -229,7 +230,16 @@ class Device42API:
         Returns:
             List[dict]: Dict of interface information from DOQL query.
         """
-        query = "SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null OR n.hwaddress is not null GROUP BY n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name"
+        query = "SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name"
+        return self.doql_query(query=query)
+
+    def get_logical_ports_wo_vlans(self) -> List[dict]:
+        """Method to get all logical Ports from Device42.
+
+        Returns:
+            List[dict]: Dict of Interface information from DOQL query.
+        """
+        query = "SELECT m.port as port_name, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port is not null GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name"
         return self.doql_query(query=query)
 
     def get_subnets(self) -> List[dict]:

@@ -37,6 +37,10 @@ FC_INTF_MAP = {  # pylint: disable=invalid-name
 }
 
 INTF_NAME_MAP = {
+    "Ethernet": {
+        "itype": "1000base-t",
+        "ex_speed": "1.0 Gbps",
+    },
     "FastEthernet": {
         "itype": "100base-tx",
         "ex_speed": "100 Mbps",
