@@ -6,7 +6,7 @@ import re
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ProtectedError
 from diffsync import DiffSync
-from diffsync.exceptions import ObjectNotFound, ObjectAlreadyExists
+from diffsync.exceptions import ObjectAlreadyExists
 from nautobot.core.settings_funcs import is_truthy
 from nautobot.dcim.models import Site, RackGroup, Rack, Manufacturer, DeviceType, Device, VirtualChassis, Interface
 from nautobot.ipam.models import VRF, Prefix, IPAddress, VLAN
@@ -118,49 +118,43 @@ class NautobotAdapter(DiffSync):
                     )
                     if _devname:
                         _devname = _devname.group()
-                    print(f"Attempting to resolve {_devname}")
+                    else:
+                        continue
+                    print(f"Attempting to resolve {_dev.name} _devname: {_devname}")
                     try:
                         answ = dns.resolver.resolve(_devname, "A")
                         _ans = answ[0].to_text()
                     except dns.resolver.NXDOMAIN as err:
                         print(err)
                         continue
-                    except Exception:
+                    if _dev.primary_ip and _ans == _dev.primary_ip:
+                        print(f"Primary IP for {_dev.name} already matches DNS. No need to change anything.")
                         continue
-                    if _dev.primary_ip:
-                        if _ans == _dev.primary_ip:
-                            print(f"Primary IP for {_dev.name} already matches DNS. No need to change anything.")
-                            continue
                     try:
                         print(
-                            f"{_dev.name} doesn't have primary IP assigned or it doesn't match DNS. Updating primary IP to {_ans}."
+                            f"{_dev.name} missing primary IP / or it doesn't match DNS response. Updating primary IP to {_ans}."
                         )
                         _ip = IPAddress.objects.get(host=_ans)
                         if _ip:
-                            if _ip.assigned_object_id:
-                                # Check if Interface assigned to IP matching DNS query matches Device that is being worked with.
-                                if Interface.objects.get(id=_ip.assigned_object_id).device.id == _dev.id:
-                                    if ":" in _ans:
-                                        _dev.primary_ip6 = _ip
-                                    else:
-                                        _dev.primary_ip4 = _ip
-                                    _dev.validated_save()
+                            nbutils.assign_primary(dev=_dev, ipaddr=_ip)
                     except IPAddress.DoesNotExist as err:
                         print(f"Unable to find IP Address {_ans}.")
                         _intf = nbutils.get_or_create_mgmt_intf(intf_name="Management", dev=_dev)
                         _intf.validated_save()
                         _pf = Prefix.objects.net_contains(f"{_ans}/32")
+                        # the last Prefix is the most specific and is assumed the one the IP address resides in
                         _range = _pf[len(_pf) - 1]
                         if _range:
-                            _nip = IPAddress(
+                            _ip = IPAddress(
                                 address=f"{_ans}/{_range.prefix_length}",
                                 vrf=_range.vrf,
                                 status=Status.objects.get(name="Active"),
                                 description="Management address via DNS",
                             )
-                            _nip.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
-                            _nip.assigned_object_id = _intf.id
-                            _nip.validated_save()
+                            _ip.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
+                            _ip.assigned_object_id = _intf.id
+                            _ip.validated_save()
+                        nbutils.assign_primary(_dev, _ip)
                 else:
                     print(f"Skipping {_devname} due to invalid Device name.")
 
@@ -232,7 +226,7 @@ class NautobotAdapter(DiffSync):
             self.add(dtype)
 
     def load_virtual_chassis(self):
-        """Add Nautobot Virtual Chassis objects as DiffSync"""
+        """Add Nautobot Virtual Chassis objects as DiffSync."""
         # We import the master node as a VC
         for _vc in VirtualChassis.objects.all():
             new_vc = self.cluster(

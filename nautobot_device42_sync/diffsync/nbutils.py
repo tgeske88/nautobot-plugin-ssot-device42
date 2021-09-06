@@ -5,7 +5,7 @@ from taggit.managers import TaggableManager
 from typing import List
 from nautobot.dcim.models import DeviceRole, Manufacturer, Platform, Device, Interface
 from nautobot.extras.models import Tag
-from nautobot.ipam.models import IPAddress, VLAN
+from nautobot.ipam.models import IPAddress
 
 
 fake = Factory.create()
@@ -83,24 +83,39 @@ def get_or_create_mgmt_intf(intf_name: str, dev: Device) -> Interface:
     return mgmt_intf
 
 
-def set_primary_ip_and_mgmt(ip: IPAddress, dev: Device, intf: Interface):
+def set_primary_ip_and_mgmt(ipaddr: IPAddress, dev: Device, intf: Interface):
     """Method to set primary IP for a Device and mark Interface as management only.
 
     Args:
         diffsync (object): DiffSync job for logging.
         ids (dict): IPAddress object identifier attributes.
         attrs (dict): IPAddress object attributes.
-        ip (NautobotIPAddress): IPAddress object being created.
+        ipaddr (NautobotIPAddress): IPAddress object being created.
         dev (Device): Device to have primary IP set on.
         intf (Interface): Interface to set as management.
     """
-    if ":" in str(ip.address):
-        dev.primary_ip6 = ip
-    else:
-        dev.primary_ip4 = ip
+    assign_primary(dev=dev, ipaddr=ipaddr)
+    print(f"{ipaddr.address} set to primary on {dev.name}")
     dev.validated_save()
     intf.mgmt_only = True
     intf.validated_save()
+
+
+def assign_primary(dev, ipaddr):
+    """Method to assign IP address as primary to specified device.
+
+    Args:
+        dev (Device): Device object that the IPAddress is expected to already be assigned to.
+        ipaddr (IPAddress): IPAddress object that is to be primary for `dev`.
+    """
+    if ipaddr.assigned_object_id:
+        # Check if Interface assigned to IP matching DNS query matches Device that is being worked with.
+        if Interface.objects.get(id=ipaddr.assigned_object_id).device.id == dev.id:
+            if ipaddr.family == 6:
+                dev.primary_ip6 = ipaddr
+            else:
+                dev.primary_ip4 = ipaddr
+            dev.validated_save()
 
 
 def get_or_create_tag(tag_name: str) -> Tag:

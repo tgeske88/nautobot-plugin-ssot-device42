@@ -18,7 +18,6 @@ from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot_device42_sync.diffsync import nbutils
 from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
-from nautobot_device42_sync.diffsync.from_d42.models.ipam import IPAddress
 
 
 def find_device_role_from_tags(diffsync, tag_list: List[str]) -> str or bool:
@@ -48,6 +47,7 @@ class MissingConfigSetting(Exception):
     """
 
     def __init__(self, setting):
+        """Initialize Exception with Setting that is missing and message."""
         self.setting = setting
         self.message = f"Missing configuration setting - {setting}!"
         super().__init__(self.message)
@@ -532,7 +532,7 @@ class Port(DiffSyncModel):
     mtu: Optional[int]
     description: Optional[str]
     mac_addr: Optional[str]
-    type: Optional[str]
+    type: str
     tags: Optional[List[str]]
     mode: Optional[str]
     vlans: Optional[List[dict]]
@@ -558,24 +558,27 @@ class Port(DiffSyncModel):
                     for _tag in nbutils.get_tags(attrs["tags"]):
                         new_intf.tags.add(_tag)
                 try:
-                    if attrs["mode"] == "access" and len(attrs["vlans"]) == 1:
-                        _vlan = attrs["vlans"][0]
-                        vlan_found = NautobotVLAN.objects.filter(
-                            name=_vlan["vlan_name"], vid=_vlan["vlan_id"], site=_dev.site
-                        )
-                        if vlan_found:
-                            new_intf.untagged_vlan = vlan_found[0]
-                    else:
-                        tagged_vlans = []
-                        for _vlan in attrs["vlans"]:
-                            tagged_vlan = NautobotVLAN.objects.filter(
+                    if attrs.get("vlans"):
+                        if attrs["mode"] == "access" and len(attrs["vlans"]) == 1:
+                            _vlan = attrs["vlans"][0]
+                            vlan_found = NautobotVLAN.objects.filter(
                                 name=_vlan["vlan_name"], vid=_vlan["vlan_id"], site=_dev.site
                             )
-                            if not tagged_vlan:
-                                tagged_vlan = NautobotVLAN.objects.filter(name=_vlan["vlan_name"], vid=_vlan["vlan_id"])
-                            if tagged_vlan:
-                                tagged_vlans.append(tagged_vlan[0])
-                        new_intf.tagged_vlans.set(tagged_vlans)
+                            if vlan_found:
+                                new_intf.untagged_vlan = vlan_found[0]
+                        else:
+                            tagged_vlans = []
+                            for _vlan in attrs["vlans"]:
+                                tagged_vlan = NautobotVLAN.objects.filter(
+                                    name=_vlan["vlan_name"], vid=_vlan["vlan_id"], site=_dev.site
+                                )
+                                if not tagged_vlan:
+                                    tagged_vlan = NautobotVLAN.objects.filter(
+                                        name=_vlan["vlan_name"], vid=_vlan["vlan_id"]
+                                    )
+                                if tagged_vlan:
+                                    tagged_vlans.append(tagged_vlan[0])
+                            new_intf.tagged_vlans.set(tagged_vlans)
                 except NautobotVLAN.DoesNotExist as err:
                     diffsync.job.log_debug(f"{err}: {_vlan['vlan_name']} {_vlan['vlan_id']} ")
                 new_intf.validated_save()
