@@ -127,6 +127,9 @@ class NautobotAdapter(DiffSync):
                     except dns.resolver.NXDOMAIN as err:
                         print(err)
                         continue
+                    except dns.resolver.NoAnswer as err:
+                        print(f"No record found for {_devname} {err}")
+                        continue
                     if _dev.primary_ip and _ans == _dev.primary_ip:
                         print(f"Primary IP for {_dev.name} already matches DNS. No need to change anything.")
                         continue
