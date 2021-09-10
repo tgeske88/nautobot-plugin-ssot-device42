@@ -5,6 +5,7 @@ import requests
 import urllib3
 from typing import List
 from nautobot_device42_sync.constant import PHY_INTF_MAP, FC_INTF_MAP, INTF_NAME_MAP
+from netutils.lib_mapper import PYATS_LIB_MAPPER
 
 
 def merge_offset_dicts(orig_dict: dict, offset_dict: dict) -> dict:
@@ -77,6 +78,20 @@ def get_intf_type(intf_record: dict) -> str:  # pylint: disable=inconsistent-ret
             else:
                 return "virtual"
         return "other"
+
+
+def get_netmiko_platform(network_os: str) -> str:
+    """Method to return the netmiko platform if a pyATS platform is provided.
+
+    Args:
+        network_os (str): Name of platform to map if match found.
+
+    Returns:
+        str: Netmiko platform name or original if no match.
+    """
+    if network_os in PYATS_LIB_MAPPER:
+        return PYATS_LIB_MAPPER[network_os]
+    return network_os
 
 
 class Device42API:

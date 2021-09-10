@@ -7,7 +7,7 @@ from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from nautobot.core.settings_funcs import is_truthy
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
-from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type
+from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type, get_netmiko_platform
 from nautobot_device42_sync.constant import PLUGIN_CFG
 
 
@@ -211,7 +211,7 @@ class Device42Adapter(DiffSync):
             _cluster = self.cluster(
                 name=cluster_info["name"],
                 hardware=_clus["hardware"],
-                platform=_clus["os"],
+                platform=get_netmiko_platform(_clus["os"]),
                 facility=_clus["customer"],
                 members=_clus["members"],
                 tags=_tags,
@@ -248,7 +248,7 @@ class Device42Adapter(DiffSync):
                     rack_position=int(_record["start_at"]) if _record.get("start_at") else None,
                     rack_orientation="front" if _record.get("orientation") == 1 else "rear",
                     hardware=sanitize_string(_record["hw_model"]) if _record.get("hw_model") else "",
-                    os=_record.get("os"),
+                    os=get_netmiko_platform(_record.get("os")),
                     in_service=_record.get("in_service"),
                     serial_no=_record["serial_no"],
                     tags=_tags,
