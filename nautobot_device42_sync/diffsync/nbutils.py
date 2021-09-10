@@ -11,6 +11,15 @@ from nautobot.ipam.models import IPAddress
 fake = Factory.create()
 
 
+def get_random_color() -> str:
+    """Get random hex code color string.
+
+    Returns:
+        str: Hex code value for a color with hash stripped.
+    """
+    return fake.hex_color().strip("#")
+
+
 def verify_device_role(role_name: str, role_color: str = None) -> DeviceRole:
     """Verifies DeviceRole object exists in Nautobot. If not, creates it.
 
@@ -22,7 +31,7 @@ def verify_device_role(role_name: str, role_color: str = None) -> DeviceRole:
         DeviceRole: Created DeviceRole object.
     """
     if not role_color:
-        role_color = fake.hex_color().strip("#")
+        role_color = get_random_color()
     try:
         role_obj = DeviceRole.objects.get(slug=slugify(role_name))
     except DeviceRole.DoesNotExist:
@@ -133,7 +142,7 @@ def get_or_create_tag(tag_name: str) -> Tag:
         new_tag = Tag(
             name=tag_name,
             slug=slugify(tag_name),
-            color=fake.hex_color().strip("#"),
+            color=get_random_color(),
         )
         new_tag.validated_save()
         _tag = new_tag
@@ -165,4 +174,4 @@ def get_tag_strings(list_tags: TaggableManager) -> List[str]:
     Returns:
         List[str]: List of string values matching the Tags passed in.
     """
-    return [x for x in list_tags.names()]
+    return [x for x in list_tags.names()].sort()

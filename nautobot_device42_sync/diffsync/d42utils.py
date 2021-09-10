@@ -278,3 +278,32 @@ class Device42API:
         query = "SELECT v.vlan_pk, v.name, v.number as vid FROM view_vlan_v1 v"
         doql_vlans = self.doql_query(query=query)
         return {str(x["vlan_pk"]): {"name": x["name"], "vid": x["vid"]} for x in doql_vlans}
+
+    def get_device_pks(self) -> dict:
+        """Get all Devices with their primary keys for reference in other functions.
+
+        Returns:
+            dict: Dict of Devices where the key is the primary key of the Device.
+        """
+        query = "SELECT name, device_pk FROM view_device_v1 WHERE name <> ''"
+        _devs = self.doql_query(query=query)
+        return {x["device_pk"]: x for x in _devs}
+
+    def get_port_pks(self) -> dict:
+        """Get all ports with their associated primary keys for reference in other functions.
+
+        Returns:
+            dict: Dict of ports where key is the primary key of the Port with the port name.
+        """
+        query = "SELECT np.port, np.netport_pk, np.hwaddress, d.name as device FROM view_netport_v1 np JOIN view_device_v1 d ON d.device_pk = np.device_fk WHERE port <> ''"
+        _ports = self.doql_query(query=query)
+        return {x["netport_pk"]: x for x in _ports}
+
+    def get_port_connections(self) -> dict:
+        """Gather all Ports with connections to determine connections between interfaces for Cables.
+
+        Returns:
+            dict: Information about each port and it's connection information.
+        """
+        query = "SELECT netport_pk as src_port, device_fk as src_device, second_device_fk as dst_device, remote_netport_fk as dst_port FROM view_netport_v1 WHERE second_device_fk is not null AND remote_netport_fk is not null"
+        return self.doql_query(query=query)
