@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nautobot-device42-sync"
-version = "0.7.3"
+version = "0.7.4"
 description = "Nautobot plugin for syncing to Device42"
 authors = ["Justin Drew <justin.drew@networktocode.com>"]
 readme = "README.md"
@@ -23,6 +23,7 @@ requests = "^2.26.0"
 nautobot-ssot = "^1.0.0"
 dnspython = "^2.1.0"
 Faker = "^8.12.1"
+netutils = "^0.2.2"
 
 [tool.poetry.dev-dependencies]
 bandit = "*"
