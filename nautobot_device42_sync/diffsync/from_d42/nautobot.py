@@ -8,7 +8,17 @@ from django.db.models import ProtectedError
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists
 from nautobot.core.settings_funcs import is_truthy
-from nautobot.dcim.models import Site, RackGroup, Rack, Manufacturer, DeviceType, Device, VirtualChassis, Interface
+from nautobot.dcim.models import (
+    Site,
+    RackGroup,
+    Rack,
+    Manufacturer,
+    DeviceType,
+    Device,
+    VirtualChassis,
+    Interface,
+    Cable,
+)
 from nautobot.ipam.models import VRF, Prefix, IPAddress, VLAN
 from nautobot.extras.models import Status
 from nautobot.extras.choices import LogLevelChoices
@@ -34,6 +44,7 @@ class NautobotAdapter(DiffSync):
         "subnet": [],
         "ipaddr": [],
         "vlan": [],
+        "cable": [],
     }
 
     building = dcim.Building
@@ -48,6 +59,7 @@ class NautobotAdapter(DiffSync):
     subnet = ipam.Subnet
     ipaddr = ipam.IPAddress
     vlan = ipam.VLAN
+    conn = dcim.Connection
 
     top_level = [
         "building",
@@ -58,6 +70,7 @@ class NautobotAdapter(DiffSync):
         "vlan",
         "cluster",
         "device",
+        "conn",
         "ipaddr",
     ]
 
@@ -181,34 +194,33 @@ class NautobotAdapter(DiffSync):
     def load_rackgroups(self):
         """Add Nautobot RackGroup objects as DiffSync Room models."""
         for _rg in RackGroup.objects.all():
-            try:
-                room = self.room(
-                    name=_rg.name,
-                    building=Site.objects.get(name=_rg.site).name,
-                    notes=_rg.description,
-                    tags=nbutils.get_tag_strings(_rg.tags),
-                )
-                self.add(room)
-                _site = self.get(self.building, Site.objects.get(name=_rg.site).name)
-                _site.add_child(child=room)
-            except AttributeError:
-                continue
+            room = self.room(
+                name=_rg.name,
+                building=Site.objects.get(name=_rg.site).name,
+                notes=_rg.description,
+            )
+            self.add(room)
+            _site = self.get(self.building, Site.objects.get(name=_rg.site).name)
+            _site.add_child(child=room)
 
     def load_racks(self):
         """Add Nautobot Rack objects as DiffSync Rack models."""
         for rack in Rack.objects.all():
-            _building_name = Site.objects.get(name=rack.site).name
-            new_rack = self.rack(
-                name=rack.name,
-                building=_building_name,
-                room=RackGroup.objects.get(name=rack.group, site__name=_building_name).name,
-                height=rack.u_height,
-                numbering_start_from_bottom="no" if rack.desc_units else "yes",
-                tags=nbutils.get_tag_strings(rack.tags),
-            )
-            self.add(new_rack)
-            _room = self.get(self.room, {"name": rack.group, "building": _building_name})
-            _room.add_child(child=new_rack)
+            try:
+                _building_name = Site.objects.get(name=rack.site).name
+                new_rack = self.rack(
+                    name=rack.name,
+                    building=_building_name,
+                    room=RackGroup.objects.get(name=rack.group, site__name=_building_name).name,
+                    height=rack.u_height,
+                    numbering_start_from_bottom="no" if rack.desc_units else "yes",
+                    tags=nbutils.get_tag_strings(rack.tags),
+                )
+                self.add(new_rack)
+                _room = self.get(self.room, {"name": rack.group, "building": _building_name})
+                _room.add_child(child=new_rack)
+            except ObjectAlreadyExists as err:
+                print(err)
 
     def load_manufacturers(self):
         """Add Nautobot Manufacturer objects as DiffSync Vendor models."""
@@ -234,10 +246,10 @@ class NautobotAdapter(DiffSync):
         for _vc in VirtualChassis.objects.all():
             new_vc = self.cluster(
                 name=_vc.name,
-                hardware=_vc.master.device_type.name,
-                platform=_vc.master.platform.napalm_driver,
+                hardware=_vc.master.device_type.model,
+                platform=_vc.master.platform.napalm_driver if _vc.master.platform else "",
                 facility=_vc.master.site.facility,
-                tags=_vc.tags,
+                tags=nbutils.get_tag_strings(_vc.tags),
             )
             self.add(new_vc)
 
@@ -249,8 +261,8 @@ class NautobotAdapter(DiffSync):
                 name=dev.name,
                 dtype="physical",
                 building=dev.site.name,
-                room=dev.rack.group.name,
-                rack=dev.rack.name,
+                room=dev.rack.group.name if dev.rack else None,
+                rack=dev.rack.name if dev.rack else None,
                 rack_position=dev.position,
                 rack_orientation=dev.face,
                 hardware=dev.device_type.model,
@@ -280,20 +292,20 @@ class NautobotAdapter(DiffSync):
                 tags=nbutils.get_tag_strings(port.tags),
                 mode=port.mode,
             )
-            if port.mode == "access":
+            if port.mode == "access" and port.untagged_vlan:
                 _port.vlans = [
                     {
-                        "vlan_name": _port.untagged_vlan.name,
-                        "vlan_id": str(_port.untagged_vlan.vid),
+                        "vlan_name": port.untagged_vlan.name,
+                        "vlan_id": str(port.untagged_vlan.vid),
                     }
                 ]
             else:
                 _vlans = []
-                for _vlan in _port.tagged_vlans:
+                for _vlan in port.tagged_vlans.values():
                     _vlans.append(
                         {
-                            "vlan_name": _vlan.name,
-                            "vlan_id": _vlan.vid,
+                            "vlan_name": _vlan["name"],
+                            "vlan_id": _vlan["vid"],
                         }
                     )
                 _port.vlans = _vlans
@@ -347,15 +359,33 @@ class NautobotAdapter(DiffSync):
 
     def load_vlans(self):
         """Add Nautobot VLAN objects as DiffSync VLAN models."""
-        self.job.log_debug(f"Loading VLAN: {self.name}.")
         for vlan in VLAN.objects.all():
-            _vlan = self.vlan(
-                name=vlan.name,
-                vlan_id=vlan.vid,
-                description=vlan.description,
-                building=vlan.site.name if vlan.site else "Unknown",
+            self.job.log_debug(f"Loading VLAN: {vlan.name}.")
+            try:
+                _vlan = self.vlan(
+                    name=vlan.name,
+                    vlan_id=vlan.vid,
+                    description=vlan.description,
+                    building=vlan.site.name if vlan.site else "Unknown",
+                )
+                self.add(_vlan)
+            except ObjectAlreadyExists as err:
+                print(err)
+
+    def load_cables(self):
+        """Add Nautobot Cable objects as DiffSync Connection models."""
+        for _cable in Cable.objects.all():
+            src_port = Interface.objects.get(id=_cable.termination_a_id)
+            dst_port = Interface.objects.get(id=_cable.termination_b_id)
+            new_conn = self.conn(
+                src_device=src_port.device.name,
+                src_port=src_port.name,
+                src_port_mac=str(src_port.mac_address).strip(":").lower(),
+                dst_device=dst_port.device.name,
+                dst_port=dst_port.name,
+                dst_port_mac=str(dst_port.mac_address).strip(":").lower(),
             )
-            self.add(_vlan)
+            self.add(new_conn)
 
     def load(self):
         """Load data from Nautobot."""
@@ -372,3 +402,4 @@ class NautobotAdapter(DiffSync):
         self.load_devices()
         self.load_interfaces()
         self.load_ip_addresses()
+        self.load_cables()

@@ -3,6 +3,7 @@
 import re
 from typing import Optional, List
 from decimal import Decimal
+from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from diffsync import DiffSyncModel
 from nautobot.core.settings_funcs import is_truthy
@@ -15,6 +16,7 @@ from nautobot.dcim.models import DeviceType as NautobotDeviceType
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import VirtualChassis as NautobotVC
 from nautobot.dcim.models import Interface as NautobotInterface
+from nautobot.dcim.models import Cable as NautobotCable
 from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot_device42_sync.diffsync import nbutils
 from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
@@ -345,6 +347,11 @@ class Cluster(DiffSyncModel):
                 device_role=nbutils.verify_device_role(find_device_role_from_tags(diffsync, tag_list=attrs["tags"])),
                 status=NautobotStatus.objects.get(name="Active"),
                 site=NautobotSite.objects.get(facility=attrs["facility"]) if attrs.get("facility") else None,
+                platform=nbutils.verify_platform(
+                    platform_name=attrs["platform"],
+                    manu=NautobotDeviceType.objects.get(model=attrs["hardware"]).manufacturer,
+                    napalm_driver=attrs["platform"],
+                ),
             )
             new_master.validated_save()
             new_vc = NautobotVC(
@@ -557,6 +564,7 @@ class Port(DiffSyncModel):
                 if attrs.get("tags"):
                     for _tag in nbutils.get_tags(attrs["tags"]):
                         new_intf.tags.add(_tag)
+                new_intf.validated_save()
                 try:
                     if attrs.get("vlans"):
                         if attrs["mode"] == "access" and len(attrs["vlans"]) == 1:
@@ -603,6 +611,97 @@ class Port(DiffSyncModel):
             name=self.get_identifiers()["name"], device__name=self.get_identifiers()["device"]
         )
         self.diffsync._objects_to_delete["port"].append(_dev)  # pylint: disable=protected-access
+        return self
+
+
+class Connection(DiffSyncModel):
+    """Device42 Connection model."""
+
+    _modelname = "conn"
+    _identifiers = ("src_device", "src_port", "src_port_mac", "dst_device", "dst_port", "dst_port_mac")
+    _attributes = ()
+    _children = {}
+
+    src_device: str
+    src_port: str
+    src_port_mac: Optional[str]
+    dst_device: str
+    dst_port: str
+    dst_port_mac: Optional[str]
+    tags: Optional[List[str]]
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
+        """Create Cable object in Nautobot."""
+        _src_port, _dst_port = None, None
+        try:
+            if ids.get("src_port_mac"):
+                _src_port = NautobotInterface.objects.get(mac_address=ids["src_port_mac"])
+        except NautobotInterface.DoesNotExist:
+            try:
+                _src_port = NautobotInterface.objects.get(
+                    device__name=cls.get_dev_name(ids["src_device"]), name=ids["src_port"]
+                )
+            except:
+                print(f"Unable to find source port for {ids['src_device']}: {ids['src_port']} {ids['src_port_mac']}")
+                return None
+        try:
+            if ids.get("dst_port_mac"):
+                _dst_port = NautobotInterface.objects.get(mac_address=ids["dst_port_mac"])
+        except NautobotInterface.DoesNotExist:
+            try:
+                _dst_port = NautobotInterface.objects.get(
+                    device__name=cls.get_dev_name(ids["dst_device"]), name=ids["dst_port"]
+                )
+            except NautobotInterface.DoesNotExist:
+                print(
+                    f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} {ids['dst_port_mac']}"
+                )
+                return None
+        if (_src_port and not _src_port.cable) and (_dst_port and not _dst_port.cable):
+            new_cable = NautobotCable(
+                termination_a_type=ContentType.objects.get(app_label="dcim", model="interface"),
+                termination_a_id=_src_port.id,
+                termination_b_type=ContentType.objects.get(app_label="dcim", model="interface"),
+                termination_b_id=_dst_port.id,
+                status=NautobotStatus.objects.get(name="Connected"),
+                color=nbutils.get_random_color(),
+            )
+            new_cable.validated_save()
+
+    def get_dev_name(dev_name: str):
+        """Strips cluster member names to get cluster master name.
+
+        This is required as D42 API doesn't show interfaces on cluster members, just on the cluster master.
+
+        Args:
+            dev_name (str): Device name to check if cluster member or master.
+
+        Returns:
+            str: Returns name of cluster master if member found, else the device name itself.
+        """
+        if re.search(r"\s-\s\w.+", dev_name):
+            _dev = re.sub(r"\s-\s\w.+", "", dev_name)
+        else:
+            _dev = dev_name
+        return _dev
+
+    def delete(self):
+        """Delete Cable object from Nautobot.
+
+        Because Interface has a direct relationship with Cables and IP Addresses it can't be deleted before they are.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
+        print(f"Cable between {self.src_device} and {self.dst_device} will be deleted.")
+        super().delete()
+        _conn = NautobotCable.objects.get(
+            termination_a_type=ContentType.objects.get(app_label="dcim", model="interface"),
+            termination_a_id=NautobotInterface.objects.get(mac_address=self.src_port_mac),
+            termination_b_type=ContentType.objects.get(app_label="dcim", model="interface"),
+            termination_b_id=NautobotInterface.objects.get(mac_address=self.dst_port_mac),
+        )
+        self.diffsync._objects_to_delete["cable"].append(_conn)  # pylint: disable=protected-access
         return self
 
 
