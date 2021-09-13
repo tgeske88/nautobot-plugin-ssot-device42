@@ -89,8 +89,10 @@ def get_netmiko_platform(network_os: str) -> str:
     Returns:
         str: Netmiko platform name or original if no match.
     """
-    if network_os in PYATS_LIB_MAPPER:
-        return PYATS_LIB_MAPPER[network_os]
+    if network_os:
+        os = network_os.replace("-", "")
+        if os in PYATS_LIB_MAPPER:
+            return PYATS_LIB_MAPPER[os]
     return network_os
 
 
