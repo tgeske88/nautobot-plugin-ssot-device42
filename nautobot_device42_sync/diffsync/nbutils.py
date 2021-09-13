@@ -6,6 +6,7 @@ from typing import List
 from nautobot.dcim.models import DeviceRole, Manufacturer, Platform, Device, Interface
 from nautobot.extras.models import Tag
 from nautobot.ipam.models import IPAddress
+from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 
 
 fake = Factory.create()
@@ -40,7 +41,7 @@ def verify_device_role(role_name: str, role_color: str = None) -> DeviceRole:
     return role_obj
 
 
-def verify_platform(platform_name: str, manu: str, napalm_driver: str = "") -> Platform:
+def verify_platform(platform_name: str, manu: str) -> Platform:
     """Verifies Platform object exists in Nautobot. If not, creates it.
 
     Args:
@@ -50,11 +51,22 @@ def verify_platform(platform_name: str, manu: str, napalm_driver: str = "") -> P
     Returns:
         DeviceRole: Created DeviceRole object.
     """
+    if platform_name in ANSIBLE_LIB_MAPPER_REVERSE:
+        _name = ANSIBLE_LIB_MAPPER_REVERSE[platform_name]
+    else:
+        _name = platform_name
+    if platform_name in NAPALM_LIB_MAPPER_REVERSE:
+        napalm_driver = NAPALM_LIB_MAPPER_REVERSE[platform_name]
+    else:
+        if "cisco_" in platform_name:
+            napalm_driver = platform_name.strip("cisco_")
+        else:
+            napalm_driver = platform_name
     try:
-        platform_obj = Platform.objects.get(name=platform_name)
+        platform_obj = Platform.objects.get(slug=slugify(platform_name))
     except Platform.DoesNotExist:
         platform_obj = Platform(
-            name=platform_name,
+            name=_name,
             slug=slugify(platform_name),
             manufacturer=Manufacturer.objects.get(name=manu),
             napalm_driver=napalm_driver,
