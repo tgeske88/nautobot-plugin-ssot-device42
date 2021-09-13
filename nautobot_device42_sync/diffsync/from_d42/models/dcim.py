@@ -350,7 +350,6 @@ class Cluster(DiffSyncModel):
                 platform=nbutils.verify_platform(
                     platform_name=attrs["platform"],
                     manu=NautobotDeviceType.objects.get(model=attrs["hardware"]).manufacturer,
-                    napalm_driver=attrs["platform"],
                 ),
             )
             new_master.validated_save()
@@ -486,7 +485,6 @@ class Device(DiffSyncModel):
                     new_device.platform = nbutils.verify_platform(
                         platform_name=attrs["os"],
                         manu=NautobotDeviceType.objects.get(model=attrs["hardware"]).manufacturer,
-                        napalm_driver=attrs["os"],
                     )
                 if attrs.get("cluster_host"):
                     try:

@@ -266,7 +266,7 @@ class NautobotAdapter(DiffSync):
                 rack_position=dev.position,
                 rack_orientation=dev.face,
                 hardware=dev.device_type.model,
-                os=dev.platform.napalm_driver if dev.platform else "",
+                os=dev.platform.slug if dev.platform else "",
                 in_service=bool(dev.status == "Active"),
                 serial_no=dev.serial if dev.serial else "",
                 tags=nbutils.get_tag_strings(dev.tags),
