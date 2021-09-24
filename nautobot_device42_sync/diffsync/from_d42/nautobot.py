@@ -6,7 +6,7 @@ import re
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ProtectedError
 from diffsync import DiffSync
-from diffsync.exceptions import ObjectAlreadyExists
+from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from nautobot.core.settings_funcs import is_truthy
 from nautobot.dcim.models import (
     Site,
@@ -244,11 +244,12 @@ class NautobotAdapter(DiffSync):
         """Add Nautobot Virtual Chassis objects as DiffSync."""
         # We import the master node as a VC
         for _vc in VirtualChassis.objects.all():
+            _members = [x.name for x in _vc.members.all() if x.name != _vc.name]
+            if len(_members) > 1:
+                _members.sort()
             new_vc = self.cluster(
                 name=_vc.name,
-                hardware=_vc.master.device_type.model,
-                platform=_vc.master.platform.napalm_driver if _vc.master.platform else "",
-                facility=_vc.master.site.facility,
+                members=_members,
                 tags=nbutils.get_tag_strings(_vc.tags),
             )
             self.add(new_vc)
@@ -256,21 +257,25 @@ class NautobotAdapter(DiffSync):
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
         for dev in Device.objects.all():
-            # self.job.log_debug(f"Loading Device: {dev.name}.")
             _dev = self.device(
                 name=dev.name,
-                dtype="physical",
                 building=dev.site.name,
-                room=dev.rack.group.name if dev.rack else None,
-                rack=dev.rack.name if dev.rack else None,
+                room=dev.rack.group.name if dev.rack else "",
+                rack=dev.rack.name if dev.rack else "",
                 rack_position=dev.position,
-                rack_orientation=dev.face,
+                rack_orientation=dev.face if dev.face else "rear",
                 hardware=dev.device_type.model,
                 os=dev.platform.slug if dev.platform else "",
-                in_service=bool(dev.status == "Active"),
+                in_service=bool(str(dev.status) == "Active"),
                 serial_no=dev.serial if dev.serial else "",
                 tags=nbutils.get_tag_strings(dev.tags),
+                master_device=False,
             )
+            if dev.virtual_chassis:
+                _dev.cluster_host = str(dev.virtual_chassis)
+                if hasattr(dev, "vc_master_for"):
+                    if str(dev.vc_master_for) == _dev.cluster_host:
+                        _dev.master_device = True
             self.add(_dev)
 
     def load_interfaces(self):
@@ -278,9 +283,9 @@ class NautobotAdapter(DiffSync):
         for port in Interface.objects.all():
             # self.job.log_debug(f"Loading Interface: {port.name} for {port.device}.")
             if port.mac_address:
-                _mac_addr = str(port.mac_address).strip(":").lower()
+                _mac_addr = str(port.mac_address).replace(":", "").lower()
             else:
-                _mac_addr = None
+                _mac_addr = ""
             _port = self.port(
                 name=port.name,
                 device=port.device.name,
@@ -300,19 +305,22 @@ class NautobotAdapter(DiffSync):
                     }
                 ]
             else:
-                _vlans = []
+                _tags = []
                 for _vlan in port.tagged_vlans.values():
-                    _vlans.append(
+                    _tags.append(
                         {
                             "vlan_name": _vlan["name"],
-                            "vlan_id": _vlan["vid"],
+                            "vlan_id": str(_vlan["vid"]),
                         }
                     )
+                _vlans = sorted(_tags, key=lambda k: k["vlan_id"])
                 _port.vlans = _vlans
             try:
                 self.add(_port)
+                _dev = self.get(self.device, port.device.name)
+                _dev.add_child(_port)
             except ObjectAlreadyExists as err:
-                self.job.log_debug(f"Port already exists for {port.device_name}. {err}")
+                print(f"Port already exists for {port.device_name}. {err}")
                 continue
 
     def load_vrfs(self):

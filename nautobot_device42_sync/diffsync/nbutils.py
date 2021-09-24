@@ -186,4 +186,7 @@ def get_tag_strings(list_tags: TaggableManager) -> List[str]:
     Returns:
         List[str]: List of string values matching the Tags passed in.
     """
-    return [x for x in list_tags.names()].sort()
+    _strings = [x for x in list_tags.names()]
+    if len(_strings) > 1:
+        _strings.sort()
+    return _strings

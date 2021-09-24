@@ -42,6 +42,12 @@ class VRFGroup(DiffSyncModel):
 
     def update(self, attrs):
         """Update VRF object in Nautobot."""
+        _vrf = NautobotVRF.objects.get(name=self.name)
+        if attrs.get("description"):
+            _vrf.description = attrs["description"]
+        if attrs.get("tags"):
+            for _tag in nbutils.get_tags(attrs["tags"]):
+                _vrf.tags.add(_tag)
         return super().update(attrs)
 
     def delete(self):
@@ -94,6 +100,16 @@ class Subnet(DiffSyncModel):
                 _pf.tags.add(_tag)
         _pf.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Prefix object in Nautobot."""
+        _pf = NautobotPrefix.objects.get(prefix=f"{self.network}/{self.mask_bits}")
+        if attrs.get("description"):
+            _pf.description = attrs["description"]
+        if attrs.get("tags"):
+            for _tag in nbutils.get_tags(attrs["tags"]):
+                _pf.tags.add(_tag)
+        return super().update(attrs)
 
     def delete(self):
         """Delete Subnet object from Nautobot.
@@ -177,6 +193,47 @@ class IPAddress(DiffSyncModel):
                 pass
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
+    def update(self, attrs):
+        """Update IPAddress object in Nautobot."""
+        _ipaddr = NautobotIPAddress.objects.get(address=self.address)
+        if attrs.get("available"):
+            _ipaddr.status = (
+                NautobotStatus.objects.get(name="Active")
+                if not attrs["available"]
+                else NautobotStatus.objects.get(name="Reserved")
+            )
+        if attrs.get("label"):
+            _ipaddr.description = attrs["label"]
+        if attrs.get("device") and attrs.get("interface"):
+            _device = attrs["device"]
+            try:
+                intf = NautobotInterface.objects.get(device__name=attrs["device"], name=attrs["interface"])
+                _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
+                _ipaddr.assigned_object_id = intf.id
+            except NautobotInterface.DoesNotExist as err:
+                self.diffsync.job.log_debug(
+                    f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
+                )
+        else:
+            _device = self.device
+        if attrs.get("interface"):
+            try:
+                _dev = NautobotInterface.objects.get(id=_ipaddr.assigned_object_id).device
+                intf = NautobotInterface.objects.get(device=_dev, name=attrs["interface"])
+                _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
+                _ipaddr.assigned_object_id = intf.id
+            except NautobotDevice.DoesNotExist as err:
+                self.diffsync.job.log_debug(f"Unable to find Device {_device}")
+            except NautobotInterface.DoesNotExist as err:
+                self.diffsync.job.log_debug(f"Unable to find Interface {attrs['interface']} for {_device}")
+        if attrs.get("vrf"):
+            _ipaddr.vrf = NautobotVRF.objects.get(name=attrs["vrf"])
+        if attrs.get("tags"):
+            for _tag in nbutils.get_tags(attrs["tags"]):
+                _ipaddr.tags.add(_tag)
+        _ipaddr.validated_save()
+        return super().update(attrs)
+
     def delete(self):
         """Delete IPAddress object from Nautobot.
 
@@ -211,19 +268,11 @@ class VLAN(DiffSyncModel):
     def create(cls, diffsync, ids, attrs):
         """Create VLAN object in Nautobot."""
         _site = None
-        if is_truthy(PLUGIN_CFG.get("customer_is_facility")):
-            try:
-                _site = NautobotSite.objects.get(facility=ids["building"])
-            except NautobotSite.DoesNotExist:
-                try:
-                    _site = NautobotSite.objects.get(name=ids["building"])
-                except NautobotSite.DoesNotExist as err:
-                    print(err)
-        elif ids["building"] != "Unknown":
+        if ids["building"] != "Unknown":
             try:
                 _site = NautobotSite.objects.get(name=ids["building"])
             except NautobotSite.DoesNotExist as err:
-                print(err)
+                print(f"Unable to find Site {ids['building']}. {err}")
         try:
             _vlan = NautobotVLAN.objects.get(name=ids["name"], vid=ids["vlan_id"], site=_site)
         except NautobotVLAN.DoesNotExist:
@@ -243,6 +292,8 @@ class VLAN(DiffSyncModel):
 
     def update(self, attrs):
         """Update VLAN object in Nautobot."""
+        if attrs.get("description"):
+            self.description = attrs["description"]
         return super().update(attrs)
 
     def delete(self):

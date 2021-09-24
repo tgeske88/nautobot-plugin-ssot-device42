@@ -7,13 +7,13 @@ from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from nautobot.core.settings_funcs import is_truthy
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
-from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type, get_netmiko_platform
+from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type, get_netmiko_platform, get_facility
 from nautobot_device42_sync.constant import PLUGIN_CFG
 
 
 def sanitize_string(san_str: str):
     """Sanitize string to ensure it doesn't have invisible characters."""
-    return san_str.replace("\u200b", "")
+    return san_str.replace("\u200b", "").replace("\r", "")
 
 
 class Device42Adapter(DiffSync):
@@ -65,6 +65,8 @@ class Device42Adapter(DiffSync):
         )
         self._device42_clusters = self._device42.get_cluster_members()
 
+        # mapping of SiteCode (facility) to Building name
+        self.building_map = {}
         # mapping of VLAN PK to VLAN name and ID
         self.vlan_map = self._device42.get_vlan_info()
         # mapping of Device PK to Device name
@@ -84,11 +86,12 @@ class Device42Adapter(DiffSync):
         """Load Device42 buildings."""
         print("Loading buildings from Device42.")
         for record in self._device42.api_call(path="api/1.0/buildings")["buildings"]:
-            _tags = record.get("tags")
-            _tags.sort()
+            _tags = record["tags"] if record.get("tags") else []
+            if len(_tags) > 1:
+                _tags.sort()
             building = self.building(
                 name=record["name"],
-                address=record["address"] if record.get("address") else "",
+                address=sanitize_string(record["address"]) if record.get("address") else "",
                 latitude=round(Decimal(record["latitude"] if record["latitude"] else 0.0), 6),
                 longitude=round(Decimal(record["longitude"] if record["longitude"] else 0.0), 6),
                 contact_name=record["contact_name"] if record.get("contact_name") else "",
@@ -96,6 +99,9 @@ class Device42Adapter(DiffSync):
                 rooms=record["rooms"] if record.get("rooms") else [],
                 tags=_tags,
             )
+            _facility = get_facility(diffsync=self, tags=_tags)
+            if _facility:
+                self.building_map[_facility.upper()] = record["name"]
             try:
                 self.add(building)
             except ObjectAlreadyExists as err:
@@ -106,7 +112,8 @@ class Device42Adapter(DiffSync):
         print("Loading rooms from Device42.")
         for record in self._device42.api_call(path="api/1.0/rooms")["rooms"]:
             _tags = record["tags"] if record.get("tags") else []
-            _tags.sort()
+            if len(_tags) > 1:
+                _tags.sort()
             if record.get("building"):
                 room = self.room(
                     name=record["name"],
@@ -129,7 +136,8 @@ class Device42Adapter(DiffSync):
         print("Loading racks from Device42.")
         for record in self._device42.api_call(path="api/1.0/racks")["racks"]:
             _tags = record["tags"] if record.get("tags") else []
-            _tags.sort()
+            if len(_tags) > 1:
+                _tags.sort()
             if record.get("building") and record.get("room"):
                 rack = self.rack(
                     name=record["name"],
@@ -166,7 +174,7 @@ class Device42Adapter(DiffSync):
                 model = self.hardware(
                     name=_model["name"],
                     manufacturer=_model["manufacturer"] if _model.get("manufacturer") else "Unknown",
-                    size=_model["size"] if _model.get("size") else 1,
+                    size=float(round(_model["size"])) if _model.get("size") else 1.0,
                     depth=_model["depth"] if _model.get("depth") else "Half Depth",
                     part_number=_model["part_no"],
                 )
@@ -200,23 +208,48 @@ class Device42Adapter(DiffSync):
             models.Cluster: Cluster model that has been created or found.
         """
         try:
-            _cluster = self.get(self.cluster, cluster_info)
+            _cluster = self.get(self.cluster, cluster_info["name"][:64])
         except ObjectAlreadyExists as err:
             print(f"Cluster {cluster_info['name']} already has been added. {err}")
         except ObjectNotFound:
             # print(f"Cluster {cluster_name} being added.")
             _clus = self._device42_clusters[cluster_info["name"]]
             _tags = cluster_info["tags"] if cluster_info.get("tags") else []
-            _tags.sort()
+            _members = _clus["members"]
+            if len(_members) > 1:
+                _members.sort()
+            if len(_tags) > 1:
+                _tags.sort()
             _cluster = self.cluster(
-                name=cluster_info["name"],
-                hardware=_clus["hardware"],
-                platform=get_netmiko_platform(_clus["os"]),
-                facility=_clus["customer"],
-                members=_clus["members"],
+                name=cluster_info["name"][:64],
+                members=_members,
                 tags=_tags,
             )
             self.add(_cluster)
+            # Add master device to hold stack info like intfs and IPs
+            if (
+                PLUGIN_CFG.get("customer_is_facility")
+                and _clus.get("customer")
+                and _clus["customer"] in self.building_map
+            ):
+                _building = self.building_map[_clus["customer"].upper()]
+            else:
+                _building = cluster_info.get("building")
+            _device = self.device(
+                name=cluster_info["name"][:64],
+                building=_building if _building else "",
+                rack="",
+                rack_orientation="rear",
+                room="",
+                hardware=sanitize_string(_clus["hardware"]),
+                os=get_netmiko_platform(_clus["os"]) if _clus.get("os") else "",
+                in_service=cluster_info.get("in_service"),
+                tags=_tags,
+                cluster_host=cluster_info["name"][:64],
+                master_device=True,
+                serial_no="",
+            )
+            self.add(_device)
 
     def load_devices_and_clusters(self):
         """Load Device42 devices."""
@@ -235,22 +268,30 @@ class Device42Adapter(DiffSync):
         print("Loading devices...")
         for _record in _devices:
             # print(f"Record for {_record['name']}: {_record}.")
-            if _record.get("type") != "cluster":
+            if _record.get("type") != "cluster" and _record.get("hw_model"):
                 _tags = _record["tags"] if _record.get("tags") else []
-                _tags.sort()
+                if len(_tags) > 1:
+                    _tags.sort()
+                if (
+                    PLUGIN_CFG.get("customer_is_facility")
+                    and _record.get("customer")
+                    and _record["customer"] in self.building_map
+                ):
+                    _building = self.building_map[_record["customer"].upper()]
+                else:
+                    _building = _record.get("building")
                 _device = self.device(
-                    name=_record["name"],
-                    dtype=_record["type"],
-                    building=_record["building"] if _record.get("building") else "",
-                    customer=_record["customer"] if _record.get("customer") else "",
+                    name=_record["name"][:64],
+                    building=_building if _building else "",
                     room=_record["room"] if _record.get("room") else "",
                     rack=_record["rack"] if _record.get("rack") else "",
                     rack_position=int(_record["start_at"]) if _record.get("start_at") else None,
                     rack_orientation="front" if _record.get("orientation") == 1 else "rear",
-                    hardware=sanitize_string(_record["hw_model"]) if _record.get("hw_model") else "",
-                    os=get_netmiko_platform(_record.get("os")),
+                    hardware=sanitize_string(_record["hw_model"]),
+                    os=get_netmiko_platform(_record["os"]) if _record.get("os") else "",
                     in_service=_record.get("in_service"),
                     serial_no=_record["serial_no"],
+                    master_device=False,
                     tags=_tags,
                 )
                 try:
@@ -261,6 +302,8 @@ class Device42Adapter(DiffSync):
                                 f"{cluster_host} has network device members but isn't marked as network. This should be corrected in Device42."
                             )
                         _device.cluster_host = cluster_host
+                        if _device.name == cluster_host:
+                            _device.master_device = True
                         # print(f"Device {_record['name']} being added.")
                     self.add(_device)
                 except ObjectAlreadyExists as err:
@@ -275,13 +318,14 @@ class Device42Adapter(DiffSync):
         for _port in _ports:
             if _port.get("port_name") and _port.get("device_name"):
                 _tags = _port["tags"].split(",") if _port.get("tags") else []
-                _tags.sort()
+                if len(_tags) > 1:
+                    _tags.sort()
                 try:
                     new_port = self.port(
                         name=_port["port_name"],
                         device=_port["device_name"],
                         enabled=is_truthy(_port["up_admin"]),
-                        mtu=_port["mtu"],
+                        mtu=_port["mtu"] if _port.get("mtu") in range(1, 65537) else 1500,
                         description=_port["description"],
                         mac_addr=_port["hwaddress"],
                         type=get_intf_type(intf_record=_port),
@@ -289,29 +333,30 @@ class Device42Adapter(DiffSync):
                         mode="access",
                     )
                     if _port.get("vlan_pks"):
-                        vlans = []
+                        _tags = []
                         for _pk in _port["vlan_pks"]:
                             if self.vlan_map[_pk]["vid"] != 0:
-                                _vlan = {
-                                    "vlan_name": self.vlan_map[_pk]["name"],
-                                    "vlan_id": self.vlan_map[_pk]["vid"],
-                                }
-                                vlans.append(_vlan)
-                        new_port.vlans = vlans
-                        if len(vlans) > 1:
+                                _tags.append(
+                                    {
+                                        "vlan_name": self.vlan_map[_pk]["name"],
+                                        "vlan_id": str(self.vlan_map[_pk]["vid"]),
+                                    }
+                                )
+                        _sorted_list = sorted(_tags, key=lambda k: k["vlan_id"])
+                        # _sorted_list = sorted(_sorted_vids, key=lambda k: k["vlan_name"])
+                        _vlans = [i for n, i in enumerate(_sorted_list) if i not in _sorted_list[n + 1 :]]
+                        new_port.vlans = _vlans
+                        if len(_vlans) > 1:
                             new_port.mode = "tagged"
                     self.add(new_port)
                     try:
-                        _dev = self.get(self.cluster, _port["device_name"])
-                        _dev.add_child(new_port)
-                    except ObjectNotFound:
                         _dev = self.get(self.device, _port["device_name"])
                         _dev.add_child(new_port)
+                    except ObjectNotFound as err:
+                        # print(f"Device {_port['device_name']} not found. {err}")
+                        continue
                 except ObjectAlreadyExists as err:
                     # print(f"Port already exists. {err}")
-                    continue
-                except ObjectNotFound as err:
-                    # print(f"Device {_port['device_name']} not found. {err}")
                     continue
 
     def load_vrfgroups(self):
@@ -320,7 +365,8 @@ class Device42Adapter(DiffSync):
         for _grp in self._device42.api_call(path="api/1.0/vrfgroup/")["vrfgroup"]:
             try:
                 _tags = _grp["tags"] if _grp.get("tags") else []
-                _tags.sort()
+                if len(_tags) > 1:
+                    _tags.sort()
                 new_vrf = self.vrf(
                     name=_grp["name"],
                     description=_grp["description"],
@@ -336,7 +382,8 @@ class Device42Adapter(DiffSync):
         print("Retrieving Subnets from Device42.")
         for _pf in self._device42.get_subnets():
             _tags = _pf["tags"].split(",") if _pf.get("tags") else []
-            _tags.sort()
+            if len(_tags) > 1:
+                _tags.sort()
             # This handles Prefix with /32 netmask. These need to be added as an IPAddress.
             if _pf["mask_bits"] == 32 and ":" not in _pf["network"]:
                 print(f"Network {_pf['network']} with 32 netmask found. Loading as IPAddress.")
@@ -371,7 +418,8 @@ class Device42Adapter(DiffSync):
         for _ip in self._device42.get_ip_addrs():
             try:
                 _tags = _ip["tags"].split(",") if _ip.get("tags") else []
-                _tags.sort()
+                if len(_tags) > 1:
+                    _tags.sort()
                 new_ip = self.ipaddr(
                     address=f"{_ip['ip_address']}/{str(_ip['netmask'])}",
                     available=_ip["available"],
@@ -398,7 +446,8 @@ class Device42Adapter(DiffSync):
                     )
                 elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
                     new_vlan = self.get(
-                        self.vlan, {"name": _vlan_name, "vlan_id": _info["vid"], "building": _info["customer"]}
+                        self.vlan,
+                        {"name": _vlan_name, "vlan_id": _info["vid"], "building": self.building_map[_info["customer"]]},
                     )
                 else:
                     new_vlan = self.get(self.vlan, {"name": _vlan_name, "vlan_id": _info["vid"], "building": "Unknown"})
@@ -413,7 +462,7 @@ class Device42Adapter(DiffSync):
                 if _info.get("building"):
                     new_vlan.building = _info["building"]
                 elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
-                    new_vlan.building = _info["customer"]
+                    new_vlan.building = self.building_map[_info["customer"]]
                 else:
                     new_vlan.building = "Unknown"
                 self.add(new_vlan)

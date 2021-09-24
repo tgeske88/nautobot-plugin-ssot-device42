@@ -6,6 +6,21 @@ import urllib3
 from typing import List
 from nautobot_device42_sync.constant import PHY_INTF_MAP, FC_INTF_MAP, INTF_NAME_MAP
 from netutils.lib_mapper import PYATS_LIB_MAPPER
+from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
+
+
+class MissingConfigSetting(Exception):
+    """Exception raised for missing configuration settings.
+
+    Attributes:
+        message (str): Returned explanation of Error.
+    """
+
+    def __init__(self, setting):
+        """Initialize Exception with Setting that is missing and message."""
+        self.setting = setting
+        self.message = f"Missing configuration setting - {setting}!"
+        super().__init__(self.message)
 
 
 def merge_offset_dicts(orig_dict: dict, offset_dict: dict) -> dict:
@@ -94,6 +109,36 @@ def get_netmiko_platform(network_os: str) -> str:
         if os in PYATS_LIB_MAPPER:
             return PYATS_LIB_MAPPER[os]
     return network_os
+
+
+def find_device_role_from_tags(diffsync, tag_list: List[str]) -> str or bool:
+    """Determine a Device role based upon a Tag matching the `role_prepend` setting.
+
+    Args:
+        tag_list (List[str]): List of Tags as strings to search.
+
+    Returns:
+        DEFAULTS["device_role"]: The Default device role defined in plugin settings.
+    """
+    if not PLUGIN_CFG.get("role_prepend"):
+        print("You must have the `role_prepend` setting configured.")
+        raise MissingConfigSetting(setting="role_prepend")
+    _prepend = PLUGIN_CFG.get("role_prepend")
+    for _tag in tag_list:
+        if re.search(_prepend, _tag):
+            return re.sub(_prepend, "", _tag)
+    return DEFAULTS.get("device_role")
+
+
+def get_facility(diffsync, tags: List[str]):
+    """Determine Site facility from a specified Tag."""
+    if PLUGIN_CFG.get("facility_prepend"):
+        for _tag in tags:
+            if re.search(PLUGIN_CFG.get("facility_prepend"), _tag):
+                return re.sub(PLUGIN_CFG.get("facility_prepend"), "", _tag)
+    else:
+        diffsync.job.log_failure("The `facility_prepend` setting is missing or invalid.")
+        raise MissingConfigSetting("facility_prepend")
 
 
 class Device42API:
@@ -229,7 +274,7 @@ class Device42API:
 
         return {
             _i["cluster"]: {
-                "members": [x.strip() for x in _i["members"].split("%3B")],
+                "members": [x for x in _i["members"].split("%3B ")],
                 "is_network": _i["network_device"],
                 "hardware": _i["hardware"],
                 "os": _i["os"],
