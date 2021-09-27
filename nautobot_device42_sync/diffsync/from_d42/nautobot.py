@@ -21,7 +21,6 @@ from nautobot.dcim.models import (
 )
 from nautobot.ipam.models import VRF, Prefix, IPAddress, VLAN
 from nautobot.extras.models import Status
-from nautobot.extras.choices import LogLevelChoices
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
 from nautobot_device42_sync.constant import USE_DNS
@@ -95,27 +94,27 @@ class NautobotAdapter(DiffSync):
             source (DiffSync): DiffSync
         """
         for grouping in (
-            "device",
-            "site",
-            "rack_group",
-            "rack",
-            "manufacturer",
-            "vrf",
-            "ipaddr",
-            "cluster",
             "port",
+            "cluster",
+            "device",
+            "rack",
+            "rack_group",
+            "vrf",
+            "subnet",
+            "ipaddr",
             "vlan",
+            "site",
+            "manufacturer",
         ):
             for nautobot_object in self._objects_to_delete[grouping]:
                 try:
                     nautobot_object.delete()
                 except ProtectedError:
-                    self.job.log(
-                        f"Deletion failed protected object: {nautobot_object}", log_level=LogLevelChoices.LOG_FAILURE
-                    )
+                    self.job.log(f"Deletion failed protected object: {nautobot_object}")
             self._objects_to_delete[grouping] = []
 
         self.set_primary_from_dns()
+        return super().sync_complete(source, *args, **kwargs)
 
     def set_primary_from_dns(self):
         """Method to resolve Device FQDNs A records into an IP and set primary IP for that Device to it if found.
@@ -126,9 +125,7 @@ class NautobotAdapter(DiffSync):
             for _dev in Device.objects.all():
                 _devname = _dev.name.strip()
                 if not re.search(r"\s-\s\w+\s?\d+", _devname):
-                    _devname = re.search(
-                        r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}[a-zA-Z0-9\.\&\\?\:@\-_=#]", _dev.name
-                    )
+                    _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", _dev.name)
                     if _devname:
                         _devname = _devname.group()
                     else:
@@ -292,7 +289,7 @@ class NautobotAdapter(DiffSync):
                 enabled=port.enabled,
                 mtu=port.mtu,
                 description=port.description,
-                mac_addr=_mac_addr,
+                mac_addr=_mac_addr[:13],
                 type=port.type,
                 tags=nbutils.get_tag_strings(port.tags),
                 mode=port.mode,
@@ -358,6 +355,8 @@ class NautobotAdapter(DiffSync):
                 label=_ip.description,
                 vrf=_ip.vrf.name if _ip.vrf else None,
                 tags=nbutils.get_tag_strings(_ip.tags),
+                interface="",
+                device="",
             )
             if _ip.assigned_object_id:
                 _intf = Interface.objects.get(id=_ip.assigned_object_id)
@@ -373,7 +372,7 @@ class NautobotAdapter(DiffSync):
                 _vlan = self.vlan(
                     name=vlan.name,
                     vlan_id=vlan.vid,
-                    description=vlan.description,
+                    description=vlan.description if vlan.description else "",
                     building=vlan.site.name if vlan.site else "Unknown",
                 )
                 self.add(_vlan)
