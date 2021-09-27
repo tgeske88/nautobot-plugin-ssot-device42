@@ -204,7 +204,7 @@ class IPAddress(DiffSyncModel):
             )
         if attrs.get("label"):
             _ipaddr.description = attrs["label"]
-        if attrs.get("device") and attrs.get("interface"):
+        if (attrs.get("device") and attrs["device"] != "") and (attrs.get("interface") and attrs["interface"] != ""):
             _device = attrs["device"]
             try:
                 intf = NautobotInterface.objects.get(device__name=attrs["device"], name=attrs["interface"])
@@ -214,9 +214,13 @@ class IPAddress(DiffSyncModel):
                 self.diffsync.job.log_debug(
                     f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
                 )
+        elif (attrs.get("device") and attrs["device"] == "") or (attrs.get("interface") and attrs["interface"] == ""):
+            print(f"Unassigning interface and Device for {self.address}.")
+            _ipaddr.assigned_object_type = None
+            _ipaddr.assigned_object_id = None
         else:
             _device = self.device
-        if attrs.get("interface"):
+        if attrs.get("interface") and attrs["interface"] != "":
             try:
                 _dev = NautobotInterface.objects.get(id=_ipaddr.assigned_object_id).device
                 intf = NautobotInterface.objects.get(device=_dev, name=attrs["interface"])
@@ -245,6 +249,7 @@ class IPAddress(DiffSyncModel):
         super().delete()
         site = NautobotIPAddress.objects.get(**self.get_identifiers())
         self.diffsync._objects_to_delete["ipaddr"].append(site)  # pylint: disable=protected-access
+        return self
 
 
 class VLAN(DiffSyncModel):

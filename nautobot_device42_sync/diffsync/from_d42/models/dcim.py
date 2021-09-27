@@ -564,7 +564,7 @@ class Device(DiffSyncModel):
             try:
                 _vc = NautobotVC.objects.get(name=_clus_host)
                 _dev.virtual_chassis = _vc
-                if attrs["master_device"]:
+                if attrs.get("master_device") and attrs["master_device"]:
                     print(f"{self.name} is a Master Device and will be set to it for the VC of same name.")
                     _dev.vc_position = 1
                     _dev.validated_save()
