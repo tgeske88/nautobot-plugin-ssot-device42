@@ -97,6 +97,7 @@ class Device42Adapter(DiffSync):
                 contact_name=record["contact_name"] if record.get("contact_name") else "",
                 contact_phone=record["contact_phone"] if record.get("contact_phone") else "",
                 rooms=record["rooms"] if record.get("rooms") else [],
+                custom_fields=record["custom_fields"],
                 tags=_tags,
             )
             _facility = get_facility(diffsync=self, tags=_tags)
@@ -119,6 +120,7 @@ class Device42Adapter(DiffSync):
                     name=record["name"],
                     building=record["building"],
                     notes=record["notes"] if record.get("notes") else "",
+                    custom_fields=record["custom_fields"],
                     tags=_tags,
                 )
                 try:
@@ -145,6 +147,7 @@ class Device42Adapter(DiffSync):
                     room=record["room"],
                     height=record["size"] if record.get("size") else 1,
                     numbering_start_from_bottom=record["numbering_start_from_bottom"],
+                    custom_fields=record["custom_fields"],
                     tags=_tags,
                 )
                 try:
@@ -163,7 +166,10 @@ class Device42Adapter(DiffSync):
         """Load Device42 vendors."""
         print("Loading vendors from Device42.")
         for _vendor in self._device42.api_call(path="api/1.0/vendors")["vendors"]:
-            vendor = self.vendor(name=_vendor["name"])
+            vendor = self.vendor(
+                name=_vendor["name"],
+                custom_fields=_vendor["custom_fields"],
+            )
             self.add(vendor)
 
     def load_hardware_models(self):
@@ -177,6 +183,7 @@ class Device42Adapter(DiffSync):
                     size=float(round(_model["size"])) if _model.get("size") else 1.0,
                     depth=_model["depth"] if _model.get("depth") else "Half Depth",
                     part_number=_model["part_no"],
+                    custom_fields=_model["custom_fields"],
                 )
                 try:
                     self.add(model)
@@ -224,6 +231,7 @@ class Device42Adapter(DiffSync):
                 name=cluster_info["name"][:64],
                 members=_members,
                 tags=_tags,
+                custom_fields=cluster_info["custom_fields"],
             )
             self.add(_cluster)
             # Add master device to hold stack info like intfs and IPs
@@ -248,6 +256,7 @@ class Device42Adapter(DiffSync):
                 cluster_host=cluster_info["name"][:64],
                 master_device=True,
                 serial_no="",
+                custom_fields=cluster_info["custom_fields"],
             )
             self.add(_device)
 
@@ -293,6 +302,7 @@ class Device42Adapter(DiffSync):
                     serial_no=_record["serial_no"],
                     master_device=False,
                     tags=_tags,
+                    custom_fields=_record["custom_fields"],
                 )
                 try:
                     cluster_host = self.get_cluster_host(_record["name"])
@@ -315,6 +325,7 @@ class Device42Adapter(DiffSync):
         vlan_ports = self._device42.get_ports_with_vlans()
         no_vlan_ports = self._device42.get_logical_ports_wo_vlans()
         _ports = vlan_ports + no_vlan_ports
+        _cfs = self._device42.get_port_custom_fields()
         for _port in _ports:
             if _port.get("port_name") and _port.get("device_name"):
                 _tags = _port["tags"].split(",") if _port.get("tags") else []
@@ -343,11 +354,12 @@ class Device42Adapter(DiffSync):
                                     }
                                 )
                         _sorted_list = sorted(_tags, key=lambda k: k["vlan_id"])
-                        # _sorted_list = sorted(_sorted_vids, key=lambda k: k["vlan_name"])
                         _vlans = [i for n, i in enumerate(_sorted_list) if i not in _sorted_list[n + 1 :]]
                         new_port.vlans = _vlans
                         if len(_vlans) > 1:
                             new_port.mode = "tagged"
+                    if _port["device_name"] in _cfs and _cfs[_port["device_name"]].get(_port["port_name"]):
+                        new_port.custom_fields = _cfs[_port["device_name"]][_port["port_name"]]
                     self.add(new_port)
                     try:
                         _dev = self.get(self.device, _port["device_name"])
@@ -371,6 +383,7 @@ class Device42Adapter(DiffSync):
                     name=_grp["name"],
                     description=_grp["description"],
                     tags=_tags,
+                    custom_fields=_grp["custom_fields"],
                 )
                 self.add(new_vrf)
             except ObjectAlreadyExists as err:
@@ -380,6 +393,7 @@ class Device42Adapter(DiffSync):
     def load_subnets(self):
         """Load Device42 Subnets."""
         print("Retrieving Subnets from Device42.")
+        _cfs = self._device42.get_subnet_custom_fields()
         for _pf in self._device42.get_subnets():
             _tags = _pf["tags"].split(",") if _pf.get("tags") else []
             if len(_tags) > 1:
@@ -394,6 +408,8 @@ class Device42Adapter(DiffSync):
                     vrf=_pf["vrf"],
                     tags=_tags,
                 )
+                if new_ip.address in _cfs:
+                    new_ip.custom_fields = _cfs[new_ip.address]
                 self.add(new_ip)
             elif _pf["mask_bits"] != 0:
                 try:
@@ -404,6 +420,8 @@ class Device42Adapter(DiffSync):
                         vrf=_pf["vrf"],
                         tags=_tags,
                     )
+                    if f"{_pf['network']}/{_pf['mask_bits']}" in _cfs:
+                        new_pf.custom_fields = _cfs[f"{_pf['network']}/{_pf['mask_bits']}"]
                     self.add(new_pf)
                 except ObjectAlreadyExists as err:
                     # print(f"Subnet {_pf['network']} {_pf['mask_bits']} {_pf['vrf']} {err}")
@@ -415,6 +433,7 @@ class Device42Adapter(DiffSync):
     def load_ip_addresses(self):
         """Load Device42 IP Addresses."""
         print("Retrieving IP Addresses from Device42.")
+        _cfs = self._device42.get_ipaddr_custom_fields()
         for _ip in self._device42.get_ip_addrs():
             try:
                 _tags = _ip["tags"].split(",") if _ip.get("tags") else []
@@ -429,6 +448,8 @@ class Device42Adapter(DiffSync):
                     vrf=_ip["vrf"],
                     tags=_tags,
                 )
+                if new_ip.address in _cfs:
+                    new_ip.custom_fields = _cfs[new_ip.address]
                 self.add(new_ip)
             except ObjectAlreadyExists as err:
                 # print(f"IP Address {_ip['ip_address']} {_ip['netmask']} already exists.{err}")
@@ -454,10 +475,15 @@ class Device42Adapter(DiffSync):
             except ObjectAlreadyExists as err:
                 print(f"VLAN {_vlan_name} already exists. {err}")
             except ObjectNotFound:
+                if _info["vlan_pk"] in self.vlan_map and self.vlan_map[_info["vlan_pk"]].get("custom_fields"):
+                    _cfs = self.vlan_map[_info["vlan_pk"]]["custom_fields"]
+                else:
+                    _cfs = None
                 new_vlan = self.vlan(
                     name=_vlan_name,
                     vlan_id=int(_info["vid"]),
                     description=_info["description"] if _info.get("description") else "",
+                    custom_fields=_cfs if _cfs else [],
                 )
                 if _info.get("building"):
                     new_vlan.building = _info["building"]
