@@ -3,6 +3,7 @@
 import re
 from typing import Optional, List
 from decimal import Decimal
+from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from diffsync import DiffSyncModel
@@ -17,10 +18,16 @@ from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import VirtualChassis as NautobotVC
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.dcim.models import Cable as NautobotCable
+from nautobot.extras.choices import CustomFieldTypeChoices
+from nautobot.extras.models import CustomField
 from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot_device42_sync.diffsync import nbutils
 from nautobot_device42_sync.diffsync import d42utils
-from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
+from nautobot_device42_sync.constant import DEFAULTS
+
+
+ContentType = apps.get_model("contenttypes", "ContentType")
+CustomField = apps.get_model("extras", "CustomField")
 
 
 class Building(DiffSyncModel):
@@ -29,7 +36,7 @@ class Building(DiffSyncModel):
     _modelname = "building"
     _identifiers = ("name",)
     _shortname = ("name",)
-    _attributes = ("address", "latitude", "longitude", "contact_name", "contact_phone", "tags")
+    _attributes = ("address", "latitude", "longitude", "contact_name", "contact_phone", "tags", "custom_fields")
     _children = {"room": "rooms"}
     name: str
     address: Optional[str]
@@ -39,6 +46,7 @@ class Building(DiffSyncModel):
     contact_phone: Optional[str]
     rooms: List["Room"] = list()
     tags: Optional[List[str]]
+    custom_fields: Optional[List[dict]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -60,6 +68,17 @@ class Building(DiffSyncModel):
             _facility = d42utils.get_facility(diffsync, tags=attrs["tags"])
             if _facility:
                 new_site.facility = _facility.upper()
+        if attrs.get("custom_fields"):
+            Site = apps.get_model("dcim", "Site")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(Site)])
+                new_site.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_site.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
@@ -82,6 +101,17 @@ class Building(DiffSyncModel):
             _facility = d42utils.get_facility(diffsync=self.diffsync, tags=attrs["tags"])
             if _facility:
                 _site.facility = _facility.upper()
+        if attrs.get("custom_fields"):
+            Site = apps.get_model("dcim", "Site")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(Site)])
+                _site.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _site.validated_save()
         return super().update(attrs)
 
@@ -105,12 +135,13 @@ class Room(DiffSyncModel):
     _modelname = "room"
     _identifiers = ("name", "building")
     _shortname = ("name",)
-    _attributes = ("notes",)
+    _attributes = ("notes", "custom_fields")
     _children = {"rack": "racks"}
     name: str
     building: str
     notes: Optional[str]
     racks: List["Rack"] = list()
+    custom_fields: Optional[List[dict]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -121,14 +152,36 @@ class Room(DiffSyncModel):
             site=NautobotSite.objects.get(name=ids["building"]),
             description=attrs["notes"] if attrs.get("notes") else "",
         )
+        if attrs.get("custom_fields"):
+            RackGroup = apps.get_model("dcim", "RackGroup")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(RackGroup)])
+                new_rg.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_rg.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
         """Update RackGroup object in Nautobot."""
-        _rg = NautobotRackGroup.objects.get(slug=slugify(self.name))
+        _rg = NautobotRackGroup.objects.get(name=self.name, site__name=self.building)
         if attrs.get("notes"):
             _rg.description = attrs["notes"]
+        if attrs.get("custom_fields"):
+            RackGroup = apps.get_model("dcim", "RackGroup")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(RackGroup)])
+                _rg.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _rg.validated_save()
         return super().update(attrs)
 
@@ -152,7 +205,7 @@ class Rack(DiffSyncModel):
     _modelname = "rack"
     _identifiers = ("name", "building", "room")
     _shortname = ("name",)
-    _attributes = ("height", "numbering_start_from_bottom", "tags")
+    _attributes = ("height", "numbering_start_from_bottom", "tags", "custom_fields")
     _children = {}
     name: str
     building: str
@@ -160,6 +213,7 @@ class Rack(DiffSyncModel):
     height: int
     numbering_start_from_bottom: str
     tags: Optional[List[str]]
+    custom_fields: Optional[List[dict]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -177,12 +231,23 @@ class Rack(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 new_rack.tags.add(_tag)
+        if attrs.get("custom_fields"):
+            Rack = apps.get_model("dcim", "Rack")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(Rack)])
+                new_rack.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_rack.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
         """Update Rack object in Nautobot."""
-        _rack = NautobotRack.objects.get(name=self.name, site__name=self.building)
+        _rack = NautobotRack.objects.get(name=self.name, group__name=self.room, site__name=self.building)
         if attrs.get("height"):
             _rack.u_height = attrs["height"]
         if attrs.get("numbering_start_from_bottom"):
@@ -190,6 +255,17 @@ class Rack(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _rack.tags.add(_tag)
+        if attrs.get("custom_fields"):
+            Rack = apps.get_model("dcim", "Rack")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(Rack)])
+                _rack.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _rack.validated_save()
         return super().update(attrs)
 
@@ -213,9 +289,10 @@ class Vendor(DiffSyncModel):
     _modelname = "vendor"
     _identifiers = ("name",)
     _shortname = ("name",)
-    _attributes = ()
+    _attributes = ("custom_fields",)
     _children = {}
     name: str
+    custom_fields: Optional[List[dict]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -228,8 +305,36 @@ class Vendor(DiffSyncModel):
                 name=ids["name"],
                 slug=slugify(ids["name"]),
             )
+            if attrs.get("custom_fields"):
+                Manufacturer = apps.get_model("dcim", "Manufacturer")
+                for _cf in attrs["custom_fields"]:
+                    _cf_dict = {
+                        "name": slugify(_cf["key"]),
+                        "type": CustomFieldTypeChoices.TYPE_TEXT,
+                        "label": _cf["key"],
+                    }
+                    field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                    field.content_types.set([ContentType.objects.get_for_model(Manufacturer)])
+                    new_manu.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
             new_manu.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Manufacturer object in Nautobot."""
+        _manu = NautobotManufacturer.objects.get(name=self.name)
+        if attrs.get("custom_fields"):
+            Manufacturer = apps.get_model("dcim", "Manufacturer")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(Manufacturer)])
+                _manu.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+        _manu.validated_save()
+        return super().update(attrs)
 
     def delete(self):
         """Delete Manufacturer object from Nautobot.
@@ -251,18 +356,14 @@ class Hardware(DiffSyncModel):
     _modelname = "hardware"
     _identifiers = ("name",)
     _shortname = ("name",)
-    _attributes = (
-        "manufacturer",
-        "size",
-        "depth",
-        "part_number",
-    )
+    _attributes = ("manufacturer", "size", "depth", "part_number", "custom_fields")
     _children = {}
     name: str
     manufacturer: str
     size: float
     depth: Optional[str]
     part_number: Optional[str]
+    custom_fields: Optional[List[dict]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -279,6 +380,17 @@ class Hardware(DiffSyncModel):
                 u_height=int(attrs["size"]) if attrs.get("size") else 1,
                 is_full_depth=bool(attrs.get("depth") == "Full Depth"),
             )
+            if attrs.get("custom_fields"):
+                DeviceType = apps.get_model("dcim", "DeviceType")
+                for _cf in attrs["custom_fields"]:
+                    _cf_dict = {
+                        "name": slugify(_cf["key"]),
+                        "type": CustomFieldTypeChoices.TYPE_TEXT,
+                        "label": _cf["key"],
+                    }
+                    field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                    field.content_types.set([ContentType.objects.get_for_model(DeviceType)])
+                    new_dt.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
             new_dt.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
@@ -293,6 +405,17 @@ class Hardware(DiffSyncModel):
             _dt.u_height = int(attrs["size"])
         if attrs.get("depth"):
             _dt.is_full_depth = bool(attrs["depth"] == "Full Depth")
+        if attrs.get("custom_fields"):
+            DeviceType = apps.get_model("dcim", "DeviceType")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(DeviceType)])
+                _dt.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _dt.validated_save()
         return super().update(attrs)
 
@@ -316,11 +439,12 @@ class Cluster(DiffSyncModel):
     _modelname = "cluster"
     _identifiers = ("name",)
     _shortname = ("name",)
-    _attributes = ("members", "tags")
+    _attributes = ("members", "tags", "custom_fields")
     _children = {}
     name: str
     members: Optional[List[str]]
     tags: Optional[List[str]]
+    custom_fields: Optional[List[dict]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -336,6 +460,17 @@ class Cluster(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 new_vc.tags.add(_tag)
+        if attrs.get("custom_fields"):
+            VirtualChassis = apps.get_model("dcim", "VirtualChassis")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(VirtualChassis)])
+                new_vc.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_vc.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
@@ -363,6 +498,17 @@ class Cluster(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _vc.tags.add(_tag)
+        if attrs.get("custom_fields"):
+            VirtualChassis = apps.get_model("dcim", "VirtualChassis")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(VirtualChassis)])
+                _vc.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _vc.validated_save()
         return super().update(attrs)
 
@@ -399,6 +545,7 @@ class Device(DiffSyncModel):
         "tags",
         "cluster_host",
         "master_device",
+        "custom_fields",
     )
     _children = {"port": "interfaces"}
     name: str
@@ -415,6 +562,7 @@ class Device(DiffSyncModel):
     tags: Optional[List[str]]
     cluster_host: Optional[str]
     master_device: bool
+    custom_fields: Optional[List[dict]]
 
     @classmethod
     def _get_site(cls, diffsync, ids, attrs):
@@ -500,6 +648,17 @@ class Device(DiffSyncModel):
                 if attrs.get("tags"):
                     for _tag in nbutils.get_tags(attrs["tags"]):
                         new_device.tags.add(_tag)
+                if attrs.get("custom_fields"):
+                    Device = apps.get_model("dcim", "Device")
+                    for _cf in attrs["custom_fields"]:
+                        _cf_dict = {
+                            "name": slugify(_cf["key"]),
+                            "type": CustomFieldTypeChoices.TYPE_TEXT,
+                            "label": _cf["key"],
+                        }
+                        field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                        field.content_types.set([ContentType.objects.get_for_model(Device)])
+                        new_device.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
                 new_device.validated_save()
                 return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
             except NautobotRack.DoesNotExist:
@@ -555,6 +714,17 @@ class Device(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _dev.tags.add(_tag)
+        if attrs.get("custom_fields"):
+            Device = apps.get_model("dcim", "Device")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(Device)])
+                _dev.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         # ensure that VC Master Device is set to that
         if attrs.get("cluster_host") or attrs.get("master_device"):
             if attrs.get("cluster_host"):
@@ -609,7 +779,7 @@ class Port(DiffSyncModel):
     _modelname = "port"
     _identifiers = ("device", "name")
     _shortname = ("name",)
-    _attributes = ("enabled", "mtu", "description", "mac_addr", "type", "mode", "tags", "vlans")
+    _attributes = ("enabled", "mtu", "description", "mac_addr", "type", "mode", "tags", "vlans", "custom_fields")
     _children = {}
     name: str
     device: str
@@ -621,6 +791,7 @@ class Port(DiffSyncModel):
     tags: Optional[List[str]]
     mode: Optional[str]
     vlans: Optional[List[dict]] = list()
+    custom_fields: Optional[List[dict]]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
@@ -642,6 +813,17 @@ class Port(DiffSyncModel):
                 if attrs.get("tags"):
                     for _tag in nbutils.get_tags(attrs["tags"]):
                         new_intf.tags.add(_tag)
+                if attrs.get("custom_fields"):
+                    Interface = apps.get_model("dcim", "Interface")
+                    for _cf in attrs["custom_fields"]:
+                        _cf_dict = {
+                            "name": slugify(_cf["key"]),
+                            "type": CustomFieldTypeChoices.TYPE_TEXT,
+                            "label": _cf["key"],
+                        }
+                        field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                        field.content_types.set([ContentType.objects.get_for_model(Interface)])
+                        new_intf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
                 new_intf.validated_save()
                 try:
                     if attrs.get("vlans"):
@@ -690,6 +872,17 @@ class Port(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _port.tags.add(_tag)
+        if attrs.get("custom_fields"):
+            Interface = apps.get_model("dcim", "Interface")
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+                field.content_types.set([ContentType.objects.get_for_model(Interface)])
+                _port.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         if attrs.get("vlans"):
             if attrs.get("mode"):
                 _mode = attrs["mode"]

@@ -304,6 +304,28 @@ class Device42API:
         query = "SELECT m.port as port_name, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port is not null GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name"
         return self.doql_query(query=query)
 
+    def get_port_custom_fields(self) -> dict:
+        """Method to retrieve custom fields for Ports from Device42.
+
+        Returns:
+            dict: Dictionary of CustomFields matching D42 format from the API.
+        """
+        query = "SELECT cf.key, cf.value, cf.notes, np.port as port_name, d.name as device_name FROM view_netport_custom_fields_v1 cf LEFT JOIN view_netport_v1 np ON np.netport_pk = cf.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = np.device_fk"
+        results = self.doql_query(query=query)
+        _fields = {}
+        for _cf in results:
+            _fields[_cf["device_name"]] = {}
+        for _cf in results:
+            _fields[_cf["device_name"]][_cf["port_name"]] = []
+        for _cf in results:
+            _field = {
+                "key": _cf["key"],
+                "value": _cf["value"],
+                "notes": _cf["notes"],
+            }
+            _fields[_cf["device_name"]][_cf["port_name"]].append(_field)
+        return _fields
+
     def get_subnets(self) -> List[dict]:
         """Method to get all subnets and associated data from Device42.
 
@@ -313,6 +335,26 @@ class Device42API:
         query = "SELECT s.name, s.network, s.mask_bits, s.tags, v.name as vrf FROM view_subnet_v1 s JOIN view_vrfgroup_v1 v ON s.vrfgroup_fk = v.vrfgroup_pk"
         return self.doql_query(query=query)
 
+    def get_subnet_custom_fields(self) -> List[dict]:
+        """Method to retrieve custom fields for Subnets from Device42.
+
+        Returns:
+            List[dict]: List of dictionaries of CustomFields matching D42 format from the API.
+        """
+        query = "SELECT cf.key, cf.value, cf.notes, s.name AS subnet_name, s.network, s.mask_bits FROM view_subnet_custom_fields_v1 cf LEFT JOIN view_subnet_v1 s ON s.subnet_pk = cf.subnet_fk"
+        results = self.doql_query(query=query)
+        _fields = {}
+        for _cf in results:
+            _fields[f"{_cf['network']}/{_cf['mask_bits']}"] = []
+        for _cf in results:
+            _field = {
+                "key": _cf["key"],
+                "value": _cf["value"],
+                "notes": _cf["notes"],
+            }
+            _fields[f"{_cf['network']}/{_cf['mask_bits']}"].append(_field)
+        return _fields
+
     def get_ip_addrs(self) -> List[dict]:
         """Method to get all IP addresses and relevant data from Device42 via DOQL.
 
@@ -321,6 +363,26 @@ class Device42API:
         """
         query = "SELECT i.ip_address, i.available, i.label, i.tags, np.port AS port_name, s.network as subnet, s.mask_bits as netmask, v.name as vrf, d.name as device FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_device_v1 d ON d.device_pk = i.device_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0"
         return self.doql_query(query=query)
+
+    def get_ipaddr_custom_fields(self) -> List[dict]:
+        """Method to retrieve the CustomFields for IP Addresses from Device42.
+
+        Returns:
+            List[dict]: List of dictionaries of CustomFields matching D42 format from the API.
+        """
+        query = "SELECT cf.key, cf.value, cf.notes, i.ip_address, s.mask_bits FROM view_ipaddress_custom_fields_v1 cf LEFT JOIN view_ipaddress_v1 i ON i.ipaddress_pk = cf.ipaddress_fk LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk"
+        results = self.doql_query(query=query)
+        _fields = {}
+        for _cf in results:
+            _fields[f"{_cf['ip_address']}/{_cf['mask_bits']}"] = []
+        for _cf in results:
+            _field = {
+                "key": _cf["key"],
+                "value": _cf["value"],
+                "notes": _cf["notes"],
+            }
+            _fields[f"{_cf['ip_address']}/{_cf['mask_bits']}"].append(_field)
+        return _fields
 
     def get_vlans_with_location(self) -> List[dict]:
         """Method to get all VLANs with Building and Customer info to attach to find Site.
@@ -337,9 +399,22 @@ class Device42API:
         Returns:
             dict: Mapping of VLAN primary key to VLAN name and ID.
         """
-        query = "SELECT v.vlan_pk, v.name, v.number as vid FROM view_vlan_v1 v"
-        doql_vlans = self.doql_query(query=query)
-        return {str(x["vlan_pk"]): {"name": x["name"], "vid": x["vid"]} for x in doql_vlans}
+        vinfo_query = "SELECT v.vlan_pk, v.name, v.number as vid FROM view_vlan_v1 v"
+        cfields_query = "SELECT cf.key, cf.value, cf.notes, v.vlan_pk FROM view_vlan_custom_fields_v1 cf LEFT JOIN view_vlan_v1 v ON v.vlan_pk = cf.vlan_fk"
+        doql_vlans = self.doql_query(query=vinfo_query)
+        vlans_cfs = self.doql_query(query=cfields_query)
+        vlan_dict = {str(x["vlan_pk"]): {"name": x["name"], "vid": x["vid"]} for x in doql_vlans}
+        for _cf in vlans_cfs:
+            if _cf["vlan_pk"] in doql_vlans:
+                vlan_dict[_cf["vlan_pk"]]["custom_fields"] = []
+            for _cf in vlans_cfs:
+                _field = {
+                    "key": _cf["key"],
+                    "value": _cf["value"],
+                    "notes": _cf["notes"],
+                }
+            vlan_dict[_cf["vlan_pk"]]["custom_fields"].append(_field)
+        return vlan_dict
 
     def get_device_pks(self) -> dict:
         """Get all Devices with their primary keys for reference in other functions.
