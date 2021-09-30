@@ -6,7 +6,7 @@ import re
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ProtectedError
 from diffsync import DiffSync
-from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
+from diffsync.exceptions import ObjectAlreadyExists
 from nautobot.core.settings_funcs import is_truthy
 from nautobot.dcim.models import (
     Site,
