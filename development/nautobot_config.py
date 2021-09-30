@@ -47,36 +47,38 @@ DATABASES = {
     }
 }
 
-# Redis variables
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-REDIS_PORT = os.getenv("REDIS_PORT", 6379)
-REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
+# Nautobot uses Cacheops for database query caching. These are the following defaults.
+# For detailed configuration see: https://github.com/Suor/django-cacheops#setup
+redis_protocol = (  # pylint: disable=invalid-name
+    "rediss" if is_truthy(os.getenv("NAUTOBOT_REDIS_SSL", False)) else "redis"
+)
+cache_ops_pwd = os.getenv("NAUTOBOT_REDIS_PASSWORD")
+cache_ops_host = os.getenv("NAUTOBOT_REDIS_HOST", "localhost")
+cache_ops_user = os.getenv("NAUTOBOT_REDIS_USER")
+cache_ops_port = int(os.getenv("NAUTOBOT_REDIS_PORT", 6379))
 
-# Check for Redis SSL
-REDIS_SCHEME = "redis"
-REDIS_SSL = is_truthy(os.environ.get("REDIS_SSL", False))
-if REDIS_SSL:
-    REDIS_SCHEME = "rediss"
+CACHEOPS_REDIS = os.getenv(
+    "NAUTOBOT_CACHEOPS_REDIS", f"{redis_protocol}://:{cache_ops_pwd}@{cache_ops_host}:{cache_ops_port}/1"
+)
 
 # The django-redis cache is used to establish concurrent locks using Redis. The
 # django-rq settings will use the same instance/database by default.
-#
-# This "default" server is now used by RQ_QUEUES.
-# >> See: nautobot.core.settings.RQ_QUEUES
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"{REDIS_SCHEME}://{REDIS_HOST}:{REDIS_PORT}/0",
+        "LOCATION": f"{redis_protocol}://:{cache_ops_pwd}@{cache_ops_host}:{cache_ops_port}/0",
         "TIMEOUT": 300,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": REDIS_PASSWORD,
+            "PASSWORD": "",
         },
     }
 }
 
-# RQ_QUEUES is not set here because it just uses the default that gets imported
-# up top via `from nautobot.core.settings import *`.
+# Nautobot uses RQ for task scheduling. These are the following defaults.
+# For detailed configuration see: https://github.com/rq/django-rq#installation
+# These defaults utilize the Django `CACHES` setting defined above for django-redis.
+# See: https://github.com/rq/django-rq#support-for-django-redis-and-django-redis-cache
 RQ_QUEUES = {
     "default": {
         "USE_REDIS_CACHE": "default",
@@ -93,8 +95,22 @@ RQ_QUEUES = {
     },
 }
 
-# REDIS CACHEOPS
-CACHEOPS_REDIS = f"{REDIS_SCHEME}://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/1"
+# duplicate queues setting from RQ for Celery
+CELERY_QUEUES = {
+    "default": {
+        "USE_REDIS_CACHE": "default",
+        "DEFAULT_TIMEOUT": 3600,
+    },
+    "check_releases": {
+        "USE_REDIS_CACHE": "default",
+    },
+    "custom_fields": {
+        "USE_REDIS_CACHE": "default",
+    },
+    "webhooks": {
+        "USE_REDIS_CACHE": "default",
+    },
+}
 
 # This key is used for secure generation of random numbers and strings. It must never be exposed outside of this file.
 # For optimal security, SECRET_KEY should be at least 50 characters in length and contain a mix of letters, numbers, and

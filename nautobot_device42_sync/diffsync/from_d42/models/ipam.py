@@ -4,10 +4,8 @@ import re
 from typing import Optional, List
 from diffsync import DiffSyncModel
 from diffsync.exceptions import ObjectAlreadyExists
-from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
-from nautobot.core.settings_funcs import is_truthy
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.dcim.models import Site as NautobotSite
@@ -17,12 +15,8 @@ from nautobot.ipam.models import Prefix as NautobotPrefix
 from nautobot.ipam.models import IPAddress as NautobotIPAddress
 from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot.extras.models import Status as NautobotStatus
-from nautobot_device42_sync.constant import PLUGIN_CFG
+from nautobot.extras.models import CustomField
 from nautobot_device42_sync.diffsync import nbutils
-
-
-ContentType = apps.get_model("contenttypes", "ContentType")
-CustomField = apps.get_model("extras", "CustomField")
 
 
 class VRFGroup(DiffSyncModel):
@@ -46,7 +40,6 @@ class VRFGroup(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            VRF = apps.get_model("ipam", "VRF")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -54,7 +47,7 @@ class VRFGroup(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(VRF)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotVRF)])
                 _vrf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _vrf.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -68,7 +61,6 @@ class VRFGroup(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            VRF = apps.get_model("ipam", "VRF")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -76,7 +68,7 @@ class VRFGroup(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(VRF)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotVRF)])
                 _vrf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _vrf.validated_save()
         return super().update(attrs)
@@ -131,7 +123,6 @@ class Subnet(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _pf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            Prefix = apps.get_model("ipam", "Prefix")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -139,7 +130,7 @@ class Subnet(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(Prefix)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotPrefix)])
                 _pf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _pf.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -153,7 +144,6 @@ class Subnet(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _pf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            Prefix = apps.get_model("ipam", "Prefix")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -161,7 +151,7 @@ class Subnet(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(Prefix)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotPrefix)])
                 _pf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _pf.validated_save()
         return super().update(attrs)
@@ -223,7 +213,6 @@ class IPAddress(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _ip.tags.add(_tag)
         if attrs.get("custom_fields"):
-            IPAddress = apps.get_model("ipam", "IPAddress")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -231,7 +220,7 @@ class IPAddress(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(IPAddress)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotIPAddress)])
                 _ip.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _ip.validated_save()
 
@@ -303,7 +292,6 @@ class IPAddress(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _ipaddr.tags.add(_tag)
         if attrs.get("custom_fields"):
-            IPAddress = apps.get_model("ipam", "IPAddress")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -311,7 +299,7 @@ class IPAddress(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(IPAddress)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotIPAddress)])
                 _ipaddr.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _ipaddr.validated_save()
         return super().update(attrs)
@@ -369,7 +357,6 @@ class VLAN(DiffSyncModel):
         if _site:
             _vlan.site = _site
         if attrs.get("custom_fields"):
-            VLAN = apps.get_model("ipam", "VLAN")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -377,7 +364,7 @@ class VLAN(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(VLAN)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotVLAN)])
                 _vlan.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         try:
             _vlan.validated_save()
@@ -400,7 +387,6 @@ class VLAN(DiffSyncModel):
         if attrs.get("description"):
             self.description = attrs["description"]
         if attrs.get("custom_fields"):
-            VLAN = apps.get_model("ipam", "VLAN")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -408,7 +394,7 @@ class VLAN(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(VLAN)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotVLAN)])
                 _vlan.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _vlan.validated_save()
         return super().update(attrs)

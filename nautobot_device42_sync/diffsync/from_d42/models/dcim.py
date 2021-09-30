@@ -3,7 +3,6 @@
 import re
 from typing import Optional, List
 from decimal import Decimal
-from django.apps import apps
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from diffsync import DiffSyncModel
@@ -24,10 +23,6 @@ from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot_device42_sync.diffsync import nbutils
 from nautobot_device42_sync.diffsync import d42utils
 from nautobot_device42_sync.constant import DEFAULTS
-
-
-ContentType = apps.get_model("contenttypes", "ContentType")
-CustomField = apps.get_model("extras", "CustomField")
 
 
 class Building(DiffSyncModel):
@@ -69,7 +64,6 @@ class Building(DiffSyncModel):
             if _facility:
                 new_site.facility = _facility.upper()
         if attrs.get("custom_fields"):
-            Site = apps.get_model("dcim", "Site")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -77,7 +71,7 @@ class Building(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(Site)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotSite)])
                 new_site.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_site.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -102,7 +96,6 @@ class Building(DiffSyncModel):
             if _facility:
                 _site.facility = _facility.upper()
         if attrs.get("custom_fields"):
-            Site = apps.get_model("dcim", "Site")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -110,7 +103,7 @@ class Building(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(Site)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotSite)])
                 _site.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _site.validated_save()
         return super().update(attrs)
@@ -153,7 +146,6 @@ class Room(DiffSyncModel):
             description=attrs["notes"] if attrs.get("notes") else "",
         )
         if attrs.get("custom_fields"):
-            RackGroup = apps.get_model("dcim", "RackGroup")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -161,7 +153,7 @@ class Room(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(RackGroup)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotRackGroup)])
                 new_rg.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_rg.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -172,7 +164,6 @@ class Room(DiffSyncModel):
         if attrs.get("notes"):
             _rg.description = attrs["notes"]
         if attrs.get("custom_fields"):
-            RackGroup = apps.get_model("dcim", "RackGroup")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -180,7 +171,7 @@ class Room(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(RackGroup)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotRackGroup)])
                 _rg.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _rg.validated_save()
         return super().update(attrs)
@@ -232,7 +223,6 @@ class Rack(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 new_rack.tags.add(_tag)
         if attrs.get("custom_fields"):
-            Rack = apps.get_model("dcim", "Rack")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -240,7 +230,7 @@ class Rack(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(Rack)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotRack)])
                 new_rack.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_rack.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -256,7 +246,6 @@ class Rack(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _rack.tags.add(_tag)
         if attrs.get("custom_fields"):
-            Rack = apps.get_model("dcim", "Rack")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -264,7 +253,7 @@ class Rack(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(Rack)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotRack)])
                 _rack.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _rack.validated_save()
         return super().update(attrs)
@@ -306,7 +295,6 @@ class Vendor(DiffSyncModel):
                 slug=slugify(ids["name"]),
             )
             if attrs.get("custom_fields"):
-                Manufacturer = apps.get_model("dcim", "Manufacturer")
                 for _cf in attrs["custom_fields"]:
                     _cf_dict = {
                         "name": slugify(_cf["key"]),
@@ -314,7 +302,7 @@ class Vendor(DiffSyncModel):
                         "label": _cf["key"],
                     }
                     field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                    field.content_types.set([ContentType.objects.get_for_model(Manufacturer)])
+                    field.content_types.set([ContentType.objects.get_for_model(NautobotManufacturer)])
                     new_manu.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
             new_manu.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -323,7 +311,6 @@ class Vendor(DiffSyncModel):
         """Update Manufacturer object in Nautobot."""
         _manu = NautobotManufacturer.objects.get(name=self.name)
         if attrs.get("custom_fields"):
-            Manufacturer = apps.get_model("dcim", "Manufacturer")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -331,7 +318,7 @@ class Vendor(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(Manufacturer)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotManufacturer)])
                 _manu.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _manu.validated_save()
         return super().update(attrs)
@@ -381,7 +368,6 @@ class Hardware(DiffSyncModel):
                 is_full_depth=bool(attrs.get("depth") == "Full Depth"),
             )
             if attrs.get("custom_fields"):
-                DeviceType = apps.get_model("dcim", "DeviceType")
                 for _cf in attrs["custom_fields"]:
                     _cf_dict = {
                         "name": slugify(_cf["key"]),
@@ -389,7 +375,7 @@ class Hardware(DiffSyncModel):
                         "label": _cf["key"],
                     }
                     field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                    field.content_types.set([ContentType.objects.get_for_model(DeviceType)])
+                    field.content_types.set([ContentType.objects.get_for_model(NautobotDeviceType)])
                     new_dt.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
             new_dt.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -406,7 +392,6 @@ class Hardware(DiffSyncModel):
         if attrs.get("depth"):
             _dt.is_full_depth = bool(attrs["depth"] == "Full Depth")
         if attrs.get("custom_fields"):
-            DeviceType = apps.get_model("dcim", "DeviceType")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -414,7 +399,7 @@ class Hardware(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(DeviceType)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotDeviceType)])
                 _dt.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _dt.validated_save()
         return super().update(attrs)
@@ -461,7 +446,6 @@ class Cluster(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 new_vc.tags.add(_tag)
         if attrs.get("custom_fields"):
-            VirtualChassis = apps.get_model("dcim", "VirtualChassis")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -469,7 +453,7 @@ class Cluster(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(VirtualChassis)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotVC)])
                 new_vc.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_vc.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -499,7 +483,6 @@ class Cluster(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _vc.tags.add(_tag)
         if attrs.get("custom_fields"):
-            VirtualChassis = apps.get_model("dcim", "VirtualChassis")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -507,7 +490,7 @@ class Cluster(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(VirtualChassis)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotVC)])
                 _vc.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _vc.validated_save()
         return super().update(attrs)
@@ -649,7 +632,6 @@ class Device(DiffSyncModel):
                     for _tag in nbutils.get_tags(attrs["tags"]):
                         new_device.tags.add(_tag)
                 if attrs.get("custom_fields"):
-                    Device = apps.get_model("dcim", "Device")
                     for _cf in attrs["custom_fields"]:
                         _cf_dict = {
                             "name": slugify(_cf["key"]),
@@ -657,7 +639,7 @@ class Device(DiffSyncModel):
                             "label": _cf["key"],
                         }
                         field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                        field.content_types.set([ContentType.objects.get_for_model(Device)])
+                        field.content_types.set([ContentType.objects.get_for_model(NautobotDevice)])
                         new_device.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
                 new_device.validated_save()
                 return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
@@ -715,7 +697,6 @@ class Device(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _dev.tags.add(_tag)
         if attrs.get("custom_fields"):
-            Device = apps.get_model("dcim", "Device")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -723,7 +704,7 @@ class Device(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(Device)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotDevice)])
                 _dev.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         # ensure that VC Master Device is set to that
         if attrs.get("cluster_host") or attrs.get("master_device"):
@@ -814,7 +795,6 @@ class Port(DiffSyncModel):
                     for _tag in nbutils.get_tags(attrs["tags"]):
                         new_intf.tags.add(_tag)
                 if attrs.get("custom_fields"):
-                    Interface = apps.get_model("dcim", "Interface")
                     for _cf in attrs["custom_fields"]:
                         _cf_dict = {
                             "name": slugify(_cf["key"]),
@@ -822,7 +802,7 @@ class Port(DiffSyncModel):
                             "label": _cf["key"],
                         }
                         field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                        field.content_types.set([ContentType.objects.get_for_model(Interface)])
+                        field.content_types.set([ContentType.objects.get_for_model(NautobotInterface)])
                         new_intf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
                 new_intf.validated_save()
                 try:
@@ -873,7 +853,6 @@ class Port(DiffSyncModel):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _port.tags.add(_tag)
         if attrs.get("custom_fields"):
-            Interface = apps.get_model("dcim", "Interface")
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -881,7 +860,7 @@ class Port(DiffSyncModel):
                     "label": _cf["key"],
                 }
                 field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(Interface)])
+                field.content_types.set([ContentType.objects.get_for_model(NautobotInterface)])
                 _port.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         if attrs.get("vlans"):
             if attrs.get("mode"):
@@ -957,8 +936,10 @@ class Connection(DiffSyncModel):
                 _src_port = NautobotInterface.objects.get(
                     device__name=cls.get_dev_name(ids["src_device"]), name=ids["src_port"]
                 )
-            except:
-                print(f"Unable to find source port for {ids['src_device']}: {ids['src_port']} {ids['src_port_mac']}")
+            except NautobotInterface.DoesNotExist as err:
+                print(
+                    f"Unable to find source port for {ids['src_device']}: {ids['src_port']} {ids['src_port_mac']} {err}"
+                )
                 return None
         try:
             if ids.get("dst_port_mac"):
