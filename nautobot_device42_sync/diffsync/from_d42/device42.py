@@ -7,6 +7,7 @@ from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from nautobot.core.settings_funcs import is_truthy
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
+from nautobot_device42_sync.diffsync.from_d42.models import circuits
 from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type, get_netmiko_platform, get_facility
 from nautobot_device42_sync.constant import PLUGIN_CFG
 
@@ -32,6 +33,8 @@ class Device42Adapter(DiffSync):
     ipaddr = ipam.IPAddress
     vlan = ipam.VLAN
     conn = dcim.Connection
+    provider = circuits.Provider
+    circuit = circuits.Circuit
 
     top_level = [
         "building",
@@ -44,6 +47,8 @@ class Device42Adapter(DiffSync):
         "device",
         "conn",
         "ipaddr",
+        "provider",
+        "circuit",
     ]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
@@ -73,6 +78,8 @@ class Device42Adapter(DiffSync):
         self.device_map = self._device42.get_device_pks()
         # mapping of Port PK to Port name
         self.port_map = self._device42.get_port_pks()
+        # mapping of Vendor PK to Vendor info
+        self.vendor_map = self._device42.get_vendor_pks()
 
     @classproperty
     def _device42_hardwares(self):
@@ -205,7 +212,7 @@ class Device42Adapter(DiffSync):
                 return _cluster
         return False
 
-    def load_cluster(self, cluster_info: dict) -> dcim.Cluster:
+    def load_cluster(self, cluster_info: dict):
         """Load Device42 clusters into DiffSync model.
 
         Args:
@@ -510,6 +517,50 @@ class Device42Adapter(DiffSync):
             except ObjectAlreadyExists as err:
                 print(err)
 
+    def load_provider(self, provider_info: dict):
+        """Load Device42 Providers"""
+        _prov = self.vendor_map[provider_info["vendor_fk"]]
+        try:
+            self.get(self.provider, _prov.get("name"))
+        except ObjectNotFound:
+            new_provider = self.provider(
+                name=_prov["name"],
+                notes=_prov["notes"],
+                vendor_url=_prov["home_page"],
+                vendor_acct=_prov["account_no"],
+                contact_info=_prov["contact_info"],
+                vendor_contact1=_prov["escalation_1"],
+                vendor_contact2=_prov["escalation_2"],
+            )
+            self.add(new_provider)
+
+    def load_providers_and_circuits(self):
+        """Load Device42 Providrs and Telco Circuits."""
+        _circuits = self._device42.get_telcocircuits()
+        for _tc in _circuits:
+            self.load_provider(_tc)
+            if _tc["origin_type"] == "Device Port":
+                origin_int = self.port_map[_tc["origin_netport_fk"]]["port"]
+                origin_dev = self.port_map[_tc["origin_netport_fk"]]["device"]
+            if _tc["end_point_type"] == "Device Port":
+                endpoint_int = self.port_map[_tc["end_point_netport_fk"]]["port"]
+                endpoint_dev = self.port_map[_tc["end_point_netport_fk"]]["device"]
+            new_circuit = self.circuit(
+                circuit_id=_tc["circuit_id"],
+                provider=self.vendor_map[_tc["vendor_fk"]]["name"],
+                notes=_tc["notes"],
+                type=_tc["type_name"],
+                status=_tc["status"],
+                install_date=_tc["turn_on_date"] if _tc.get("turn_on_date") else _tc["provision_date"],
+                origin_int=origin_int,
+                origin_dev=origin_dev,
+                endpoint_int=endpoint_int,
+                endpoint_dev=endpoint_dev,
+                bandwidth=f"{_tc['bandwidth']}{_tc['unit']}",
+                tags=_tc["tags"].split(",") if _tc.get("tags") else [],
+            )
+            self.add(new_circuit)
+
     def load(self):
         """Load data from Device42."""
         self.load_buildings()
@@ -524,3 +575,4 @@ class Device42Adapter(DiffSync):
         self.load_ports()
         self.load_ip_addresses()
         self.load_connections()
+        self.load_providers_and_circuits()

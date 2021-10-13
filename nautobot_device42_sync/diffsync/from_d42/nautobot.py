@@ -8,6 +8,7 @@ from django.db.models import ProtectedError
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists
 from nautobot.core.settings_funcs import is_truthy
+from nautobot.circuits.models import Provider, Circuit
 from nautobot.dcim.models import (
     Site,
     RackGroup,
@@ -23,8 +24,10 @@ from nautobot.ipam.models import VRF, Prefix, IPAddress, VLAN
 from nautobot.extras.models import Status
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
+from nautobot_device42_sync.diffsync.from_d42.models import circuits
 from nautobot_device42_sync.constant import USE_DNS
 from nautobot_device42_sync.diffsync import nbutils
+from netutils.bandwidth import kbits_to_name
 
 
 class NautobotAdapter(DiffSync):
@@ -59,6 +62,8 @@ class NautobotAdapter(DiffSync):
     ipaddr = ipam.IPAddress
     vlan = ipam.VLAN
     conn = dcim.Connection
+    provider = circuits.Provider
+    circuit = circuits.Circuit
 
     top_level = [
         "building",
@@ -71,6 +76,8 @@ class NautobotAdapter(DiffSync):
         "device",
         "conn",
         "ipaddr",
+        "provider",
+        "circuit",
     ]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
@@ -422,6 +429,7 @@ class NautobotAdapter(DiffSync):
                         {"key": vlan, "value": vlan_info, "notes": None}
                         for vlan, vlan_info in vlan.custom_field_data.items()
                     ],
+                    tags=nbutils.get_tag_strings(vlan.tags),
                 )
                 self.add(_vlan)
             except ObjectAlreadyExists as err:
@@ -439,8 +447,38 @@ class NautobotAdapter(DiffSync):
                 dst_device=dst_port.device.name,
                 dst_port=dst_port.name,
                 dst_port_mac=str(dst_port.mac_address).strip(":").lower(),
+                tags=nbutils.get_tag_strings(_cable.tags),
             )
             self.add(new_conn)
+
+    def load_providers(self):
+        """Add Nautobot Provider objects as DiffSync Provider models."""
+        for _prov in Provider.objects.all():
+            new_prov = self.provider(
+                name=_prov.name,
+                notes=_prov.comments,
+                vendor_url=_prov.portal_url,
+                vendor_acct=_prov.account,
+                vendor_contact1=_prov.noc_contact,
+                vendor_contact2=_prov.admin_contact,
+                tags=nbutils.get_tag_strings(_prov.tags),
+            )
+            self.add(new_prov)
+
+    def load_circuits(self):
+        """Add Nautobot Circuit objects as DiffSync Circuit models."""
+        for _circuit in Circuit.objects.all():
+            new_circuit = self.circuit(
+                circuit_id=_circuit.cid,
+                provider=_circuit.provider.name,
+                notes=_circuit.comments,
+                type=_circuit.type.name,
+                status=_circuit.status.name,
+                install_date=_circuit.install_date,
+                bandwidth=kbits_to_name(_circuit.commit_rate),
+                tags=nbutils.get_tag_strings(_circuit.tags),
+            )
+            self.add(new_circuit)
 
     def load(self):
         """Load data from Nautobot."""
@@ -458,3 +496,5 @@ class NautobotAdapter(DiffSync):
         self.load_interfaces()
         self.load_ip_addresses()
         self.load_cables()
+        self.load_providers()
+        self.load_circuits()

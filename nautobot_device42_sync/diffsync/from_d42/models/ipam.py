@@ -46,8 +46,8 @@ class VRFGroup(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotVRF)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotVRF).id)
                 _vrf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _vrf.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -67,8 +67,8 @@ class VRFGroup(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotVRF)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotVRF).id)
                 _vrf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _vrf.validated_save()
         return super().update(attrs)
@@ -129,8 +129,8 @@ class Subnet(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotPrefix)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotPrefix).id)
                 _pf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _pf.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -150,8 +150,8 @@ class Subnet(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotPrefix)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotPrefix).id)
                 _pf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _pf.validated_save()
         return super().update(attrs)
@@ -219,8 +219,8 @@ class IPAddress(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotIPAddress)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotIPAddress).id)
                 _ip.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _ip.validated_save()
 
@@ -298,8 +298,8 @@ class IPAddress(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotIPAddress)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotIPAddress).id)
                 _ipaddr.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _ipaddr.validated_save()
         return super().update(attrs)
@@ -363,8 +363,8 @@ class VLAN(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotVLAN)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotVLAN).id)
                 _vlan.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         try:
             _vlan.validated_save()
@@ -393,8 +393,8 @@ class VLAN(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotVLAN)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotVLAN).id)
                 _vlan.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _vlan.validated_save()
         return super().update(attrs)
