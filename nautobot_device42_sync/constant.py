@@ -66,3 +66,31 @@ INTF_NAME_MAP = {
         "ex_speed": "100 Gbps",
     },
 }
+
+# Map Interface type to max speed in Kbps
+INTF_SPEED_MAP = {
+    "100base-tx": 100000,
+    "1000base-t": 1000000,
+    "2.5gbase-t": 2500000,
+    "5gbase-t": 5000000,
+    "10gbase-t": 10000000,
+    "10gbase-cx4": 10000000,
+    "1000base-x-gbic": 100000000,
+    "1000base-x-sfp": 100000000,
+    "10gbase-x-sfpp": 10000000,
+    "10gbase-x-xfp": 10000000,
+    "10gbase-x-xenpak": 10000000,
+    "10gbase-x-x2": 10000000,
+    "25gbase-x-sfp28": 25000000,
+    "40gbase-x-qsfpp": 40000000,
+    "50gbase-x-sfp28": 50000000,
+    "100gbase-x-cfp": 100000000,
+    "100gbase-x-cfp2": 100000000,
+    "200gbase-x-cfp2": 200000000,
+    "100gbase-x-cfp4": 100000000,
+    "100gbase-x-cpak": 100000000,
+    "100gbase-x-qsfp28": 100000000,
+    "200gbase-x-qsfp56": 200000000,
+    "400gbase-x-qsfpdd": 400000000,
+    "400gbase-x-osfp,": 400000000,
+}

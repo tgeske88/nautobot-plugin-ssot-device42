@@ -1,9 +1,11 @@
 """Utility functions for Device42 API."""
 
 import re
+from django.utils.text import slugify
 import requests
 import urllib3
 from typing import List
+from nautobot.circuits.models import CircuitType
 from nautobot_device42_sync.constant import PHY_INTF_MAP, FC_INTF_MAP, INTF_NAME_MAP
 from netutils.lib_mapper import PYATS_LIB_MAPPER
 from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
@@ -139,6 +141,26 @@ def get_facility(diffsync, tags: List[str]):
     else:
         diffsync.job.log_failure("The `facility_prepend` setting is missing or invalid.")
         raise MissingConfigSetting("facility_prepend")
+
+
+def verify_circuit_type(circuit_type: str) -> CircuitType:
+    """Method to find or create a CircuitType in Nautobot.
+
+    Args:
+        circuit_type (str): Name of CircuitType to be found or created.
+
+    Returns:
+        CircuitType: CircuitType object found or created.
+    """
+    try:
+        _ct = CircuitType.objects.get(slug=slugify(circuit_type))
+    except CircuitType.DoesNotExist:
+        _ct = CircuitType(
+            name=circuit_type,
+            slug=slugify(circuit_type),
+        )
+        _ct.validated_save()
+    return _ct
 
 
 class Device42API:
@@ -444,3 +466,22 @@ class Device42API:
         """
         query = "SELECT netport_pk as src_port, device_fk as src_device, second_device_fk as dst_device, remote_netport_fk as dst_port FROM view_netport_v1 WHERE second_device_fk is not null AND remote_netport_fk is not null"
         return self.doql_query(query=query)
+
+    def get_telcocircuits(self) -> List[dict]:
+        """Method to retrieve all information about TelcoCircuits from Device42.
+
+        Returns:
+            List[dict]: List of dictionaries containing information about each circuit in Device42.
+        """
+        query = "SELECT * FROM view_telcocircuit_v1"
+        return self.doql_query(query=query)
+
+    def get_vendor_pks(self) -> dict:
+        """Method to obtain all Vendors from Device42 mapped to their PK.
+
+        Returns:
+            dict: Dictionary of Vendors with their PK as key.
+        """
+        query = "SELECT * FROM view_vendor_v1"
+        results = self.doql_query(query=query)
+        return {x["vendor_pk"]: x for x in results}

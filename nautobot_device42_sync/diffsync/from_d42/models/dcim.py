@@ -70,8 +70,8 @@ class Building(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotSite)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotSite).id)
                 new_site.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_site.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -102,8 +102,8 @@ class Building(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotSite)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotSite).id)
                 _site.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _site.validated_save()
         return super().update(attrs)
@@ -152,8 +152,8 @@ class Room(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotRackGroup)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotRackGroup).id)
                 new_rg.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_rg.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -170,8 +170,8 @@ class Room(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotRackGroup)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotRackGroup).id)
                 _rg.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _rg.validated_save()
         return super().update(attrs)
@@ -229,8 +229,8 @@ class Rack(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotRack)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotRack).id)
                 new_rack.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_rack.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -252,8 +252,8 @@ class Rack(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotRack)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotRack).id)
                 _rack.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _rack.validated_save()
         return super().update(attrs)
@@ -301,8 +301,8 @@ class Vendor(DiffSyncModel):
                         "type": CustomFieldTypeChoices.TYPE_TEXT,
                         "label": _cf["key"],
                     }
-                    field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                    field.content_types.set([ContentType.objects.get_for_model(NautobotManufacturer)])
+                    field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                    field.content_types.add(ContentType.objects.get_for_model(NautobotManufacturer).id)
                     new_manu.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
             new_manu.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -317,8 +317,8 @@ class Vendor(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotManufacturer)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotManufacturer).id)
                 _manu.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _manu.validated_save()
         return super().update(attrs)
@@ -374,8 +374,8 @@ class Hardware(DiffSyncModel):
                         "type": CustomFieldTypeChoices.TYPE_TEXT,
                         "label": _cf["key"],
                     }
-                    field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                    field.content_types.set([ContentType.objects.get_for_model(NautobotDeviceType)])
+                    field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                    field.content_types.add(ContentType.objects.get_for_model(NautobotDeviceType).id)
                     new_dt.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
             new_dt.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -398,8 +398,8 @@ class Hardware(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotDeviceType)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotDeviceType).id)
                 _dt.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _dt.validated_save()
         return super().update(attrs)
@@ -452,8 +452,8 @@ class Cluster(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotVC)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotVC).id)
                 new_vc.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         new_vc.validated_save()
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -489,8 +489,8 @@ class Cluster(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotVC)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotVC).id)
                 _vc.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         _vc.validated_save()
         return super().update(attrs)
@@ -638,8 +638,8 @@ class Device(DiffSyncModel):
                             "type": CustomFieldTypeChoices.TYPE_TEXT,
                             "label": _cf["key"],
                         }
-                        field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                        field.content_types.set([ContentType.objects.get_for_model(NautobotDevice)])
+                        field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                        field.content_types.add(ContentType.objects.get_for_model(NautobotDevice).id)
                         new_device.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
                 new_device.validated_save()
                 return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
@@ -703,8 +703,8 @@ class Device(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotDevice)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotDevice).id)
                 _dev.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         # ensure that VC Master Device is set to that
         if attrs.get("cluster_host") or attrs.get("master_device"):
@@ -801,8 +801,8 @@ class Port(DiffSyncModel):
                             "type": CustomFieldTypeChoices.TYPE_TEXT,
                             "label": _cf["key"],
                         }
-                        field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                        field.content_types.set([ContentType.objects.get_for_model(NautobotInterface)])
+                        field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                        field.content_types.add(ContentType.objects.get_for_model(NautobotInterface).id)
                         new_intf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
                 new_intf.validated_save()
                 try:
@@ -859,8 +859,8 @@ class Port(DiffSyncModel):
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
                     "label": _cf["key"],
                 }
-                field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
-                field.content_types.set([ContentType.objects.get_for_model(NautobotInterface)])
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(NautobotInterface).id)
                 _port.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         if attrs.get("vlans"):
             if attrs.get("mode"):
@@ -964,6 +964,7 @@ class Connection(DiffSyncModel):
                 color=nbutils.get_random_color(),
             )
             new_cable.validated_save()
+            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def get_dev_name(dev_name: str):
         """Strips cluster member names to get cluster master name.
