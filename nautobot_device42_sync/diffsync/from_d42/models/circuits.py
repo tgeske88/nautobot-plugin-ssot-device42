@@ -155,6 +155,14 @@ class Circuit(DiffSyncModel):
                 commit_rate=name_to_kbits(attrs["bandwidth"]) if attrs.get("bandwidth") else None,
                 comments=attrs["notes"] if attrs.get("notes") else "",
             )
+            if attrs.get("origin_int") and attrs.get("origin_dev"):
+                cls.connect_circuit_to_device(
+                    intf=attrs["origin_int"], dev=attrs["origin_dev"], term_side="A", circuit=_circuit
+                )
+            if attrs.get("endpoint_int") and attrs.get("endpoint_dev"):
+                cls.connect_circuit_to_device(
+                    intf=attrs["endpoint_int"], dev=attrs["endpoint_dev"], term_side="Z", circuit=_circuit
+                )
             if attrs.get("tags"):
                 for _tag in nbutils.get_tags(attrs["tags"]):
                     _circuit.tags.add(_tag)
@@ -175,59 +183,48 @@ class Circuit(DiffSyncModel):
         if attrs.get("bandwidth"):
             _circuit.commit_rate = name_to_kbits(attrs["bandwidth"])
         if attrs.get("origin_int") and attrs.get("origin_dev"):
-            try:
-                _intf = NautobotInterface.objects.get(
-                    name=attrs["origin_int"], device=NautobotDevice.objects.get(name=attrs["origin_dev"])
-                )
-                origin_term = NautobotCT(
-                    circuit=_circuit,
-                    term_side="A",
-                    site=_intf.device.site,
-                    port_speed=INTF_SPEED_MAP[_intf.type],
-                )
-                origin_term.validated_save()
-                if _intf and not _intf.cable and not origin_term.cable:
-                    new_cable = NautobotCable(
-                        termination_a_type=ContentType.objects.get(app_label="dcim", model="interface"),
-                        termination_a_id=_intf.id,
-                        termination_b_type=ContentType.objects.get(app_label="circuits", model="circuittermination"),
-                        termination_b_id=origin_term.id,
-                        status=NautobotStatus.objects.get(name="Connected"),
-                        color=nbutils.get_random_color(),
-                    )
-                    new_cable.validated_save()
-            except NautobotDevice.DoesNotExist as err:
-                print(f"Unable to find {attrs['origin_dev']} {err}")
-            except NautobotInterface.DoesNotExist as err:
-                print(f"Unable to find {attrs['origin_int']} {attrs['origin_dev']} {err}")
+            self.connect_circuit_to_device(
+                intf=attrs["origin_int"], dev=attrs["origin_dev"], term_side="A", circuit=_circuit
+            )
         if attrs.get("endpoint_int") and attrs.get("endpoint_dev"):
-            try:
-                _intf = NautobotInterface.objects.get(
-                    name=attrs["endpoint_int"], device=NautobotDevice.objects.get(name=attrs["endpoint_dev"])
-                )
-                endpoint_term = NautobotCT(
-                    circuit=_circuit,
-                    term_side="Z",
-                    site=_intf.device.site,
-                    port_speed=INTF_SPEED_MAP[_intf.type],
-                )
-                endpoint_term.validated_save()
-                if _intf and not _intf.cable and endpoint_term and not endpoint_term.cable:
-                    new_cable = NautobotCable(
-                        termination_a_type=ContentType.objects.get(app_label="dcim", model="interface"),
-                        termination_a_id=_intf.id,
-                        termination_b_type=ContentType.objects.get(app_label="circuits", model="circuittermination"),
-                        termination_b_id=endpoint_term.id,
-                        status=NautobotStatus.objects.get(name="Connected"),
-                        color=nbutils.get_random_color(),
-                    )
-                    new_cable.validated_save()
-            except NautobotDevice.DoesNotExist as err:
-                print(f"Unable to find {attrs['origin_dev']} {err}")
-            except NautobotInterface.DoesNotExist as err:
-                print(f"Unable to find {attrs['origin_int']} {attrs['origin_dev']} {err}")
+            self.connect_circuit_to_device(
+                intf=attrs["endpoint_int"], dev=attrs["endpoint_dev"], term_side="Z", circuit=_circuit
+            )
         _circuit.validated_save()
         return super().update(attrs)
+
+    def connect_circuit_to_device(self, intf: str, dev: str, term_side: str, circuit: NautobotCircuit):
+        """Method to handle Circuit Termination to a Device.
+
+        Args:
+            intf (str): Interface of Device to connect Circuit Termination.
+            dev (str): [description]
+            term_side (str): [description]
+            circuit (NautobotCircuit): [description]
+        """
+        try:
+            _intf = NautobotInterface.objects.get(name=intf, device=NautobotDevice.objects.get(name=dev))
+            origin_term = NautobotCT(
+                circuit=circuit,
+                term_side=term_side,
+                site=_intf.device.site,
+                port_speed=INTF_SPEED_MAP[_intf.type],
+            )
+            origin_term.validated_save()
+            if _intf and not _intf.cable and not origin_term.cable:
+                new_cable = NautobotCable(
+                    termination_a_type=ContentType.objects.get(app_label="dcim", model="interface"),
+                    termination_a_id=_intf.id,
+                    termination_b_type=ContentType.objects.get(app_label="circuits", model="circuittermination"),
+                    termination_b_id=origin_term.id,
+                    status=NautobotStatus.objects.get(name="Connected"),
+                    color=nbutils.get_random_color(),
+                )
+                new_cable.validated_save()
+        except NautobotDevice.DoesNotExist as err:
+            print(f"Unable to find {dev} {err}")
+        except NautobotInterface.DoesNotExist as err:
+            print(f"Unable to find {intf} {dev} {err}")
 
     def delete(self):
         """Delete Provider object from Nautobot.
