@@ -25,7 +25,7 @@ from nautobot.extras.models import Status
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
 from nautobot_device42_sync.diffsync.from_d42.models import circuits
-from nautobot_device42_sync.constant import USE_DNS
+from nautobot_device42_sync.constant import USE_DNS, PLUGIN_CFG
 from nautobot_device42_sync.diffsync import nbutils
 from netutils.bandwidth import kbits_to_name
 
@@ -137,31 +137,40 @@ class NautobotAdapter(DiffSync):
                         _devname = _devname.group()
                     else:
                         continue
-                    print(f"Attempting to resolve {_dev.name} _devname: {_devname}")
+                    if PLUGIN_CFG.get("verbose_debug"):
+                        self.job.log_info(f"Attempting to resolve {_dev.name} _devname: {_devname}")
                     try:
                         answ = dns.resolver.resolve(_devname, "A")
                         _ans = answ[0].to_text()
                     except dns.resolver.NXDOMAIN as err:
-                        print(err)
+                        if PLUGIN_CFG.get("verbose_debug"):
+                            self.job.log_warning(err)
                         continue
                     except dns.resolver.NoAnswer as err:
-                        print(f"No record found for {_devname} {err}")
+                        if PLUGIN_CFG.get("verbose_debug"):
+                            self.job.log_warning(f"No record found for {_devname} {err}")
                         continue
                     except dns.exception.Timeout as err:
-                        print(f"DNS resolution timed out for {_devname}.")
+                        if PLUGIN_CFG.get("verbose_debug"):
+                            self.job.log_warning(f"DNS resolution timed out for {_devname}. {err}")
                         continue
                     if _dev.primary_ip and _ans == _dev.primary_ip:
-                        print(f"Primary IP for {_dev.name} already matches DNS. No need to change anything.")
+                        if PLUGIN_CFG.get("verbose_debug"):
+                            self.job.log_info(
+                                f"Primary IP for {_dev.name} already matches DNS. No need to change anything."
+                            )
                         continue
                     try:
-                        print(
-                            f"{_dev.name} missing primary IP / or it doesn't match DNS response. Updating primary IP to {_ans}."
-                        )
+                        if PLUGIN_CFG.get("verbose_debug"):
+                            self.job.log_warning(
+                                f"{_dev.name} missing primary IP / or it doesn't match DNS response. Updating primary IP to {_ans}."
+                            )
                         _ip = IPAddress.objects.get(host=_ans)
                         if _ip:
                             nbutils.assign_primary(dev=_dev, ipaddr=_ip)
                     except IPAddress.DoesNotExist as err:
-                        print(f"Unable to find IP Address {_ans}.")
+                        if PLUGIN_CFG.get("verbose_debug"):
+                            self.job.log_warning(f"Unable to find IP Address {_ans}. {err}")
                         _intf = nbutils.get_or_create_mgmt_intf(intf_name="Management", dev=_dev)
                         _intf.validated_save()
                         _pf = Prefix.objects.net_contains(f"{_ans}/32")
@@ -238,7 +247,8 @@ class NautobotAdapter(DiffSync):
                 _room = self.get(self.room, {"name": rack.group, "building": _building_name})
                 _room.add_child(child=new_rack)
             except ObjectAlreadyExists as err:
-                print(err)
+                if PLUGIN_CFG.get("verbose_debug"):
+                    self.job.log_warning(err)
 
     def load_manufacturers(self):
         """Add Nautobot Manufacturer objects as DiffSync Vendor models."""
@@ -358,7 +368,8 @@ class NautobotAdapter(DiffSync):
                 _dev = self.get(self.device, port.device.name)
                 _dev.add_child(_port)
             except ObjectAlreadyExists as err:
-                print(f"Port already exists for {port.device_name}. {err}")
+                if PLUGIN_CFG.get("verbose_debug"):
+                    self.job.log_warning(f"Port already exists for {port.device_name}. {err}")
                 continue
 
     def load_vrfs(self):
@@ -433,7 +444,8 @@ class NautobotAdapter(DiffSync):
                 )
                 self.add(_vlan)
             except ObjectAlreadyExists as err:
-                print(err)
+                if PLUGIN_CFG.get("verbose_debug"):
+                    self.job.log_warning(err)
 
     def load_cables(self):
         """Add Nautobot Cable objects as DiffSync Connection models."""
