@@ -17,6 +17,7 @@ from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot.extras.models import CustomField
 from nautobot_device42_sync.diffsync import nbutils
+from nautobot_device42_sync.constant import PLUGIN_CFG
 
 
 class VRFGroup(DiffSyncModel):
@@ -271,7 +272,8 @@ class IPAddress(DiffSyncModel):
                     f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
                 )
         elif (attrs.get("device") and attrs["device"] == "") or (attrs.get("interface") and attrs["interface"] == ""):
-            print(f"Unassigning interface and Device for {self.address}.")
+            if PLUGIN_CFG.get("verbose_debug"):
+                self.job.log_warning(f"Unassigning interface and Device for {self.address}.")
             _ipaddr.assigned_object_type = None
             _ipaddr.assigned_object_id = None
         else:
@@ -283,9 +285,9 @@ class IPAddress(DiffSyncModel):
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
             except NautobotDevice.DoesNotExist as err:
-                self.diffsync.job.log_debug(f"Unable to find Device {_device}")
+                self.diffsync.job.log_debug(f"Unable to find Device {_device} {err}")
             except NautobotInterface.DoesNotExist as err:
-                self.diffsync.job.log_debug(f"Unable to find Interface {attrs['interface']} for {_device}")
+                self.diffsync.job.log_debug(f"Unable to find Interface {attrs['interface']} for {_device} {err}")
         if attrs.get("vrf"):
             _ipaddr.vrf = NautobotVRF.objects.get(name=attrs["vrf"])
         if attrs.get("tags"):
@@ -344,7 +346,8 @@ class VLAN(DiffSyncModel):
             try:
                 _site = NautobotSite.objects.get(name=ids["building"])
             except NautobotSite.DoesNotExist as err:
-                print(f"Unable to find Site {ids['building']}. {err}")
+                if PLUGIN_CFG.get("verbose_debug"):
+                    diffsync.job.log_warning(f"Unable to find Site {ids['building']}. {err}")
         try:
             _vlan = NautobotVLAN.objects.get(name=ids["name"], vid=ids["vlan_id"], site=_site)
         except NautobotVLAN.DoesNotExist:
@@ -380,9 +383,14 @@ class VLAN(DiffSyncModel):
             else:
                 _vlan = NautobotVLAN.objects.get(name=self.name, vid=self.vlan_id, site=None)
         except NautobotVLAN.DoesNotExist as err:
+            if PLUGIN_CFG.get("verbose_debug"):
+                self.diffsync.job.log_warning(f"Unable to find Site {self.building}. {err}")
             return None
         except NautobotVLAN.MultipleObjectsReturned as err:
-            print(f"Unable to find VLAN {self.get_identifiers()} due to multiple objects found. {err}")
+            if PLUGIN_CFG.get("verbose_debug"):
+                self.job.log_warning(
+                    f"Unable to find VLAN {self.get_identifiers()} due to multiple objects found. {err}"
+                )
             return None
         if attrs.get("description"):
             self.description = attrs["description"]

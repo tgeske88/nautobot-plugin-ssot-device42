@@ -1,0 +1,35 @@
+image: python:3.7.10
+
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  # NAUTOBOT_ROOT: "/opt/nautobot/"
+
+# Pip's cache doesn't store the python packages
+# https://pip.pypa.io/en/stable/reference/pip_install/#caching
+#
+# If you want to also cache the installed packages, you have to install
+# them in a virtualenv and cache it as well.
+cache:
+  paths:
+    - .cache/pip
+
+before_script:
+  - "python -V" # Print out python version for debugging
+  - "pip install poetry docker-compose"
+  - "cp development/creds.example.env development/creds.env"
+  # - "export $(grep -v '^#' development/creds.env | xargs -d '\n')"
+  # - "export $(grep -v '^#' development/dev.env | xargs -d '\n')"
+  # - "mkdir /opt/nautobot/; cp development/nautobot_config.py /opt/nautobot/"
+
+test:
+  stage: "test"
+  script:
+    - "poetry install"
+    - "poetry run black ."
+    - "poetry run bandit --recursive . --configfile .bandit.yml"
+    - "poetry run pydocstyle --config=.pydocstyle.ini ."
+    - "poetry run flake8 ."
+    # - "poetry run pylint --init-hook 'import nautobot; nautobot.setup()' --rcfile pyproject.toml nautobot_device42_sync"
+    # - "poetry run coverage run --module nautobot.core.cli test nautobot_device42_sync --failfast --buffer"

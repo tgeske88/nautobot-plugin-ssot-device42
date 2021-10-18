@@ -22,7 +22,7 @@ from nautobot.extras.models import CustomField
 from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot_device42_sync.diffsync import nbutils
 from nautobot_device42_sync.diffsync import d42utils
-from nautobot_device42_sync.constant import DEFAULTS
+from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
 
 
 class Building(DiffSyncModel):
@@ -477,7 +477,8 @@ class Cluster(DiffSyncModel):
                         position = len(NautobotDevice.objects.filter(virtual_chassis__name=self.name))
                     device.vc_position = position + 1
                 except NautobotDevice.DoesNotExist as err:
-                    print(f"Unable to find {_member} to add to VC {self.name} {err}")
+                    if PLUGIN_CFG.get("verbose_debug"):
+                        self.diffsync.job.log_warning(f"Unable to find {_member} to add to VC {self.name} {err}")
                     continue
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
@@ -554,7 +555,7 @@ class Device(DiffSyncModel):
                 _site = NautobotRack.objects.get(name=attrs["rack"], group__name=attrs["room"]).site
                 return _site
             except NautobotRack.DoesNotExist as err:
-                diffsync.job.log_debug("Unable to find Site by Rack/Room.")
+                diffsync.job.log_debug(f"Unable to find Site by Rack/Room. {attrs['rack']} {attrs['room']} {err}")
         if attrs.get("building"):
             try:
                 _site = NautobotSite.objects.get(name=attrs["building"])
@@ -627,7 +628,8 @@ class Device(DiffSyncModel):
                                 )
                             new_device.vc_position = position + 1
                     except NautobotVC.DoesNotExist as err:
-                        print(f"Unable to find VC {attrs['cluster_host']} {err}")
+                        if PLUGIN_CFG.get("verbose_debug"):
+                            diffsync.job.log_warning(f"Unable to find VC {attrs['cluster_host']} {err}")
                 if attrs.get("tags"):
                     for _tag in nbutils.get_tags(attrs["tags"]):
                         new_device.tags.add(_tag)
@@ -672,7 +674,8 @@ class Device(DiffSyncModel):
                     else:
                         _dev.face = "rear"
             except NautobotRack.DoesNotExist as err:
-                print(f"Unable to find rack {attrs['rack']} in {attrs['room']} {err}")
+                if PLUGIN_CFG.get("verbose_debug"):
+                    self.job.log_warning(f"Unable to find rack {attrs['rack']} in {attrs['room']} {err}")
         if attrs.get("hardware"):
             _dt = NautobotDeviceType.objects.get(model=attrs["hardware"])
             _dev.device_type = _dt
@@ -716,12 +719,10 @@ class Device(DiffSyncModel):
                 _vc = NautobotVC.objects.get(name=_clus_host)
                 _dev.virtual_chassis = _vc
                 if attrs.get("master_device") and attrs["master_device"]:
-                    print(f"{self.name} is a Master Device and will be set to it for the VC of same name.")
                     _dev.vc_position = 1
                     _dev.validated_save()
                     _vc.master = _dev
                     _vc.validated_save()
-                    print("Master has been saved.")
                 else:
                     # switch devices start at 1 so can use that as position
                     switch_pos = re.search(r".+-\s([sS]witch)\s?(?P<pos>\d+)", self.name)
@@ -736,7 +737,8 @@ class Device(DiffSyncModel):
                         position = len(NautobotDevice.objects.filter(virtual_chassis__name=_clus_host))
                     _dev.vc_position = position + 1
             except NautobotVC.DoesNotExist as err:
-                print(f"Unable to find VC {_clus_host} {err}")
+                if PLUGIN_CFG.get("verbose_debug"):
+                    self.job.log_warning(f"Unable to find VC {_clus_host} {err}")
         _dev.validated_save()
         return super().update(attrs)
 
@@ -832,7 +834,8 @@ class Port(DiffSyncModel):
                 new_intf.validated_save()
                 return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
         except NautobotDevice.DoesNotExist as err:
-            print(f"{ids['name']} doesn't exist. {err}")
+            if PLUGIN_CFG.get("verbose_debug"):
+                diffsync.job.log_warning(f"{ids['name']} doesn't exist. {err}")
 
     def update(self, attrs):
         """Update Interface object in Nautobot."""
@@ -899,7 +902,8 @@ class Port(DiffSyncModel):
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        print(f"Interface {self.name} for {self.device} will be deleted.")
+        if PLUGIN_CFG.get("verbose_debug"):
+            self.job.log_warning(f"Interface {self.name} for {self.device} will be deleted.")
         super().delete()
         _dev = NautobotInterface.objects.get(
             name=self.get_identifiers()["name"], device__name=self.get_identifiers()["device"]
@@ -937,9 +941,10 @@ class Connection(DiffSyncModel):
                     device__name=cls.get_dev_name(ids["src_device"]), name=ids["src_port"]
                 )
             except NautobotInterface.DoesNotExist as err:
-                print(
-                    f"Unable to find source port for {ids['src_device']}: {ids['src_port']} {ids['src_port_mac']} {err}"
-                )
+                if PLUGIN_CFG.get("verbose_debug"):
+                    diffsync.job.log_warning(
+                        f"Unable to find source port for {ids['src_device']}: {ids['src_port']} {ids['src_port_mac']} {err}"
+                    )
                 return None
         try:
             if ids.get("dst_port_mac"):
@@ -950,9 +955,10 @@ class Connection(DiffSyncModel):
                     device__name=cls.get_dev_name(ids["dst_device"]), name=ids["dst_port"]
                 )
             except NautobotInterface.DoesNotExist:
-                print(
-                    f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} {ids['dst_port_mac']}"
-                )
+                if PLUGIN_CFG.get("verbose_debug"):
+                    diffsync.job.log_warning(
+                        f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} {ids['dst_port_mac']}"
+                    )
                 return None
         if (_src_port and not _src_port.cable) and (_dst_port and not _dst_port.cable):
             new_cable = NautobotCable(
@@ -990,7 +996,8 @@ class Connection(DiffSyncModel):
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        print(f"Cable between {self.src_device} and {self.dst_device} will be deleted.")
+        if PLUGIN_CFG.get("verbose_debug"):
+            self.job.log_warning(f"Cable between {self.src_device} and {self.dst_device} will be deleted.")
         super().delete()
         try:
             _term_a = NautobotInterface.objects.get(mac_address=self.src_port_mac)
@@ -998,7 +1005,10 @@ class Connection(DiffSyncModel):
             try:
                 _term_a = NautobotInterface.objects.get(name=self.src_port, device__name=self.src_device)
             except NautobotInterface.DoesNotExist as err:
-                print(f"Unable to find source port. {self.src_port} {self.src_port_mac} {self.src_device} {err}")
+                if PLUGIN_CFG.get("verbose_debug"):
+                    self.job.log_warning(
+                        f"Unable to find source port. {self.src_port} {self.src_port_mac} {self.src_device} {err}"
+                    )
                 return None
         try:
             _term_b = NautobotInterface.objects.get(mac_address=self.dst_port_mac)
@@ -1006,7 +1016,10 @@ class Connection(DiffSyncModel):
             try:
                 _term_b = NautobotInterface.objects.get(name=self.dst_port, device__name=self.dst_device)
             except NautobotInterface.DoesNotExist as err:
-                print(f"Unable to find destination port. {self.dst_port} {self.dst_port_mac}  {self.dst_device} {err}")
+                if PLUGIN_CFG.get("verbose_debug"):
+                    self.job.log_warning(
+                        f"Unable to find destination port. {self.dst_port} {self.dst_port_mac}  {self.dst_device} {err}"
+                    )
                 return None
         _conn = NautobotCable.objects.get(
             termination_a_type=ContentType.objects.get(app_label="dcim", model="interface"),
