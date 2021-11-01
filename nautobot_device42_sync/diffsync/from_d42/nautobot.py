@@ -484,8 +484,8 @@ class NautobotAdapter(DiffSync):
             connection.src_port_mac = mac_addr
         elif "circuit" in str(cable_term_type):
             connection.src_type = "circuit"
-            connection.src_port = CircuitTermination.objects.get(id=cable_term_id).circuit.cid
-            connection.src_device = CircuitTermination.objects.get(id=cable_term_id).circuit.cid
+            connection.src_port = CircuitTermination.objects.get(id=cable_term_id).circuit.circuit_id
+            connection.src_device = CircuitTermination.objects.get(id=cable_term_id).circuit.circuit_id
         return connection
 
     def add_dst_connection(
@@ -514,8 +514,8 @@ class NautobotAdapter(DiffSync):
             connection.dst_port_mac = mac_addr
         elif "circuit" in str(cable_term_type):
             connection.dst_type = "circuit"
-            connection.dst_port = CircuitTermination.objects.get(id=cable_term_id).circuit.cid
-            connection.dst_device = CircuitTermination.objects.get(id=cable_term_id).circuit.cid
+            connection.dst_port = CircuitTermination.objects.get(id=cable_term_id).circuit.circuit_id
+            connection.dst_device = CircuitTermination.objects.get(id=cable_term_id).circuit.circuit_id
         return connection
 
     def load_providers(self):
@@ -536,7 +536,7 @@ class NautobotAdapter(DiffSync):
         """Add Nautobot Circuit objects as DiffSync Circuit models."""
         for _circuit in Circuit.objects.all():
             new_circuit = self.circuit(
-                circuit_id=_circuit.cid,
+                circuit_id=_circuit.circuit_id,
                 provider=_circuit.provider.name,
                 notes=_circuit.comments,
                 type=_circuit.type.name,
