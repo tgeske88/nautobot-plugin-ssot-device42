@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nautobot-device42-sync"
-version = "0.8.5"
+version = "0.9.0"
 description = "Nautobot plugin for syncing to Device42"
 authors = ["Justin Drew <justin.drew@networktocode.com>"]
 readme = "README.md"
@@ -24,7 +24,7 @@ nautobot-ssot = "^1.0.0"
 dnspython = "^2.1.0"
 Faker = "^8.12.1"
 # netutils = "^0.2.2"
-netutils = { git = "https://github.com/jdrew82/netutils.git", branch = "bandwidth" }
+netutils = { git = "https://github.com/networktocode/netutils.git", branch = "develop" }
 
 [tool.poetry.dev-dependencies]
 bandit = "*"
