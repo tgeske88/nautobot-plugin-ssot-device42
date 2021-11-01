@@ -10,11 +10,33 @@ from nautobot_device42_sync.diffsync.from_d42.models import ipam
 from nautobot_device42_sync.diffsync.from_d42.models import circuits
 from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type, get_netmiko_platform, get_facility
 from nautobot_device42_sync.constant import PLUGIN_CFG
+from netutils.bandwidth import name_to_bits
 
 
 def sanitize_string(san_str: str):
     """Sanitize string to ensure it doesn't have invisible characters."""
     return san_str.replace("\u200b", "").replace("\r", "")
+
+
+def get_circuit_status(status: str) -> str:
+    """Map Device42 Status to Nautobot Status.
+
+    Args:
+        status (str): Device42 Status to be mapped.
+
+    Returns:
+        str: Device42 mapped Status.
+    """
+    STATUS_MAP = {
+        "Production": "Active",
+        "Provisioning": "Provisioning",
+        "Canceled": "Deprovisioning",
+        "Decommissioned": "Decommissioned",
+    }
+    if status in STATUS_MAP:
+        return STATUS_MAP[status]
+    else:
+        return "Offline"
 
 
 class Device42Adapter(DiffSync):
@@ -45,10 +67,10 @@ class Device42Adapter(DiffSync):
         "vlan",
         "cluster",
         "device",
-        "conn",
         "ipaddr",
         "provider",
         "circuit",
+        "conn",
     ]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
@@ -427,21 +449,7 @@ class Device42Adapter(DiffSync):
             _tags = _pf["tags"].split(",") if _pf.get("tags") else []
             if len(_tags) > 1:
                 _tags.sort()
-            # This handles Prefix with /32 netmask. These need to be added as an IPAddress.
-            if _pf["mask_bits"] == 32 and ":" not in _pf["network"]:
-                if PLUGIN_CFG.get("verbose_debug"):
-                    self.job.log_warning(f"Network {_pf['network']} with 32 netmask found. Loading as IPAddress.")
-                new_ip = self.ipaddr(
-                    address=f"{_pf['network']}/{str(_pf['mask_bits'])}",
-                    available=True,
-                    label=_pf["name"],
-                    vrf=_pf["vrf"],
-                    tags=_tags,
-                )
-                if new_ip.address in _cfs:
-                    new_ip.custom_fields = _cfs[new_ip.address]
-                self.add(new_ip)
-            elif _pf["mask_bits"] != 0:
+            if _pf["mask_bits"] != 0:
                 try:
                     new_pf = self.subnet(
                         network=_pf["network"],
@@ -466,14 +474,16 @@ class Device42Adapter(DiffSync):
         """Load Device42 IP Addresses."""
         if PLUGIN_CFG.get("verbose_debug"):
             self.job.log_info("Retrieving IP Addresses from Device42.")
+        default_cfs = self._device42.get_ipaddr_default_custom_fields()
         _cfs = self._device42.get_ipaddr_custom_fields()
         for _ip in self._device42.get_ip_addrs():
+            _ipaddr = f"{_ip['ip_address']}/{str(_ip['netmask'])}"
             try:
                 _tags = _ip["tags"].split(",") if _ip.get("tags") else []
                 if len(_tags) > 1:
                     _tags.sort()
                 new_ip = self.ipaddr(
-                    address=f"{_ip['ip_address']}/{str(_ip['netmask'])}",
+                    address=_ipaddr,
                     available=_ip["available"],
                     label=_ip["label"],
                     device=_ip["device"] if _ip.get("device") else "",
@@ -481,12 +491,15 @@ class Device42Adapter(DiffSync):
                     vrf=_ip["vrf"],
                     tags=_tags,
                 )
-                if new_ip.address in _cfs:
-                    new_ip.custom_fields = _cfs[new_ip.address]
+                if _ipaddr in _cfs:
+                    print(f"{_ipaddr} found in _cfs. CustomFields being added.")
+                    new_ip.custom_fields = _cfs[_ipaddr]
+                else:
+                    new_ip.custom_fields = default_cfs
                 self.add(new_ip)
             except ObjectAlreadyExists as err:
                 if PLUGIN_CFG.get("verbose_debug"):
-                    self.job.log_warning(f"IP Address {_ip['ip_address']} {_ip['netmask']} already exists.{err}")
+                    self.job.log_warning(f"IP Address {_ipaddr} already exists.{err}")
                 continue
 
     def load_vlans(self):
@@ -537,11 +550,25 @@ class Device42Adapter(DiffSync):
                     src_device=self.device_map[_conn["src_device"]]["name"],
                     src_port=self.port_map[_conn["src_port"]]["port"],
                     src_port_mac=self.port_map[_conn["src_port"]]["hwaddress"],
+                    src_type="interface",
                     dst_device=self.device_map[_conn["dst_device"]]["name"],
                     dst_port=self.port_map[_conn["dst_port"]]["port"],
                     dst_port_mac=self.port_map[_conn["dst_port"]]["hwaddress"],
+                    dst_type="interface",
                 )
                 self.add(new_conn)
+                # in order to have cables match up to Nautobot, we need to add from both sides
+                rev_conn = self.conn(
+                    src_device=self.device_map[_conn["dst_device"]]["name"],
+                    src_port=self.port_map[_conn["dst_port"]]["port"],
+                    src_port_mac=self.port_map[_conn["dst_port"]]["hwaddress"],
+                    src_type="interface",
+                    dst_device=self.device_map[_conn["src_device"]]["name"],
+                    dst_port=self.port_map[_conn["src_port"]]["port"],
+                    dst_port_mac=self.port_map[_conn["src_port"]]["hwaddress"],
+                    dst_type="interface",
+                )
+                self.add(rev_conn)
             except ObjectAlreadyExists as err:
                 if PLUGIN_CFG.get("verbose_debug"):
                     self.job.log_warning(err)
@@ -580,16 +607,38 @@ class Device42Adapter(DiffSync):
                 provider=self.vendor_map[_tc["vendor_fk"]]["name"],
                 notes=_tc["notes"],
                 type=_tc["type_name"],
-                status=_tc["status"],
+                status=get_circuit_status(_tc["status"]),
                 install_date=_tc["turn_on_date"] if _tc.get("turn_on_date") else _tc["provision_date"],
                 origin_int=origin_int,
                 origin_dev=origin_dev,
                 endpoint_int=endpoint_int,
                 endpoint_dev=endpoint_dev,
-                bandwidth=f"{_tc['bandwidth']}{_tc['unit']}",
+                bandwidth=name_to_bits(f"{_tc['bandwidth']}{_tc['unit'].capitalize()}") / 1000,
                 tags=_tc["tags"].split(",") if _tc.get("tags") else [],
             )
             self.add(new_circuit)
+            # Add Connection from A size connection Device to Circuit
+            a_side_conn = self.conn(
+                src_device=origin_dev,
+                src_port=origin_int,
+                src_port_mac=self.port_map[_tc["origin_netport_fk"]]["hwaddress"],
+                src_type="interface",
+                dst_device=_tc["circuit_id"],
+                dst_port=_tc["circuit_id"],
+                dst_type="circuit",
+            )
+            self.add(a_side_conn)
+            # Add Connection from Z size connection Circuit to Device
+            z_side_conn = self.conn(
+                src_device=_tc["circuit_id"],
+                src_port=_tc["circuit_id"],
+                src_type="circuit",
+                dst_device=endpoint_dev,
+                dst_port=endpoint_int,
+                dst_port_mac=self.port_map[_tc["end_point_netport_fk"]]["hwaddress"],
+                dst_type="interface",
+            )
+            self.add(z_side_conn)
 
     def load(self):
         """Load data from Device42."""

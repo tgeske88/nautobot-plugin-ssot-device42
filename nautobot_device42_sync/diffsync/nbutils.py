@@ -2,7 +2,7 @@
 from django.utils.text import slugify
 from faker import Factory
 from taggit.managers import TaggableManager
-from typing import List
+from typing import List, OrderedDict
 from nautobot.dcim.models import DeviceRole, Manufacturer, Platform, Device, Interface
 from nautobot.extras.models import Tag
 from nautobot.ipam.models import IPAddress
@@ -115,6 +115,14 @@ def set_primary_ip_and_mgmt(ipaddr: IPAddress, dev: Device, intf: Interface):
         dev (Device): Device to have primary IP set on.
         intf (Interface): Interface to set as management.
     """
+    if ipaddr.assigned_object.device != dev:
+        if ipaddr.family == 6:
+            ipaddr.assigned_object.device.primary_ip6 = None
+        else:
+            ipaddr.assigned_object.device.primary_ip4 = None
+        ipaddr.assigned_object.device.validated_save()
+        ipaddr.assigned_object = intf
+        ipaddr.validated_save()
     assign_primary(dev=dev, ipaddr=ipaddr)
     print(f"{ipaddr.address} set to primary on {dev.name}")
     dev.validated_save()
@@ -122,21 +130,22 @@ def set_primary_ip_and_mgmt(ipaddr: IPAddress, dev: Device, intf: Interface):
     intf.validated_save()
 
 
-def assign_primary(dev, ipaddr):
+def assign_primary(dev: Device, ipaddr: IPAddress):
     """Method to assign IP address as primary to specified device.
+
+    Expects the assigned interface for the IP to belong to the passed Device.
 
     Args:
         dev (Device): Device object that the IPAddress is expected to already be assigned to.
         ipaddr (IPAddress): IPAddress object that is to be primary for `dev`.
     """
-    if ipaddr.assigned_object_id:
-        # Check if Interface assigned to IP matching DNS query matches Device that is being worked with.
-        if Interface.objects.get(id=ipaddr.assigned_object_id).device.id == dev.id:
-            if ipaddr.family == 6:
-                dev.primary_ip6 = ipaddr
-            else:
-                dev.primary_ip4 = ipaddr
-            dev.validated_save()
+    # Check if Interface assigned to IP matching DNS query matches Device that is being worked with.
+    if ipaddr.assigned_object.device == dev:
+        if ipaddr.family == 6:
+            dev.primary_ip6 = ipaddr
+        else:
+            dev.primary_ip4 = ipaddr
+        dev.validated_save()
 
 
 def get_or_create_tag(tag_name: str) -> Tag:
@@ -190,3 +199,23 @@ def get_tag_strings(list_tags: TaggableManager) -> List[str]:
     if len(_strings) > 1:
         _strings.sort()
     return _strings
+
+
+def get_custom_field_dicts(cfields: OrderedDict) -> List[dict]:
+    """Creates list of CustomField dicts with CF key, value, and description.
+
+    Args:
+        cfields (OrderedDict): List of CustomFields with their value.
+
+    Returns:
+        cf_list (List[dict]): Return a list of CustomField dicts with key, value, and note (description).
+    """
+    cf_list = []
+    for _cf, _cf_value in cfields.items():
+        custom_field = {
+            "key": _cf.label,
+            "value": _cf_value,
+            "notes": _cf.description if _cf.description != "" else None,
+        }
+        cf_list.append(custom_field)
+    return cf_list
