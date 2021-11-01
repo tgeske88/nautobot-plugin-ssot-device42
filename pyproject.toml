@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nautobot-device42-sync"
-version = "0.9.0"
+version = "0.9.1"
 description = "Nautobot plugin for syncing to Device42"
 authors = ["Justin Drew <justin.drew@networktocode.com>"]
 readme = "README.md"
@@ -38,6 +38,7 @@ pydocstyle = "*"
 pylint = "*"
 pylint-django = "*"
 yamllint = "*"
+python-semantic-release = "^7.19.2"
 
 [tool.poetry.extras]
 nautobot = ["nautobot"]
@@ -97,3 +98,18 @@ testpaths = [
     "tests"
 ]
 addopts = "-vv --doctest-modules"
+
+[tool.semantic_release]
+version_variable = [
+    "nautobot_device42_sync/__init__.py:__version__"
+]
+version_toml = [
+    "pyproject.toml:tool.poetry.version"
+]
+major_on_zero = true
+branch = "main"
+upload_to_PyPI = false
+upload_to_release = false
+build_command = "pip install poetry && poetry build"
+changelog_file = "CHANGELOG.md"
+hvcs = "Gitlab"
