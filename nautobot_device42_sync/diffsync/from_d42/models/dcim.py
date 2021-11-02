@@ -1110,7 +1110,7 @@ class Connection(DiffSyncModel):
                 _term_b = NautobotInterface.objects.get(mac_address=self.dst_port_mac)
             else:
                 # Circuit Terminations should have identical port and device, the CircuitID
-                if self.src_port == self.src_device:
+                if self.dst_port == self.dst_device:
                     _circuit = NautobotCircuit.objects.get(cid=self.dst_device)
                     _term_b = NautobotCT.objects.get(circuit=_circuit, term_side="Z")
                 else:
