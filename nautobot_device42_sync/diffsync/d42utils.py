@@ -399,6 +399,10 @@ class Device42API:
                 "notes": _cf["notes"],
             }
             _fields[f"{_cf['network']}/{_cf['mask_bits']}"].append(_field)
+        
+        for _, cfields in _fields.items():
+            cfields = sorted(cfields, key=lambda d: d["key"])
+
         return _fields
 
     def get_ip_addrs(self) -> List[dict]:
@@ -418,9 +422,9 @@ class Device42API:
         Returns:
             List[dict]: List of dictionaries of CustomFields matching D42 format from the API without values.
         """
-        query = "SELECT cf.key, cf.value, cf.notes, i.ip_address, s.mask_bits FROM view_ipaddress_custom_fields_v1 cf LEFT JOIN view_ipaddress_v1 i ON i.ipaddress_pk = cf.ipaddress_fk LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk"
+        query = "SELECT cf.key, cf.value, cf.notes FROM view_ipaddress_custom_fields_v1 cf"
         results = self.doql_query(query=query)
-        return self.get_all_custom_fields(results)
+        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
 
     def get_ipaddr_custom_fields(self) -> List[dict]:
         """Method to retrieve the CustomFields for IP Addresses from Device42.
@@ -444,6 +448,9 @@ class Device42API:
                 "notes": _cf["notes"],
             }
             _fields[f"{_cf['ip_address']}/{_cf['mask_bits']}"].append(_field)
+
+        for _, cfields in _fields.items():
+            cfields = sorted(cfields, key=lambda d: d["key"])
 
         for _ip, _item in _fields.items():
             _fields[_ip] = list({x["key"]: x for x in _item}.values())
