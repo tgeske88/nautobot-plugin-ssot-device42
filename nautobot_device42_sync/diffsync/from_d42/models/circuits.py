@@ -21,14 +21,13 @@ class Provider(DiffSyncModel):
 
     _modelname = "provider"
     _identifiers = ("name",)
-    _attributes = ("notes", "vendor_url", "vendor_acct", "contact_info", "vendor_contact1", "vendor_contact2")
+    _attributes = ("notes", "vendor_url", "vendor_acct", "vendor_contact1", "vendor_contact2")
     _children = {}
 
     name: str
     notes: Optional[str]
     vendor_url: Optional[str]
     vendor_acct: Optional[str]
-    contact_info: Optional[str]
     vendor_contact1: Optional[str]
     vendor_contact2: Optional[str]
     tags: Optional[List[str]]

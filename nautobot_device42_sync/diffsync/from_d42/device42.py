@@ -585,7 +585,6 @@ class Device42Adapter(DiffSync):
                 notes=_prov["notes"],
                 vendor_url=_prov["home_page"],
                 vendor_acct=_prov["account_no"],
-                contact_info=_prov["contact_info"],
                 vendor_contact1=_prov["escalation_1"],
                 vendor_contact2=_prov["escalation_2"],
             )
