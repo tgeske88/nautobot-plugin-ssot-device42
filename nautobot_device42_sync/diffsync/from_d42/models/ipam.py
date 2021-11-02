@@ -288,6 +288,13 @@ class IPAddress(DiffSyncModel):
                 self.diffsync.job.log_debug(f"Unable to find Device {_device} {err}")
             except NautobotInterface.DoesNotExist as err:
                 self.diffsync.job.log_debug(f"Unable to find Interface {attrs['interface']} for {_device} {err}")
+        if attrs.get("device"):
+            try:
+                intf = NautobotInterface.objects.get(name=self.interface, device__name=attrs["device"])
+                _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
+                _ipaddr.assigned_object_id = intf.id
+            except NautobotInterface.DoesNotExist:
+                self.diffsync.job.log_debug(f"Unable to find Interface {self.interface} for {attrs['device']}. {err}")
         if attrs.get("vrf"):
             _ipaddr.vrf = NautobotVRF.objects.get(name=attrs["vrf"])
         if attrs.get("tags"):
