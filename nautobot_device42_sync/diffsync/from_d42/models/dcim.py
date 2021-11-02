@@ -905,7 +905,7 @@ class Port(DiffSyncModel):
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         if PLUGIN_CFG.get("verbose_debug"):
-            self.job.log_warning(f"Interface {self.name} for {self.device} will be deleted.")
+            self.diffsync.job.log_warning(f"Interface {self.name} for {self.device} will be deleted.")
         super().delete()
         _dev = NautobotInterface.objects.get(
             name=self.get_identifiers()["name"], device__name=self.get_identifiers()["device"]
