@@ -127,7 +127,7 @@ class Device42Adapter(DiffSync):
                 contact_name=record["contact_name"] if record.get("contact_name") else "",
                 contact_phone=record["contact_phone"] if record.get("contact_phone") else "",
                 rooms=record["rooms"] if record.get("rooms") else [],
-                custom_fields=record["custom_fields"],
+                custom_fields=sorted(record["custom_fields"], key=lambda d: d["key"]),
                 tags=_tags,
             )
             _facility = get_facility(diffsync=self, tags=_tags)
@@ -152,7 +152,7 @@ class Device42Adapter(DiffSync):
                     name=record["name"],
                     building=record["building"],
                     notes=record["notes"] if record.get("notes") else "",
-                    custom_fields=record["custom_fields"],
+                    custom_fields=sorted(record["custom_fields"], key=lambda d: d["key"]),
                     tags=_tags,
                 )
                 try:
@@ -182,7 +182,7 @@ class Device42Adapter(DiffSync):
                     room=record["room"],
                     height=record["size"] if record.get("size") else 1,
                     numbering_start_from_bottom=record["numbering_start_from_bottom"],
-                    custom_fields=record["custom_fields"],
+                    custom_fields=sorted(record["custom_fields"], key=lambda d: d["key"]),
                     tags=_tags,
                 )
                 try:
@@ -222,7 +222,7 @@ class Device42Adapter(DiffSync):
                     size=float(round(_model["size"])) if _model.get("size") else 1.0,
                     depth=_model["depth"] if _model.get("depth") else "Half Depth",
                     part_number=_model["part_no"],
-                    custom_fields=_model["custom_fields"],
+                    custom_fields=sorted(_model["custom_fields"], key=lambda d: d["key"]),
                 )
                 try:
                     self.add(model)
@@ -273,7 +273,7 @@ class Device42Adapter(DiffSync):
                 name=cluster_info["name"][:64],
                 members=_members,
                 tags=_tags,
-                custom_fields=cluster_info["custom_fields"],
+                custom_fields=sorted(cluster_info["custom_fields"], key=lambda d: d["key"]),
             )
             self.add(_cluster)
             # Add master device to hold stack info like intfs and IPs
@@ -298,7 +298,7 @@ class Device42Adapter(DiffSync):
                 cluster_host=cluster_info["name"][:64],
                 master_device=True,
                 serial_no="",
-                custom_fields=cluster_info["custom_fields"],
+                custom_fields=sorted(cluster_info["custom_fields"], key=lambda d: d["key"]),
             )
             self.add(_device)
 
@@ -345,7 +345,7 @@ class Device42Adapter(DiffSync):
                     serial_no=_record["serial_no"],
                     master_device=False,
                     tags=_tags,
-                    custom_fields=_record["custom_fields"],
+                    custom_fields=sorted(_record["custom_fields"], key=lambda d: d["key"]),
                 )
                 try:
                     cluster_host = self.get_cluster_host(_record["name"])
@@ -405,7 +405,9 @@ class Device42Adapter(DiffSync):
                         if len(_vlans) > 1:
                             new_port.mode = "tagged"
                     if _port["device_name"] in _cfs and _cfs[_port["device_name"]].get(_port["port_name"]):
-                        new_port.custom_fields = _cfs[_port["device_name"]][_port["port_name"]]
+                        new_port.custom_fields = sorted(
+                            _cfs[_port["device_name"]][_port["port_name"]], key=lambda d: d["key"]
+                        )
                     self.add(new_port)
                     try:
                         _dev = self.get(self.device, _port["device_name"])
@@ -432,7 +434,7 @@ class Device42Adapter(DiffSync):
                     name=_grp["name"],
                     description=_grp["description"],
                     tags=_tags,
-                    custom_fields=_grp["custom_fields"],
+                    custom_fields=sorted(_grp["custom_fields"], key=lambda d: d["key"]),
                 )
                 self.add(new_vrf)
             except ObjectAlreadyExists as err:
@@ -524,7 +526,7 @@ class Device42Adapter(DiffSync):
                     self.job.log_warning(f"VLAN {_vlan_name} already exists. {err}")
             except ObjectNotFound:
                 if _info["vlan_pk"] in self.vlan_map and self.vlan_map[_info["vlan_pk"]].get("custom_fields"):
-                    _cfs = self.vlan_map[_info["vlan_pk"]]["custom_fields"]
+                    _cfs = sorted(self.vlan_map[_info["vlan_pk"]]["custom_fields"], key=lambda d: d["key"])
                 else:
                     _cfs = None
                 new_vlan = self.vlan(
