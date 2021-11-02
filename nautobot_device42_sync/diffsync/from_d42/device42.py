@@ -371,6 +371,7 @@ class Device42Adapter(DiffSync):
         vlan_ports = self._device42.get_ports_with_vlans()
         no_vlan_ports = self._device42.get_logical_ports_wo_vlans()
         _ports = vlan_ports + no_vlan_ports
+        default_cfs = self._device42.get_port_default_custom_fields()
         _cfs = self._device42.get_port_custom_fields()
         for _port in _ports:
             if _port.get("port_name") and _port.get("device_name"):
@@ -408,6 +409,8 @@ class Device42Adapter(DiffSync):
                         new_port.custom_fields = sorted(
                             _cfs[_port["device_name"]][_port["port_name"]], key=lambda d: d["key"]
                         )
+                    else:
+                        new_port.custom_fields = default_cfs
                     self.add(new_port)
                     try:
                         _dev = self.get(self.device, _port["device_name"])
@@ -446,6 +449,7 @@ class Device42Adapter(DiffSync):
         """Load Device42 Subnets."""
         if PLUGIN_CFG.get("verbose_debug"):
             self.job.log_info("Retrieving Subnets from Device42.")
+        default_cfs = self._device42.get_port_default_custom_fields()
         _cfs = self._device42.get_subnet_custom_fields()
         for _pf in self._device42.get_subnets():
             _tags = _pf["tags"].split(",") if _pf.get("tags") else []
@@ -461,7 +465,9 @@ class Device42Adapter(DiffSync):
                         tags=_tags,
                     )
                     if f"{_pf['network']}/{_pf['mask_bits']}" in _cfs:
-                        new_pf.custom_fields = _cfs[f"{_pf['network']}/{_pf['mask_bits']}"]
+                        new_pf.custom_fields = sorted(_cfs[f"{_pf['network']}/{_pf['mask_bits']}"], key=lambda d: d["key"])
+                    else:
+                        new_pf.custom_fields = default_cfs
                     self.add(new_pf)
                 except ObjectAlreadyExists as err:
                     if PLUGIN_CFG.get("verbose_debug"):
