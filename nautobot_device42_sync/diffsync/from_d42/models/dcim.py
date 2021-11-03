@@ -905,7 +905,7 @@ class Port(DiffSyncModel):
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         if PLUGIN_CFG.get("verbose_debug"):
-            self.job.log_warning(f"Interface {self.name} for {self.device} will be deleted.")
+            self.diffsync.job.log_warning(f"Interface {self.name} for {self.device} will be deleted.")
         super().delete()
         _dev = NautobotInterface.objects.get(
             name=self.get_identifiers()["name"], device__name=self.get_identifiers()["device"]
@@ -1093,7 +1093,8 @@ class Connection(DiffSyncModel):
             else:
                 # Circuit Terminations should have identical port and device, the CircuitID
                 if self.src_port == self.src_device:
-                    _term_a = NautobotCT.objects.get(cid=self.src_device, term_side="A")
+                    _circuit = NautobotCircuit.objects.get(cid=self.src_device)
+                    _term_a = NautobotCT.objects.get(circuit=_circuit, term_side="A")
                 else:
                     _term_a = NautobotInterface.objects.get(name=self.src_port, device__name=self.src_device)
         except NautobotInterface.DoesNotExist as err:
@@ -1109,8 +1110,9 @@ class Connection(DiffSyncModel):
                 _term_b = NautobotInterface.objects.get(mac_address=self.dst_port_mac)
             else:
                 # Circuit Terminations should have identical port and device, the CircuitID
-                if self.src_port == self.src_device:
-                    _term_b = NautobotCT.objects.get(cid=self.dst_device, term_side="Z")
+                if self.dst_port == self.dst_device:
+                    _circuit = NautobotCircuit.objects.get(cid=self.dst_device)
+                    _term_b = NautobotCT.objects.get(circuit=_circuit, term_side="Z")
                 else:
                     _term_b = NautobotInterface.objects.get(name=self.dst_port, device__name=self.dst_device)
         except NautobotInterface.DoesNotExist as err:

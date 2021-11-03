@@ -218,4 +218,4 @@ def get_custom_field_dicts(cfields: OrderedDict) -> List[dict]:
             "notes": _cf.description if _cf.description != "" else None,
         }
         cf_list.append(custom_field)
-    return cf_list
+    return sorted(cf_list, key=lambda d: d["key"])

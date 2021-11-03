@@ -288,6 +288,13 @@ class IPAddress(DiffSyncModel):
                 self.diffsync.job.log_debug(f"Unable to find Device {_device} {err}")
             except NautobotInterface.DoesNotExist as err:
                 self.diffsync.job.log_debug(f"Unable to find Interface {attrs['interface']} for {_device} {err}")
+        if attrs.get("device"):
+            try:
+                intf = NautobotInterface.objects.get(name=self.interface, device__name=attrs["device"])
+                _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
+                _ipaddr.assigned_object_id = intf.id
+            except NautobotInterface.DoesNotExist as err:
+                self.diffsync.job.log_debug(f"Unable to find Interface {self.interface} for {attrs['device']}. {err}")
         if attrs.get("vrf"):
             _ipaddr.vrf = NautobotVRF.objects.get(name=attrs["vrf"])
         if attrs.get("tags"):
@@ -409,11 +416,11 @@ class VLAN(DiffSyncModel):
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        self.diffsync.job.log_warning(f"VLAN {self.name} will be deleted.")
+        self.diffsync.job.log_warning(f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted.")
         super().delete()
         try:
             vlan = NautobotVLAN.objects.get(vid=self.vlan_id, name=self.name, site__name=self.building)
-        except NautobotSite.DoesNotExist:
+        except NautobotVLAN.DoesNotExist:
             vlans = NautobotVLAN.objects.filter(vid=self.vlan_id, name=self.name)
             for _vlan in vlans:
                 if not _vlan.site:

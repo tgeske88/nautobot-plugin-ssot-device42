@@ -154,7 +154,7 @@ class NautobotAdapter(DiffSync):
                         if PLUGIN_CFG.get("verbose_debug"):
                             self.job.log_warning(f"DNS resolution timed out for {_devname}. {err}")
                         continue
-                    if _dev.primary_ip and _ans == _dev.primary_ip:
+                    if _dev.primary_ip and _ans == str(_dev.primary_ip):
                         if PLUGIN_CFG.get("verbose_debug"):
                             self.job.log_info(
                                 f"Primary IP for {_dev.name} already matches DNS. No need to change anything."

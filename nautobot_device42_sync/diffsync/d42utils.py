@@ -326,6 +326,18 @@ class Device42API:
         query = "SELECT m.port as port_name, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port is not null GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name"
         return self.doql_query(query=query)
 
+    def get_port_default_custom_fields(self) -> List[dict]:
+        """Method to retrieve the default CustomFields for Ports from Device42.
+
+        This is needed to ensure all Posts have same CustomFields to match Nautobot.
+
+        Returns:
+            List[dict]: List of dictionaries of CustomFields matching D42 format from the API without values.
+        """
+        query = "SELECT cf.key, cf.value, cf.notes FROM view_netport_custom_fields_v1 cf"
+        results = self.doql_query(query=query)
+        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
+
     def get_port_custom_fields(self) -> dict:
         """Method to retrieve custom fields for Ports from Device42.
 
@@ -357,6 +369,18 @@ class Device42API:
         query = "SELECT s.name, s.network, s.mask_bits, s.tags, v.name as vrf FROM view_subnet_v1 s JOIN view_vrfgroup_v1 v ON s.vrfgroup_fk = v.vrfgroup_pk"
         return self.doql_query(query=query)
 
+    def get_subnet_default_custom_fields(self) -> List[dict]:
+        """Method to retrieve the default CustomFields for Subnets from Device42.
+
+        This is needed to ensure all Subnets have same CustomFields to match Nautobot.
+
+        Returns:
+            List[dict]: List of dictionaries of CustomFields matching D42 format from the API without values.
+        """
+        query = "SELECT cf.key, cf.value, cf.notes FROM view_subnet_custom_fields_v1 cf"
+        results = self.doql_query(query=query)
+        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
+
     def get_subnet_custom_fields(self) -> List[dict]:
         """Method to retrieve custom fields for Subnets from Device42.
 
@@ -375,6 +399,10 @@ class Device42API:
                 "notes": _cf["notes"],
             }
             _fields[f"{_cf['network']}/{_cf['mask_bits']}"].append(_field)
+        
+        for _, cfields in _fields.items():
+            cfields = sorted(cfields, key=lambda d: d["key"])
+
         return _fields
 
     def get_ip_addrs(self) -> List[dict]:
@@ -394,9 +422,9 @@ class Device42API:
         Returns:
             List[dict]: List of dictionaries of CustomFields matching D42 format from the API without values.
         """
-        query = "SELECT cf.key, cf.value, cf.notes, i.ip_address, s.mask_bits FROM view_ipaddress_custom_fields_v1 cf LEFT JOIN view_ipaddress_v1 i ON i.ipaddress_pk = cf.ipaddress_fk LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk"
+        query = "SELECT cf.key, cf.value, cf.notes FROM view_ipaddress_custom_fields_v1 cf"
         results = self.doql_query(query=query)
-        return self.get_all_custom_fields(results)
+        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
 
     def get_ipaddr_custom_fields(self) -> List[dict]:
         """Method to retrieve the CustomFields for IP Addresses from Device42.
@@ -420,6 +448,9 @@ class Device42API:
                 "notes": _cf["notes"],
             }
             _fields[f"{_cf['ip_address']}/{_cf['mask_bits']}"].append(_field)
+
+        for _, cfields in _fields.items():
+            cfields = sorted(cfields, key=lambda d: d["key"])
 
         for _ip, _item in _fields.items():
             _fields[_ip] = list({x["key"]: x for x in _item}.values())
