@@ -280,7 +280,8 @@ PLUGINS_CONFIG = {
         "use_dns": True,
         "customer_is_facility": True,
         "facility_prepend": "sitecode-",
-        "role_prepend": "ansible-group-",
+        "role_prepend": "nautobot-",
+        "verbose_debug": False,
     },
 }
 
