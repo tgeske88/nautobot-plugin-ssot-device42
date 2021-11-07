@@ -2,6 +2,7 @@
 """Jobs for Device42 integration with SSoT plugin."""
 
 from requests import HTTPError
+from .diff import CustomOrderingDiff
 from django.urls import reverse
 from django.templatetags.static import static
 from nautobot.extras.jobs import Job, BooleanVar
@@ -57,14 +58,16 @@ class Device42DataSource(DataSource, Job):
         self.log_info(message="Loading data from Nautobot...")
         nb_adapter.load()
         self.log_info(message="Performing diff of data between Device42 and Nautobot.")
-        diff = nb_adapter.diff_from(d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE)
+        diff = nb_adapter.diff_from(d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff)
         self.sync.diff = diff.dict()
         self.sync.save()
         self.log_info(message=diff.summary())
         if not self.kwargs["dry_run"]:
             self.log_info(message="Performing data synchronization from Device42.")
             try:
-                nb_adapter.sync_from(d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE)
+                nb_adapter.sync_from(
+                    d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff
+                )
             except HTTPError as err:
                 self.log_failure(message="Sync failed.")
                 raise err
