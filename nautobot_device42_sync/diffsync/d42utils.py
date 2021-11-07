@@ -113,14 +113,14 @@ def get_netmiko_platform(network_os: str) -> str:
     return network_os
 
 
-def find_device_role_from_tags(diffsync, tag_list: List[str]) -> str or bool:
+def find_device_role_from_tags(diffsync, tag_list: List[str]) -> str:
     """Determine a Device role based upon a Tag matching the `role_prepend` setting.
 
     Args:
         tag_list (List[str]): List of Tags as strings to search.
 
     Returns:
-        DEFAULTS["device_role"]: The Default device role defined in plugin settings.
+        str: The Default device role defined in plugin settings.
     """
     if not PLUGIN_CFG.get("role_prepend"):
         print("You must have the `role_prepend` setting configured.")
