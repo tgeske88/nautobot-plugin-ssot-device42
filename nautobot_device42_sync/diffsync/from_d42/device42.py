@@ -499,7 +499,9 @@ class Device42Adapter(DiffSync):
                         tags=_tags,
                     )
                     if f"{_pf['network']}/{_pf['mask_bits']}" in _cfs:
-                        new_pf.custom_fields = sorted(_cfs[f"{_pf['network']}/{_pf['mask_bits']}"], key=lambda d: d["key"])
+                        new_pf.custom_fields = sorted(
+                            _cfs[f"{_pf['network']}/{_pf['mask_bits']}"], key=lambda d: d["key"]
+                        )
                     else:
                         new_pf.custom_fields = default_cfs
                     self.add(new_pf)

@@ -27,6 +27,7 @@ from nautobot_device42_sync.diffsync.from_d42.models import ipam
 from nautobot_device42_sync.diffsync.from_d42.models import circuits
 from nautobot_device42_sync.constant import USE_DNS, PLUGIN_CFG
 from nautobot_device42_sync.diffsync import nbutils
+from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
 
 
 class NautobotAdapter(DiffSync):
@@ -299,15 +300,21 @@ class NautobotAdapter(DiffSync):
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
         for dev in Device.objects.all():
+            if dev.platform and dev.platform.name in ANSIBLE_LIB_MAPPER:
+                _platform = ANSIBLE_LIB_MAPPER[dev.platform.name]
+            elif dev.platform:
+                _platform = dev.platform.name
+            else:
+                _platform = ""
             _dev = self.device(
                 name=dev.name,
-                building=dev.site.name,
+                building=dev.site.slug,
                 room=dev.rack.group.name if dev.rack else "",
                 rack=dev.rack.name if dev.rack else "",
                 rack_position=dev.position,
                 rack_orientation=dev.face if dev.face else "rear",
                 hardware=dev.device_type.model,
-                os=dev.platform.slug if dev.platform else "",
+                os=_platform,
                 in_service=bool(str(dev.status) == "Active"),
                 serial_no=dev.serial if dev.serial else "",
                 tags=nbutils.get_tag_strings(dev.tags),

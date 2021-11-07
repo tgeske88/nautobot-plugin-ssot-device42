@@ -122,13 +122,11 @@ def find_device_role_from_tags(diffsync, tag_list: List[str]) -> str:
     Returns:
         str: The Default device role defined in plugin settings.
     """
-    if not PLUGIN_CFG.get("role_prepend"):
-        print("You must have the `role_prepend` setting configured.")
-        raise MissingConfigSetting(setting="role_prepend")
     _prepend = PLUGIN_CFG.get("role_prepend")
-    for _tag in tag_list:
-        if re.search(_prepend, _tag):
-            return re.sub(_prepend, "", _tag)
+    if _prepend:
+        for _tag in tag_list:
+            if re.search(_prepend, _tag):
+                return re.sub(_prepend, "", _tag)
     return DEFAULTS.get("device_role")
 
 
@@ -399,7 +397,7 @@ class Device42API:
                 "notes": _cf["notes"],
             }
             _fields[f"{_cf['network']}/{_cf['mask_bits']}"].append(_field)
-        
+
         for _, cfields in _fields.items():
             cfields = sorted(cfields, key=lambda d: d["key"])
 
