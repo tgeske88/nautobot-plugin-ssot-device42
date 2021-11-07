@@ -1,6 +1,6 @@
 """Custom Diff Class for custom handling of object CRUD operations."""
-from diffsync.diff import Diff
 from collections import defaultdict
+from diffsync.diff import Diff
 
 
 class CustomOrderingDiff(Diff):
@@ -9,7 +9,7 @@ class CustomOrderingDiff(Diff):
     @classmethod
     def order_children_default(cls, children):
         """Simple diff to return all children in alphabetical order."""
-        for child_name, child in sorted(children.items()):
+        for child_name, _ in sorted(children.items()):
             yield children[child_name]
 
     @classmethod
