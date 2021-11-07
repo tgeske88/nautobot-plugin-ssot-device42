@@ -563,7 +563,7 @@ class Device(DiffSyncModel):
                 _site = NautobotSite.objects.get(slug=attrs["building"])
                 return _site
             except NautobotSite.DoesNotExist as err:
-                diffsync.job.log_debug(f"Unable to find Site. {err}")
+                diffsync.job.log_debug(f"Unable to find Site {attrs['building']}. {err}")
         else:
             diffsync.job.log_debug(f"Device {ids['name']} is missing Building or Customer so can't determine Site.")
             return False
