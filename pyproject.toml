@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nautobot-device42-sync"
-version = "0.10.0"
+version = "0.11.0"
 description = "Nautobot plugin for syncing to Device42"
 authors = ["Justin Drew <justin.drew@networktocode.com>"]
 readme = "README.md"
