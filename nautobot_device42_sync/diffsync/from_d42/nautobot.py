@@ -190,14 +190,18 @@ class NautobotAdapter(DiffSync):
         except IPAddress.DoesNotExist:
             _pf = Prefix.objects.net_contains(f"{ans}/32")
             # the last Prefix is the most specific and is assumed the one the IP address resides in
-            _range = _pf[len(_pf) - 1]
-            if _range:
-                _ip = IPAddress(
-                    address=f"{ans}/{_range.prefix_length}",
-                    vrf=_range.vrf,
-                    status=Status.objects.get(name="Active"),
-                    description="Management address via DNS",
-                )
+            if len(_pf) > 1:
+                _range = _pf[len(_pf) - 1]
+                _netmask = _range.prefix_length
+            else:
+                # for the edge case where the DNS answer doesn't reside in a pre-existing Prefix
+                _netmask = "32"
+            _ip = IPAddress(
+                address=f"{ans}/{_netmask}",
+                vrf=_range.vrf if _range else None,
+                status=Status.objects.get(name="Active"),
+                description="Management address via DNS",
+            )
         _ip.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
         _ip.assigned_object_id = _intf.id
         _ip.validated_save()
