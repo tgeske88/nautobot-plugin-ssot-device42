@@ -10,7 +10,7 @@ The plugin is available as a Python package in pypi and can be installed with pi
 pip install nautobot-device42-sync
 ```
 
-> The plugin is compatible with Nautobot 1.0.0 and higher
+> The plugin is compatible with Nautobot 1.1.0 and higher
 
 To ensure Nautobot Device42 Sync is automatically re-installed during future upgrades, create a file named `local_requirements.txt` (if not already existing) in the Nautobot root directory (alongside `requirements.txt`) and list the `nautobot-device42-sync` package:
 
@@ -24,11 +24,25 @@ Once installed, the plugin needs to be enabled in your `nautobot_configuration.p
 # In your configuration.py
 PLUGINS = ["nautobot_device42_sync"]
 
-# PLUGINS_CONFIG = {
-#   "nautobot_device42_sync": {
-#     ADD YOUR SETTINGS HERE
-#   }
-# }
+PLUGINS_CONFIG = {
+  "nautobot_device42_sync": {
+    "device42_host": os.getenv("DEVICE42_HOST", ""),
+    "device42_username": os.getenv("DEVICE42_USERNAME", ""),
+    "device42_password": os.getenv("DEVICE42_PASSWORD", ""),
+    "verify_ssl": False,
+    "defaults": {
+        "site_status": "Active",
+        "rack_status": "Active",
+        "device_role": "Unknown",
+    },
+    "use_dns": False,
+    "customer_is_facility": False,
+    "facility_prepend": "sitecode-",
+    "role_prepend": "nautobot-",
+    "verbose_debug": False,
+    "hostname_mapping": [],
+  }
+}
 ```
 
 The plugin behavior can be controlled with the following list of settings
