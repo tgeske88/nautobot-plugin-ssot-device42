@@ -14,8 +14,13 @@ class NautobotDevice42SyncConfig(PluginConfig):
     author = "Justin Drew"
     description = "Nautobot plugin for syncing to Device42."
     base_url = "nautobot-device42-sync"
-    required_settings = []
-    min_version = "1.0.0"
+    required_settings = [
+        "device42_host",
+        "device42_username",
+        "device42_password",
+        "defaults",
+    ]
+    min_version = "1.1.0"
     max_version = "1.9999"
     default_settings = {}
     caching_config = {}

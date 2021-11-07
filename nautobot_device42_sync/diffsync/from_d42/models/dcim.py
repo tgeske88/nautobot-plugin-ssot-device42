@@ -560,10 +560,10 @@ class Device(DiffSyncModel):
                 diffsync.job.log_debug(f"Unable to find Site by Rack/Room. {attrs['rack']} {attrs['room']} {err}")
         if attrs.get("building"):
             try:
-                _site = NautobotSite.objects.get(name=attrs["building"])
+                _site = NautobotSite.objects.get(slug=attrs["building"])
                 return _site
             except NautobotSite.DoesNotExist as err:
-                diffsync.job.log_debug(f"Unable to find Site. {err}")
+                diffsync.job.log_debug(f"Unable to find Site {attrs['building']}. {err}")
         else:
             diffsync.job.log_debug(f"Device {ids['name']} is missing Building or Customer so can't determine Site.")
             return False
@@ -657,11 +657,8 @@ class Device(DiffSyncModel):
     def update(self, attrs):
         """Update Device object in Nautobot."""
         _dev = NautobotDevice.objects.get(name=self.name)
-        if not attrs.get("building"):
-            attrs["building"] = _dev.site.name
-            _dev.site = NautobotSite.objects.get(
-                name=self._get_site(diffsync=self.diffsync, ids=self.get_identifiers(), attrs=attrs)
-            )
+        if attrs.get("building"):
+            _dev.site = self._get_site(diffsync=self.diffsync, ids=self.get_identifiers(), attrs=attrs)
         if attrs.get("rack") and attrs.get("room"):
             try:
                 _dev.site = self._get_site(diffsync=self.diffsync, ids=self.get_identifiers(), attrs=attrs)

@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+<!--next-version-placeholder-->
+
+## [v0.11.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.11.0) - 2021-11-06
+
+<small>[Compare with v0.10.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.10.0...v0.11.0)</small>
+### Feature
+* :sparkles: Add Custom Diff class to control order of operations. ([`0da4ff0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/0da4ff07a8d039f1913a2c166bf29313ba729f32))
+* :sparkles: Add method to find a site mapping from settings. ([`70f9a93`](https://github.com/networking/nautobot-plugin-device42-sync/commit/70f9a9369e705e3998073e18f9532a1738b6ff21))
+
+### Fix
+* :bug: Handle edge cases where device has A record for non-existent Subnet. ([`8fcfeb3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/8fcfeb36082d3cae291240f5cbafa310c7b49cbc))
+
+### Documentation
+* :memo: Improve documentation in README and add information to RTD index ([`e9281ab`](https://github.com/networking/nautobot-plugin-device42-sync/commit/e9281abb6f21f374b82aef8d877427ecb89d4e3f))
+* :memo: Improve typing and docstrings for some methods. ([`6058a95`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6058a953a81128e9ebadf617d19dfa013cece5d5))
+
 ## [v0.10.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.10.0) - 2021-11-03
 
 <small>[Compare with v0.9.3](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.9.3...v0.10.0)</small>

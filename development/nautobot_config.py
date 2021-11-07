@@ -282,6 +282,7 @@ PLUGINS_CONFIG = {
         "facility_prepend": "sitecode-",
         "role_prepend": "nautobot-",
         "verbose_debug": False,
+        "hostname_mapping": [],
     },
 }
 

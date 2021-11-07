@@ -27,6 +27,7 @@ from nautobot_device42_sync.diffsync.from_d42.models import ipam
 from nautobot_device42_sync.diffsync.from_d42.models import circuits
 from nautobot_device42_sync.constant import USE_DNS, PLUGIN_CFG
 from nautobot_device42_sync.diffsync import nbutils
+from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
 
 
 class NautobotAdapter(DiffSync):
@@ -190,14 +191,18 @@ class NautobotAdapter(DiffSync):
         except IPAddress.DoesNotExist:
             _pf = Prefix.objects.net_contains(f"{ans}/32")
             # the last Prefix is the most specific and is assumed the one the IP address resides in
-            _range = _pf[len(_pf) - 1]
-            if _range:
-                _ip = IPAddress(
-                    address=f"{ans}/{_range.prefix_length}",
-                    vrf=_range.vrf,
-                    status=Status.objects.get(name="Active"),
-                    description="Management address via DNS",
-                )
+            if len(_pf) > 1:
+                _range = _pf[len(_pf) - 1]
+                _netmask = _range.prefix_length
+            else:
+                # for the edge case where the DNS answer doesn't reside in a pre-existing Prefix
+                _netmask = "32"
+            _ip = IPAddress(
+                address=f"{ans}/{_netmask}",
+                vrf=_range.vrf if _range else None,
+                status=Status.objects.get(name="Active"),
+                description="Management address via DNS",
+            )
         _ip.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
         _ip.assigned_object_id = _intf.id
         _ip.validated_save()
@@ -295,15 +300,21 @@ class NautobotAdapter(DiffSync):
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
         for dev in Device.objects.all():
+            if dev.platform and dev.platform.name in ANSIBLE_LIB_MAPPER:
+                _platform = ANSIBLE_LIB_MAPPER[dev.platform.name]
+            elif dev.platform:
+                _platform = dev.platform.name
+            else:
+                _platform = ""
             _dev = self.device(
                 name=dev.name,
-                building=dev.site.name,
+                building=dev.site.slug,
                 room=dev.rack.group.name if dev.rack else "",
                 rack=dev.rack.name if dev.rack else "",
                 rack_position=dev.position,
                 rack_orientation=dev.face if dev.face else "rear",
                 hardware=dev.device_type.model,
-                os=dev.platform.slug if dev.platform else "",
+                os=_platform,
                 in_service=bool(str(dev.status) == "Active"),
                 serial_no=dev.serial if dev.serial else "",
                 tags=nbutils.get_tag_strings(dev.tags),

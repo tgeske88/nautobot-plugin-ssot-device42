@@ -1,7 +1,10 @@
 """DiffSync adapter for Device42."""
 
+import re
 from decimal import Decimal
 from django.utils.functional import classproperty
+from django.utils.text import slugify
+from typing import Union
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from nautobot.core.settings_funcs import is_truthy
@@ -37,6 +40,25 @@ def get_circuit_status(status: str) -> str:
         return STATUS_MAP[status]
     else:
         return "Offline"
+
+
+def get_site_from_mapping(device_name: str) -> Union[str, bool]:
+    """Method to map a Device to a Site based upon their name using a regex pattern in the settings.
+
+    This works in conjunction with the `hostname_mapping` setting to have a Device assigned to a Site by hostname. This is done using a regex pattern mapped to the Site slug.
+
+    Args:
+        device_name (str): Name of the Device to be matched. Must match one of the regex patterns provided to get a response.
+
+    Returns:
+        Union[str, bool]: The Site slug of the associated Site for the Device in the mapping. Returns False if match not found.
+    """
+    for _entry in PLUGIN_CFG["hostname_mapping"]:
+        for _mapping, _slug in _entry.items():
+            site_match = re.match(_mapping, device_name)
+            if site_match:
+                return _slug
+    return False
 
 
 class Device42Adapter(DiffSync):
@@ -110,6 +132,32 @@ class Device42Adapter(DiffSync):
             for hardware in device42_hardware_list["models"]:
                 self._device42_hardware_dict[hardware["hardware_id"]] = hardware
         return self._device42_hardware_dict
+
+    def get_building_for_device(self, dev_record: dict) -> str:
+        """Method to determine the Building (Site) for a Device.
+
+        Args:
+            dev_record (dict): Dictionary of Device information from Device42. Needs to have name, customer, and building keys depending upon enabled plugin settings.
+
+        Returns:
+            str: Slugified version of the Building (Site) for a Device.
+        """
+        _building = False
+        if PLUGIN_CFG.get("hostname_mapping") and len(PLUGIN_CFG["hostname_mapping"]) > 0:
+            _building = get_site_from_mapping(device_name=dev_record["name"])
+
+        if not _building:
+            if (
+                PLUGIN_CFG.get("customer_is_facility")
+                and dev_record.get("customer")
+                and dev_record["customer"] in self.building_map
+            ):
+                _building = self.building_map[dev_record["customer"].upper()]
+            else:
+                _building = dev_record.get("building")
+        if _building is not None:
+            return slugify(_building)
+        return ""
 
     def load_buildings(self):
         """Load Device42 buildings."""
@@ -231,14 +279,14 @@ class Device42Adapter(DiffSync):
                         self.job.log_warning(f"Hardware model already exists. {err}")
                     continue
 
-    def get_cluster_host(self, device: str) -> str or bool:
+    def get_cluster_host(self, device: str) -> Union[str, bool]:
         """Get name of cluster host if device is in a cluster.
 
         Args:
             device (str): Name of device to see if part of cluster.
 
         Returns:
-            str or bool: Name of cluster device is part of or returns False.
+            Union[str, bool]: Name of cluster device is part of or returns False.
         """
         for _cluster, _info in self._device42_clusters.items():
             if device in _info["members"]:
@@ -277,14 +325,7 @@ class Device42Adapter(DiffSync):
             )
             self.add(_cluster)
             # Add master device to hold stack info like intfs and IPs
-            if (
-                PLUGIN_CFG.get("customer_is_facility")
-                and _clus.get("customer")
-                and _clus["customer"] in self.building_map
-            ):
-                _building = self.building_map[_clus["customer"].upper()]
-            else:
-                _building = cluster_info.get("building")
+            _building = self.get_building_for_device(dev_record={**_clus, **cluster_info})
             _device = self.device(
                 name=cluster_info["name"][:64],
                 building=_building if _building else "",
@@ -324,14 +365,7 @@ class Device42Adapter(DiffSync):
                 _tags = _record["tags"] if _record.get("tags") else []
                 if len(_tags) > 1:
                     _tags.sort()
-                if (
-                    PLUGIN_CFG.get("customer_is_facility")
-                    and _record.get("customer")
-                    and _record["customer"] in self.building_map
-                ):
-                    _building = self.building_map[_record["customer"].upper()]
-                else:
-                    _building = _record.get("building")
+                _building = self.get_building_for_device(dev_record=_record)
                 _device = self.device(
                     name=_record["name"][:64],
                     building=_building if _building else "",
@@ -465,7 +499,9 @@ class Device42Adapter(DiffSync):
                         tags=_tags,
                     )
                     if f"{_pf['network']}/{_pf['mask_bits']}" in _cfs:
-                        new_pf.custom_fields = sorted(_cfs[f"{_pf['network']}/{_pf['mask_bits']}"], key=lambda d: d["key"])
+                        new_pf.custom_fields = sorted(
+                            _cfs[f"{_pf['network']}/{_pf['mask_bits']}"], key=lambda d: d["key"]
+                        )
                     else:
                         new_pf.custom_fields = default_cfs
                     self.add(new_pf)

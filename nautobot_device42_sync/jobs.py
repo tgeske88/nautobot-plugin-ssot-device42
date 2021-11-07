@@ -1,16 +1,19 @@
 # pylint: disable=too-few-public-methods
 """Jobs for Device42 integration with SSoT plugin."""
 
-from requests import HTTPError
-from django.urls import reverse
 from django.templatetags.static import static
-from nautobot.extras.jobs import Job, BooleanVar
-from nautobot_ssot.jobs.base import DataSource, DataMapping
+from django.urls import reverse
+from nautobot.extras.jobs import BooleanVar, Job
+from nautobot_ssot.jobs.base import DataMapping, DataSource
+from requests import HTTPError
+
 from diffsync import DiffSyncFlags
 from diffsync.exceptions import ObjectNotCreated
+from nautobot_device42_sync.constant import PLUGIN_CFG
 from nautobot_device42_sync.diffsync.from_d42.device42 import Device42Adapter
 from nautobot_device42_sync.diffsync.from_d42.nautobot import NautobotAdapter
-from nautobot_device42_sync.constant import PLUGIN_CFG
+
+from .diff import CustomOrderingDiff
 
 
 class Device42DataSource(DataSource, Job):
@@ -57,14 +60,16 @@ class Device42DataSource(DataSource, Job):
         self.log_info(message="Loading data from Nautobot...")
         nb_adapter.load()
         self.log_info(message="Performing diff of data between Device42 and Nautobot.")
-        diff = nb_adapter.diff_from(d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE)
+        diff = nb_adapter.diff_from(d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff)
         self.sync.diff = diff.dict()
         self.sync.save()
         self.log_info(message=diff.summary())
         if not self.kwargs["dry_run"]:
             self.log_info(message="Performing data synchronization from Device42.")
             try:
-                nb_adapter.sync_from(d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE)
+                nb_adapter.sync_from(
+                    d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff
+                )
             except HTTPError as err:
                 self.log_failure(message="Sync failed.")
                 raise err
