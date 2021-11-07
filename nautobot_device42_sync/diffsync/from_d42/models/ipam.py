@@ -273,7 +273,7 @@ class IPAddress(DiffSyncModel):
                 )
         elif (attrs.get("device") and attrs["device"] == "") or (attrs.get("interface") and attrs["interface"] == ""):
             if PLUGIN_CFG.get("verbose_debug"):
-                self.job.log_warning(f"Unassigning interface and Device for {self.address}.")
+                self.diffsync.job.log_warning(f"Unassigning interface and Device for {self.address}.")
             _ipaddr.assigned_object_type = None
             _ipaddr.assigned_object_id = None
         else:
@@ -284,8 +284,6 @@ class IPAddress(DiffSyncModel):
                 intf = NautobotInterface.objects.get(device=_dev, name=attrs["interface"])
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
-            except NautobotDevice.DoesNotExist as err:
-                self.diffsync.job.log_debug(f"Unable to find Device {_device} {err}")
             except NautobotInterface.DoesNotExist as err:
                 self.diffsync.job.log_debug(f"Unable to find Interface {attrs['interface']} for {_device} {err}")
         if attrs.get("device"):
@@ -390,7 +388,7 @@ class VLAN(DiffSyncModel):
             return None
         except NautobotVLAN.MultipleObjectsReturned as err:
             if PLUGIN_CFG.get("verbose_debug"):
-                self.job.log_warning(
+                self.diffsync.job.log_warning(
                     f"Unable to find VLAN {self.get_identifiers()} due to multiple objects found. {err}"
                 )
             return None
