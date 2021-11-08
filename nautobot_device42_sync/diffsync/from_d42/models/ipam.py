@@ -288,11 +288,23 @@ class IPAddress(DiffSyncModel):
                 self.diffsync.job.log_debug(f"Unable to find Interface {attrs['interface']} for {_device} {err}")
         if attrs.get("device"):
             try:
-                intf = NautobotInterface.objects.get(name=self.interface, device__name=attrs["device"])
+                _dev = NautobotDevice.objects.get(name=attrs["device"])
+                intf = NautobotInterface.objects.get(name=self.interface, device=_dev)
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
+                # check if the IP is assigned as primary to another device, and if so, unassign it
+                if _ipaddr.family == 4 and hasattr(_ipaddr, "primary_ip4_for"):
+                    if str(_ipaddr.primary_ip4_for) != attrs["device"]:
+                        _dev.primary_ip4 = None
+                        _dev.validated_save()
+                if _ipaddr.family == 6 and hasattr(_ipaddr, "primary_ip6_for"):
+                    if str(_ipaddr.primary_ip6_for) != attrs["device"]:
+                        _dev.primary_ip6 = None
+                        _dev.validated_save()
             except NautobotInterface.DoesNotExist as err:
                 self.diffsync.job.log_debug(f"Unable to find Interface {self.interface} for {attrs['device']}. {err}")
+        else:
+            _dev = NautobotDevice.objects.get(name=self.device)
         if attrs.get("vrf"):
             _ipaddr.vrf = NautobotVRF.objects.get(name=attrs["vrf"])
         if attrs.get("tags"):
@@ -308,8 +320,11 @@ class IPAddress(DiffSyncModel):
                 field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
                 field.content_types.add(ContentType.objects.get_for_model(NautobotIPAddress).id)
                 _ipaddr.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
-        _ipaddr.validated_save()
-        return super().update(attrs)
+        if (getattr(_ipaddr, "primary_ip4_for") and _ipaddr.primary_ip4_for == _dev) or (
+            getattr(_ipaddr, "primary_ip6_for") and _ipaddr.primary_ip6_for == _dev
+        ):
+            _ipaddr.validated_save()
+            return super().update(attrs)
 
     def delete(self):
         """Delete IPAddress object from Nautobot."""
