@@ -366,7 +366,7 @@ class Device42Adapter(DiffSync):
             if _record.get("type") != "cluster" and _record.get("hw_model"):
                 _tags = _record["tags"] if _record.get("tags") else []
                 if PLUGIN_CFG.get("ignore_tag") and PLUGIN_CFG["ignore_tag"] in _tags:
-                    break
+                    continue
                 if len(_tags) > 1:
                     _tags.sort()
                 _building = self.get_building_for_device(dev_record=_record)
