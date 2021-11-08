@@ -312,6 +312,8 @@ class Device42Adapter(DiffSync):
                 self.job.log_info(f"Cluster {cluster_info['name']} being added.")
             _clus = self._device42_clusters[cluster_info["name"]]
             _tags = cluster_info["tags"] if cluster_info.get("tags") else []
+            if PLUGIN_CFG.get("ignore_tag") and PLUGIN_CFG["ignore_tag"] in _tags:
+                return
             _members = _clus["members"]
             if len(_members) > 1:
                 _members.sort()
@@ -363,6 +365,8 @@ class Device42Adapter(DiffSync):
         for _record in _devices:
             if _record.get("type") != "cluster" and _record.get("hw_model"):
                 _tags = _record["tags"] if _record.get("tags") else []
+                if PLUGIN_CFG.get("ignore_tag") and PLUGIN_CFG["ignore_tag"] in _tags:
+                    break
                 if len(_tags) > 1:
                     _tags.sort()
                 _building = self.get_building_for_device(dev_record=_record)
