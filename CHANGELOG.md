@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## [v0.12.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.12.0) - 2021-11-09
+
+<small>[Compare with v0.11.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.11.0...v0.12.0)</small>
+
+### Feature
+* :sparkles: Add `ignore_tag` feature to allow Devices to not be imported based on a Tag. ([`0bbca1f`](https://github.com/networking/nautobot-plugin-device42-sync/commit/0bbca1f4e179a6b5fc8e494a690a992e1118ed1d))
+
+### Fix
+* :bug: Fix catch for AP hosts. ([`495238e`](https://github.com/networking/nautobot-plugin-device42-sync/commit/495238e48897ed8402c00f73fc5578efbb9ae408))
+* :bug: Should have used continue instead of break. ([`2d8a6b0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/2d8a6b06bcc847f2cc13b66a61455b91f9a8b4bb))
+* :bug: Handle case where IP is assigned as primary to another device. ([`dfd113f`](https://github.com/networking/nautobot-plugin-device42-sync/commit/dfd113f7b9473a4d03c95829effc887debd7f8aa))
+* :bug: Correct job logging to come from diffsync object in models. ([`92871c0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/92871c03c1b8533d7e9efed441340619ec35102a))
+
+### Documentation
+* :memo: Add documentation for `ignore_tag` feature. ([`3ab83d6`](https://github.com/networking/nautobot-plugin-device42-sync/commit/3ab83d688a6d4bf236ba0aeb1cc403d4d318b99a))
+
 ## [v0.11.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.11.0) - 2021-11-06
 
 <small>[Compare with v0.10.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.10.0...v0.11.0)</small>
