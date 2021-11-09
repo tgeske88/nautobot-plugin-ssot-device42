@@ -674,7 +674,7 @@ class Device(DiffSyncModel):
                         _dev.face = "rear"
             except NautobotRack.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
-                    self.job.log_warning(f"Unable to find rack {attrs['rack']} in {attrs['room']} {err}")
+                    self.diffsync.job.log_warning(f"Unable to find rack {attrs['rack']} in {attrs['room']} {err}")
         if attrs.get("hardware"):
             _dt = NautobotDeviceType.objects.get(model=attrs["hardware"])
             _dev.device_type = _dt
@@ -737,7 +737,7 @@ class Device(DiffSyncModel):
                     _dev.vc_position = position + 1
             except NautobotVC.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
-                    self.job.log_warning(f"Unable to find VC {_clus_host} {err}")
+                    self.diffsync.job.log_warning(f"Unable to find VC {_clus_host} {err}")
         _dev.validated_save()
         return super().update(attrs)
 
