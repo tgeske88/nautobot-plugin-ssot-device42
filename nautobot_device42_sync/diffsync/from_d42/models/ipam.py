@@ -16,7 +16,7 @@ from nautobot.ipam.models import IPAddress as NautobotIPAddress
 from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot.extras.models import CustomField
-from nautobot_device42_sync.diffsync import nbutils
+from nautobot_device42_sync.utils import nautobot
 from nautobot_device42_sync.constant import PLUGIN_CFG
 
 
@@ -38,7 +38,7 @@ class VRFGroup(DiffSyncModel):
         """Create VRF object in Nautobot."""
         _vrf = NautobotVRF(name=ids["name"], description=attrs["description"])
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -59,7 +59,7 @@ class VRFGroup(DiffSyncModel):
         if attrs.get("description"):
             _vrf.description = attrs["description"]
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -121,7 +121,7 @@ class Subnet(DiffSyncModel):
             status=NautobotStatus.objects.get(name="Active"),
         )
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _pf.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -142,7 +142,7 @@ class Subnet(DiffSyncModel):
         if attrs.get("description"):
             _pf.description = attrs["description"]
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _pf.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -211,7 +211,7 @@ class IPAddress(DiffSyncModel):
             if re.search(r"[Ll]oopback", attrs["interface"]):
                 _ip.role = "loopback"
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _ip.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -235,15 +235,15 @@ class IPAddress(DiffSyncModel):
                 if attrs.get("interface"):
                     if re.search(mgmt, attrs["interface"].strip()):
                         _intf = NautobotInterface.objects.get(name=attrs["interface"], device__name=attrs["device"])
-                        nbutils.set_primary_ip_and_mgmt(_ip, _dev, _intf)
+                        nautobot.set_primary_ip_and_mgmt(_ip, _dev, _intf)
                 # else check the label to see if it matches
                 elif attrs.get("label"):
                     if re.search(mgmt, attrs["label"]):
-                        _intf = nbutils.get_or_create_mgmt_intf(intf_name=attrs["label"], dev=_dev)
+                        _intf = nautobot.get_or_create_mgmt_intf(intf_name=attrs["label"], dev=_dev)
                         _ip.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                         _ip.assigned_object_id = _intf.id
                         _ip.validated_save()
-                        nbutils.set_primary_ip_and_mgmt(_ip, _dev, _intf)
+                        nautobot.set_primary_ip_and_mgmt(_ip, _dev, _intf)
             except NautobotDevice.DoesNotExist:
                 pass
             except NautobotInterface.DoesNotExist:
@@ -297,7 +297,7 @@ class IPAddress(DiffSyncModel):
         if attrs.get("vrf"):
             _ipaddr.vrf = NautobotVRF.objects.get(name=attrs["vrf"])
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _ipaddr.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:

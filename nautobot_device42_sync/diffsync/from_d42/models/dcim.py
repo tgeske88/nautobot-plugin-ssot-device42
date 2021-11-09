@@ -22,7 +22,7 @@ from nautobot.dcim.models import Cable as NautobotCable
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
 from nautobot.ipam.models import VLAN as NautobotVLAN
-from nautobot_device42_sync.diffsync import nbutils
+from nautobot_device42_sync.utils import nautobot
 from nautobot_device42_sync.utils import device42
 from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG, INTF_SPEED_MAP
 
@@ -60,7 +60,7 @@ class Building(DiffSyncModel):
             contact_phone=attrs["contact_phone"] if attrs.get("contact_phone") else "",
         )
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 new_site.tags.add(_tag)
             _facility = device42.get_facility(diffsync, tags=attrs["tags"])
             if _facility:
@@ -92,7 +92,7 @@ class Building(DiffSyncModel):
         if attrs.get("contact_phone"):
             _site.contact_phone = attrs["contact_phone"]
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _site.tags.add(_tag)
             _facility = device42.get_facility(diffsync=self.diffsync, tags=attrs["tags"])
             if _facility:
@@ -222,7 +222,7 @@ class Rack(DiffSyncModel):
             desc_units=not (is_truthy(attrs["numbering_start_from_bottom"])),
         )
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 new_rack.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -245,7 +245,7 @@ class Rack(DiffSyncModel):
         if attrs.get("numbering_start_from_bottom"):
             _rack.desc_units = not (is_truthy(attrs["numbering_start_from_bottom"]))
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _rack.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -445,7 +445,7 @@ class Cluster(DiffSyncModel):
             name=ids["name"],
         )
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 new_vc.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -483,7 +483,7 @@ class Cluster(DiffSyncModel):
                         self.diffsync.job.log_warning(f"Unable to find {_member} to add to VC {self.name} {err}")
                     continue
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _vc.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -578,11 +578,11 @@ class Device(DiffSyncModel):
         if attrs.get("building"):
             diffsync.job.log_debug(f"Creating device {ids['name']}.")
             if attrs.get("tags") and len(attrs["tags"]) > 0:
-                _role = nbutils.verify_device_role(
+                _role = nautobot.verify_device_role(
                     device42.find_device_role_from_tags(diffsync, tag_list=attrs["tags"])
                 )
             else:
-                _role = nbutils.verify_device_role(role_name=DEFAULTS.get("device_role"))
+                _role = nautobot.verify_device_role(role_name=DEFAULTS.get("device_role"))
             try:
                 _dt = NautobotDeviceType.objects.get(model=attrs["hardware"])
                 _site = cls._get_site(diffsync, ids, attrs)
@@ -602,7 +602,7 @@ class Device(DiffSyncModel):
                     new_device.position = int(attrs["rack_position"]) if attrs["rack_position"] else None
                     new_device.face = attrs["rack_orientation"] if attrs["rack_orientation"] else "front"
                 if attrs.get("os"):
-                    new_device.platform = nbutils.verify_platform(
+                    new_device.platform = nautobot.verify_platform(
                         platform_name=attrs["os"],
                         manu=NautobotDeviceType.objects.get(model=attrs["hardware"]).manufacturer,
                     )
@@ -633,7 +633,7 @@ class Device(DiffSyncModel):
                         if PLUGIN_CFG.get("verbose_debug"):
                             diffsync.job.log_warning(f"Unable to find VC {attrs['cluster_host']} {err}")
                 if attrs.get("tags"):
-                    for _tag in nbutils.get_tags(attrs["tags"]):
+                    for _tag in nautobot.get_tags(attrs["tags"]):
                         new_device.tags.add(_tag)
                 if attrs.get("custom_fields"):
                     for _cf in attrs["custom_fields"]:
@@ -683,7 +683,7 @@ class Device(DiffSyncModel):
                 _hardware = NautobotDeviceType.objects.get(model=attrs["hardware"])
             else:
                 _hardware = _dev.device_type
-            _dev.platform = nbutils.verify_platform(
+            _dev.platform = nautobot.verify_platform(
                 platform_name=attrs["os"],
                 manu=_hardware.manufacturer,
             )
@@ -696,7 +696,7 @@ class Device(DiffSyncModel):
         if attrs.get("serial_no"):
             _dev.serial = attrs["serial_no"]
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _dev.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -793,7 +793,7 @@ class Port(DiffSyncModel):
                     mode=attrs["mode"],
                 )
                 if attrs.get("tags"):
-                    for _tag in nbutils.get_tags(attrs["tags"]):
+                    for _tag in nautobot.get_tags(attrs["tags"]):
                         new_intf.tags.add(_tag)
                 if attrs.get("custom_fields"):
                     for _cf in attrs["custom_fields"]:
@@ -852,7 +852,7 @@ class Port(DiffSyncModel):
         if attrs.get("mode"):
             _port.mode = attrs["mode"]
         if attrs.get("tags"):
-            for _tag in nbutils.get_tags(attrs["tags"]):
+            for _tag in nautobot.get_tags(attrs["tags"]):
                 _port.tags.add(_tag)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
@@ -1006,7 +1006,7 @@ class Connection(DiffSyncModel):
                 termination_b_type=ContentType.objects.get(app_label="circuits", model="circuittermination"),
                 termination_b_id=circuit_term.id,
                 status=NautobotStatus.objects.get(name="Connected"),
-                color=nbutils.get_random_color(),
+                color=nautobot.get_random_color(),
             )
             new_cable.validated_save()
 
@@ -1056,7 +1056,7 @@ class Connection(DiffSyncModel):
                 termination_b_type=ContentType.objects.get(app_label="dcim", model="interface"),
                 termination_b_id=_dst_port.id,
                 status=NautobotStatus.objects.get(name="Connected"),
-                color=nbutils.get_random_color(),
+                color=nautobot.get_random_color(),
             )
             return new_cable
         return None

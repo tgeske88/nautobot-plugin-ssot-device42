@@ -12,7 +12,7 @@ from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot_device42_sync.constant import INTF_SPEED_MAP
-from nautobot_device42_sync.diffsync import nbutils
+from nautobot_device42_sync.utils import nautobot
 from nautobot_device42_sync.utils import device42
 
 
@@ -48,7 +48,7 @@ class Provider(DiffSyncModel):
                 comments=attrs["notes"] if attrs.get("notes") else "",
             )
             if attrs.get("tags"):
-                for _tag in nbutils.get_tags(attrs["tags"]):
+                for _tag in nautobot.get_tags(attrs["tags"]):
                     _provider.tags.add(_tag)
             _provider.validated_save()
             return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -133,7 +133,7 @@ class Circuit(DiffSyncModel):
                 comments=attrs["notes"] if attrs.get("notes") else "",
             )
             if attrs.get("tags"):
-                for _tag in nbutils.get_tags(attrs["tags"]):
+                for _tag in nautobot.get_tags(attrs["tags"]):
                     _circuit.tags.add(_tag)
             _circuit.validated_save()
             if attrs.get("origin_int") and attrs.get("origin_dev"):
@@ -199,7 +199,7 @@ class Circuit(DiffSyncModel):
                     termination_b_type=ContentType.objects.get(app_label="circuits", model="circuittermination"),
                     termination_b_id=_term.id,
                     status=NautobotStatus.objects.get(name="Connected"),
-                    color=nbutils.get_random_color(),
+                    color=nautobot.get_random_color(),
                 )
                 new_cable.validated_save()
         except NautobotDevice.DoesNotExist as err:
