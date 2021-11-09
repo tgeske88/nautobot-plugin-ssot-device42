@@ -11,7 +11,7 @@ from nautobot.core.settings_funcs import is_truthy
 from nautobot_device42_sync.diffsync.from_d42.models import dcim
 from nautobot_device42_sync.diffsync.from_d42.models import ipam
 from nautobot_device42_sync.diffsync.from_d42.models import circuits
-from nautobot_device42_sync.diffsync.d42utils import Device42API, get_intf_type, get_netmiko_platform, get_facility
+from nautobot_device42_sync.utils.device42 import Device42API, get_intf_type, get_netmiko_platform, get_facility
 from nautobot_device42_sync.constant import PLUGIN_CFG
 from netutils.bandwidth import name_to_bits
 

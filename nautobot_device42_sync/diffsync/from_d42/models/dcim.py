@@ -23,7 +23,7 @@ from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
 from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot_device42_sync.diffsync import nbutils
-from nautobot_device42_sync.diffsync import d42utils
+from nautobot_device42_sync.utils import device42
 from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG, INTF_SPEED_MAP
 
 
@@ -62,7 +62,7 @@ class Building(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 new_site.tags.add(_tag)
-            _facility = d42utils.get_facility(diffsync, tags=attrs["tags"])
+            _facility = device42.get_facility(diffsync, tags=attrs["tags"])
             if _facility:
                 new_site.facility = _facility.upper()
         if attrs.get("custom_fields"):
@@ -94,7 +94,7 @@ class Building(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nbutils.get_tags(attrs["tags"]):
                 _site.tags.add(_tag)
-            _facility = d42utils.get_facility(diffsync=self.diffsync, tags=attrs["tags"])
+            _facility = device42.get_facility(diffsync=self.diffsync, tags=attrs["tags"])
             if _facility:
                 _site.facility = _facility.upper()
         if attrs.get("custom_fields"):
@@ -579,7 +579,7 @@ class Device(DiffSyncModel):
             diffsync.job.log_debug(f"Creating device {ids['name']}.")
             if attrs.get("tags") and len(attrs["tags"]) > 0:
                 _role = nbutils.verify_device_role(
-                    d42utils.find_device_role_from_tags(diffsync, tag_list=attrs["tags"])
+                    device42.find_device_role_from_tags(diffsync, tag_list=attrs["tags"])
                 )
             else:
                 _role = nbutils.verify_device_role(role_name=DEFAULTS.get("device_role"))
