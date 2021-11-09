@@ -129,17 +129,19 @@ class NautobotAdapter(DiffSync):
         if is_truthy(USE_DNS):
             for _dev in Device.objects.all():
                 _devname = _dev.name.strip()
+                if PLUGIN_CFG.get("verbose_debug"):
+                    self.job.log_info(f"Attempting to resolve {_dev.name} _devname: {_devname}")
                 if not re.search(r"\s-\s\w+\s?\d+", _devname):
                     # ignore AP device names, they appear like FQDNs but are actually a MAC addr
-                    if re.search(r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _dev.name):
+                    if re.search(r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _devname):
+                        if PLUGIN_CFG.get("verbose_debug"):
+                            self.job.log_info(f"AP found {_devname}, skipping.")
                         continue
-                    _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", _dev.name)
+                    _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", _devname)
                     if _devname:
                         _devname = _devname.group()
                     else:
                         continue
-                    if PLUGIN_CFG.get("verbose_debug"):
-                        self.job.log_info(f"Attempting to resolve {_dev.name} _devname: {_devname}")
                     try:
                         answ = dns.resolver.resolve(_devname, "A")
                         _ans = answ[0].to_text()
@@ -174,7 +176,6 @@ class NautobotAdapter(DiffSync):
                         if PLUGIN_CFG.get("verbose_debug"):
                             print(f"Unable to find IP Address {_ans}. {err}")
                     self.create_mgmt_assign_primary(_dev, _ans)
-                    continue
                 else:
                     self.job.log_warning(f"Skipping {_devname} due to invalid Device name.")
 
