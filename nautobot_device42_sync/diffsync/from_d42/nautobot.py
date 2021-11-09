@@ -1,33 +1,33 @@
 """DiffSync adapter class for Nautobot as source-of-truth."""
 
-import dns.resolver
 import ipaddress
 import re
-from django.contrib.contenttypes.models import ContentType
-from django.db.models import ProtectedError
+
+import dns.resolver
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists
-from nautobot.core.settings_funcs import is_truthy
-from nautobot.circuits.models import Provider, Circuit, CircuitTermination
-from nautobot.dcim.models import (
-    Site,
-    RackGroup,
-    Rack,
-    Manufacturer,
-    DeviceType,
-    Device,
-    VirtualChassis,
-    Interface,
-    Cable,
-)
-from nautobot.ipam.models import VRF, Prefix, IPAddress, VLAN
-from nautobot.extras.models import Status
-from nautobot_device42_sync.diffsync.from_d42.models import dcim
-from nautobot_device42_sync.diffsync.from_d42.models import ipam
-from nautobot_device42_sync.diffsync.from_d42.models import circuits
-from nautobot_device42_sync.constant import USE_DNS, PLUGIN_CFG
+from django.contrib.contenttypes.models import ContentType
+from django.db.models import ProtectedError
+from nautobot_device42_sync.constant import PLUGIN_CFG, USE_DNS
+from nautobot_device42_sync.diffsync.from_d42.models import circuits, dcim, ipam
 from nautobot_device42_sync.utils import nautobot
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
+
+from nautobot.circuits.models import Circuit, CircuitTermination, Provider
+from nautobot.core.settings_funcs import is_truthy
+from nautobot.dcim.models import (
+    Cable,
+    Device,
+    DeviceType,
+    Interface,
+    Manufacturer,
+    Rack,
+    RackGroup,
+    Site,
+    VirtualChassis,
+)
+from nautobot.extras.models import Status
+from nautobot.ipam.models import VLAN, VRF, IPAddress, Prefix
 
 
 class NautobotAdapter(DiffSync):

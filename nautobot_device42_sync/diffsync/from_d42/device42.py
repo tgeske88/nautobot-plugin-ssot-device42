@@ -2,18 +2,18 @@
 
 import re
 from decimal import Decimal
-from django.utils.functional import classproperty
-from django.utils.text import slugify
 from typing import Union
+
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
-from nautobot.core.settings_funcs import is_truthy
-from nautobot_device42_sync.diffsync.from_d42.models import dcim
-from nautobot_device42_sync.diffsync.from_d42.models import ipam
-from nautobot_device42_sync.diffsync.from_d42.models import circuits
-from nautobot_device42_sync.utils.device42 import Device42API, get_intf_type, get_netmiko_platform, get_facility
+from django.utils.functional import classproperty
+from django.utils.text import slugify
 from nautobot_device42_sync.constant import PLUGIN_CFG
+from nautobot_device42_sync.diffsync.from_d42.models import circuits, dcim, ipam
+from nautobot_device42_sync.utils.device42 import Device42API, get_facility, get_intf_type, get_netmiko_platform
 from netutils.bandwidth import name_to_bits
+
+from nautobot.core.settings_funcs import is_truthy
 
 
 def sanitize_string(san_str: str):

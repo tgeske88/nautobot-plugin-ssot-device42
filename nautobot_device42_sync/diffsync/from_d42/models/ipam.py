@@ -1,7 +1,8 @@
 """DiffSyncModel IPAM subclasses for Nautobot Device42 data sync."""
 
 import re
-from typing import Optional, List
+from typing import List, Optional
+
 from diffsync import DiffSyncModel
 from diffsync.exceptions import ObjectAlreadyExists
 from django.contrib.contenttypes.models import ContentType
@@ -10,14 +11,14 @@ from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.dcim.models import Site as NautobotSite
 from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.ipam.models import VRF as NautobotVRF
-from nautobot.ipam.models import Prefix as NautobotPrefix
-from nautobot.ipam.models import IPAddress as NautobotIPAddress
-from nautobot.ipam.models import VLAN as NautobotVLAN
-from nautobot.extras.models import Status as NautobotStatus
 from nautobot.extras.models import CustomField
-from nautobot_device42_sync.utils import nautobot
+from nautobot.extras.models import Status as NautobotStatus
+from nautobot.ipam.models import VLAN as NautobotVLAN
+from nautobot.ipam.models import VRF as NautobotVRF
+from nautobot.ipam.models import IPAddress as NautobotIPAddress
+from nautobot.ipam.models import Prefix as NautobotPrefix
 from nautobot_device42_sync.constant import PLUGIN_CFG
+from nautobot_device42_sync.utils import nautobot
 
 
 class VRFGroup(DiffSyncModel):

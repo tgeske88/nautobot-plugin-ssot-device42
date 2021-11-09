@@ -1,19 +1,19 @@
 """DiffSyncModel DCIM subclasses for Nautobot Device42 data sync."""
 
-from typing import Optional, List
+from typing import List, Optional
+
+from diffsync import DiffSyncModel
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
-from diffsync import DiffSyncModel
-from nautobot.dcim.models import Cable as NautobotCable
-from nautobot.circuits.models import Provider as NautobotProvider
 from nautobot.circuits.models import Circuit as NautobotCircuit
 from nautobot.circuits.models import CircuitTermination as NautobotCT
+from nautobot.circuits.models import Provider as NautobotProvider
+from nautobot.dcim.models import Cable as NautobotCable
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot_device42_sync.constant import INTF_SPEED_MAP
-from nautobot_device42_sync.utils import nautobot
-from nautobot_device42_sync.utils import device42
+from nautobot_device42_sync.utils import device42, nautobot
 
 
 class Provider(DiffSyncModel):

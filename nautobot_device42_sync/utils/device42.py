@@ -1,14 +1,15 @@
 """Utility functions for Device42 API."""
 
 import re
-from django.utils.text import slugify
+from typing import List
+
 import requests
 import urllib3
-from typing import List
-from nautobot.circuits.models import CircuitType
-from nautobot_device42_sync.constant import PHY_INTF_MAP, FC_INTF_MAP, INTF_NAME_MAP
+from django.utils.text import slugify
+from nautobot_device42_sync.constant import DEFAULTS, FC_INTF_MAP, INTF_NAME_MAP, PHY_INTF_MAP, PLUGIN_CFG
 from netutils.lib_mapper import PYATS_LIB_MAPPER
-from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG
+
+from nautobot.circuits.models import CircuitType
 
 
 class MissingConfigSetting(Exception):

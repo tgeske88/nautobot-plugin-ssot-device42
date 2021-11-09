@@ -1,9 +1,11 @@
 """Utility functions for Nautobot ORM."""
-from django.utils.text import slugify
-from faker import Factory
-from taggit.managers import TaggableManager
 from typing import List, OrderedDict
-from nautobot.dcim.models import DeviceRole, Manufacturer, Platform, Device, Interface
+
+from django.utils.text import slugify
+from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
+from taggit.managers import TaggableManager
+
+from nautobot.dcim.models import Device, DeviceRole, Interface, Manufacturer, Platform
 from nautobot.extras.models import Tag
 from nautobot.ipam.models import IPAddress
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE

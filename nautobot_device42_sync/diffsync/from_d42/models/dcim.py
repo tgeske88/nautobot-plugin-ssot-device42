@@ -1,30 +1,30 @@
 """DiffSyncModel DCIM subclasses for Nautobot Device42 data sync."""
 
 import re
-from typing import Optional, List, Union
 from decimal import Decimal
+from typing import List, Optional, Union
+
+from diffsync import DiffSyncModel
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
-from diffsync import DiffSyncModel
-from nautobot.core.settings_funcs import is_truthy
 from nautobot.circuits.models import Circuit as NautobotCircuit
 from nautobot.circuits.models import CircuitTermination as NautobotCT
-from nautobot.extras.models import Status as NautobotStatus
-from nautobot.dcim.models import Site as NautobotSite
-from nautobot.dcim.models.racks import RackGroup as NautobotRackGroup
-from nautobot.dcim.models.racks import Rack as NautobotRack
-from nautobot.dcim.models import Manufacturer as NautobotManufacturer
-from nautobot.dcim.models import DeviceType as NautobotDeviceType
-from nautobot.dcim.models import Device as NautobotDevice
-from nautobot.dcim.models import VirtualChassis as NautobotVC
-from nautobot.dcim.models import Interface as NautobotInterface
+from nautobot.core.settings_funcs import is_truthy
 from nautobot.dcim.models import Cable as NautobotCable
+from nautobot.dcim.models import Device as NautobotDevice
+from nautobot.dcim.models import DeviceType as NautobotDeviceType
+from nautobot.dcim.models import Interface as NautobotInterface
+from nautobot.dcim.models import Manufacturer as NautobotManufacturer
+from nautobot.dcim.models import Site as NautobotSite
+from nautobot.dcim.models import VirtualChassis as NautobotVC
+from nautobot.dcim.models.racks import Rack as NautobotRack
+from nautobot.dcim.models.racks import RackGroup as NautobotRackGroup
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
+from nautobot.extras.models import Status as NautobotStatus
 from nautobot.ipam.models import VLAN as NautobotVLAN
-from nautobot_device42_sync.utils import nautobot
-from nautobot_device42_sync.utils import device42
-from nautobot_device42_sync.constant import DEFAULTS, PLUGIN_CFG, INTF_SPEED_MAP
+from nautobot_device42_sync.constant import DEFAULTS, INTF_SPEED_MAP, PLUGIN_CFG
+from nautobot_device42_sync.utils import device42, nautobot
 
 
 class Building(DiffSyncModel):
