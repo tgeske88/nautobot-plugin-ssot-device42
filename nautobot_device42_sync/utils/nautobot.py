@@ -1,8 +1,8 @@
 """Utility functions for Nautobot ORM."""
 from typing import List, OrderedDict
 
-from django.utils.text import slugify
 import random
+from django.utils.text import slugify
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
 
@@ -17,7 +17,7 @@ def get_random_color() -> str:
     Returns:
         str: Hex code value for a color with hash stripped.
     """
-    return "%06x" % random.randint(0, 0xFFF)
+    return f"{'%06x' % random.randint(0, 0xFFFFFF)}"  # pylint: disable=consider-using-f-string
 
 
 def verify_device_role(role_name: str, role_color: str = None) -> DeviceRole:
@@ -50,7 +50,7 @@ def verify_platform(platform_name: str, manu: str) -> Platform:
     Returns:
         DeviceRole: Created DeviceRole object.
     """
-    if platform_name in ANSIBLE_LIB_MAPPER_REVERSE:
+    if ANSIBLE_LIB_MAPPER_REVERSE.get(platform_name):
         _name = ANSIBLE_LIB_MAPPER_REVERSE[platform_name]
     else:
         _name = platform_name
@@ -194,7 +194,7 @@ def get_tag_strings(list_tags: TaggableManager) -> List[str]:
     Returns:
         List[str]: List of string values matching the Tags passed in.
     """
-    _strings = [x for x in list_tags.names()]
+    _strings = list(list_tags.names())
     if len(_strings) > 1:
         _strings.sort()
     return _strings

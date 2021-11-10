@@ -6,10 +6,9 @@ from typing import List
 import requests
 import urllib3
 from django.utils.text import slugify
-from nautobot_device42_sync.constant import DEFAULTS, FC_INTF_MAP, INTF_NAME_MAP, PHY_INTF_MAP, PLUGIN_CFG
 from netutils.lib_mapper import PYATS_LIB_MAPPER
-
 from nautobot.circuits.models import CircuitType
+from nautobot_device42_sync.constant import DEFAULTS, FC_INTF_MAP, INTF_NAME_MAP, PHY_INTF_MAP, PLUGIN_CFG
 
 
 class MissingConfigSetting(Exception):
@@ -46,7 +45,7 @@ def merge_offset_dicts(orig_dict: dict, offset_dict: dict) -> dict:
     return out
 
 
-def get_intf_type(intf_record: dict) -> str:  # pylint: disable=inconsistent-return-statements
+def get_intf_type(diffsync, intf_record: dict) -> str:  # pylint: disable=too-many-branches
     """Method to determine an Interface type based on a few factors.
 
     Those factors include:
@@ -55,47 +54,58 @@ def get_intf_type(intf_record: dict) -> str:  # pylint: disable=inconsistent-ret
         - Discovered type for port
 
     Anything explicitly not matched will go to `other`.
+
+    Returns:
+        _port_type (str): The Nautobot type appropriate for the interface based upon criteria explained above.
     """
     _port_name = re.search(r"^[a-zA-Z]+-?[a-zA-Z]+", intf_record["port_name"].strip())
 
     if _port_name:
         _port_name = _port_name.group()
 
+    _port_type = "other"
     # if switch is physical and name is from PHY_INTF_MAP dict
     if intf_record["port_type"] == "physical":
-        # this handles Mgmt interfaces that didn't have a `discovered_type`.
-        if not intf_record.get("discovered_type"):
-            return "other"
         if "ethernet" in intf_record["discovered_type"] and intf_record["port_speed"] in PHY_INTF_MAP:
-            # print(f"Matched on intf mapping. {intf_record['port_speed']}")
-            return PHY_INTF_MAP[intf_record["port_speed"]]
+            if PLUGIN_CFG.get("verbose_debug"):
+                diffsync.job.log_debug(f"Matched on intf mapping. {intf_record['port_speed']}")
+            _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
         if "fibreChannel" in intf_record["discovered_type"] and intf_record["port_speed"] in FC_INTF_MAP:
-            # print(f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}")
-            return FC_INTF_MAP[intf_record["port_speed"]]
+            if PLUGIN_CFG.get("verbose_debug"):
+                diffsync.job.log_debug(
+                    f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}"
+                )
+            _port_type = FC_INTF_MAP[intf_record["port_speed"]]
         if intf_record["port_speed"] in PHY_INTF_MAP:
-            # print(f"Matched on intf mapping. {intf_record['port_speed']}")
-            return PHY_INTF_MAP[intf_record["port_speed"]]
+            if PLUGIN_CFG.get("verbose_debug"):
+                diffsync.job.log_debug(f"Matched on intf mapping. {intf_record['port_speed']}")
+            _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
         if _port_name in INTF_NAME_MAP:
-            # print(f"Matched on interface name {_port_name}")
-            return INTF_NAME_MAP[_port_name]["itype"]
+            if PLUGIN_CFG.get("verbose_debug"):
+                diffsync.job.log_debug(f"Matched on interface name {_port_name}")
+            _port_type = INTF_NAME_MAP[_port_name]["itype"]
         if "gigabitEthernet" in intf_record["discovered_type"]:
-            return "1000base-t"
+            _port_type = "1000base-t"
         if "dot11" in intf_record["discovered_type"]:
-            return "ieee802.11a"
-        return "other"
-    elif intf_record["port_type"] == "logical":
+            _port_type = "ieee802.11a"
+    if intf_record["port_type"] == "logical":
         if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
-            # print(f"LAG matched. {intf_record['port_name']} {intf_record['device_name']}")
-            return "lag"
-        if intf_record["discovered_type"] == "softwareLoopback" or intf_record["discovered_type"] == "l2vlan":
-            # print(f"Virtual interface matched. {intf_record['port_name']} {intf_record['device_name']}.")
-            return "virtual"
-        if intf_record["discovered_type"] == "propVirtual":
+            if PLUGIN_CFG.get("verbose_debug"):
+                diffsync.job.log_debug(f"LAG matched. {intf_record['port_name']} {intf_record['device_name']}")
+            _port_type = "lag"
+        if (
+            intf_record["discovered_type"] == "softwareLoopback"
+            or intf_record["discovered_type"] == "l2vlan"
+            or intf_record["discovered_type"] == "propVirtual"
+        ):
+            if PLUGIN_CFG.get("verbose_debug"):
+                diffsync.job.log_debug(
+                    f"Virtual, loopback, or l2vlan interface matched. {intf_record['port_name']} {intf_record['device_name']}."
+                )
             if re.search(r"[pP]ort-?[cC]hannel", _port_name):
-                return "lag"
-            else:
-                return "virtual"
-        return "other"
+                _port_type = "lag"
+            _port_type = "virtual"
+    return _port_type
 
 
 def get_netmiko_platform(network_os: str) -> str:
@@ -108,13 +118,13 @@ def get_netmiko_platform(network_os: str) -> str:
         str: Netmiko platform name or original if no match.
     """
     if network_os:
-        os = network_os.replace("-", "")
-        if os in PYATS_LIB_MAPPER:
-            return PYATS_LIB_MAPPER[os]
+        net_os = network_os.replace("-", "")
+        if net_os in PYATS_LIB_MAPPER:
+            return PYATS_LIB_MAPPER[net_os]
     return network_os
 
 
-def find_device_role_from_tags(diffsync, tag_list: List[str]) -> str:
+def find_device_role_from_tags(tag_list: List[str]) -> str:
     """Determine a Device role based upon a Tag matching the `role_prepend` setting.
 
     Args:
@@ -131,15 +141,14 @@ def find_device_role_from_tags(diffsync, tag_list: List[str]) -> str:
     return DEFAULTS.get("device_role")
 
 
-def get_facility(diffsync, tags: List[str]):
+def get_facility(diffsync, tags: List[str]):  # pylint: disable=inconsistent-return-statements
     """Determine Site facility from a specified Tag."""
-    if PLUGIN_CFG.get("facility_prepend"):
-        for _tag in tags:
-            if re.search(PLUGIN_CFG.get("facility_prepend"), _tag):
-                return re.sub(PLUGIN_CFG.get("facility_prepend"), "", _tag)
-    else:
+    if not PLUGIN_CFG.get("facility_prepend"):
         diffsync.job.log_failure("The `facility_prepend` setting is missing or invalid.")
         raise MissingConfigSetting("facility_prepend")
+    for _tag in tags:
+        if re.search(PLUGIN_CFG.get("facility_prepend"), _tag):
+            return re.sub(PLUGIN_CFG.get("facility_prepend"), "", _tag)
 
 
 def verify_circuit_type(circuit_type: str) -> CircuitType:
@@ -162,7 +171,7 @@ def verify_circuit_type(circuit_type: str) -> CircuitType:
     return _ct
 
 
-class Device42API:
+class Device42API:  # pylint: disable=too-many-public-methods
     """Device42 API class."""
 
     def __init__(self, base_url: str, username: str, password: str, verify: bool = True):
@@ -295,7 +304,7 @@ class Device42API:
 
         return {
             _i["cluster"]: {
-                "members": [x for x in _i["members"].split("%3B ")],
+                "members": list(_i["members"].split("%3B ")),
                 "is_network": _i["network_device"],
                 "hardware": _i["hardware"],
                 "os": _i["os"],
@@ -455,7 +464,8 @@ class Device42API:
             _fields[_ip] = list({x["key"]: x for x in _item}.values())
         return _fields
 
-    def get_all_custom_fields(self, custom_fields: List[dict]) -> List[dict]:
+    @staticmethod
+    def get_all_custom_fields(custom_fields: List[dict]) -> List[dict]:
         """Get all Custom Fields for object.
 
         As Device42 only returns CustomFields with values in them when using DOQL, we need to compile a list of all Custom Fields on an object to match Nautobot method.
