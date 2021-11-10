@@ -1,4 +1,4 @@
-"""DiffSync model class definitions for nautobot-device42-sync."""
+"""DiffSync model class definitions for nautobot-ssot-device42."""
 
 from .circuits import Circuit, Provider
 from .dcim import Building, Cluster, Connection, Device, Hardware, Port, Rack, Room, Vendor

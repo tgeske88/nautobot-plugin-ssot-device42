@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "nautobot-device42-sync"
+name = "nautobot-ssot-device42"
 version = "0.12.0"
 description = "Nautobot plugin for syncing to Device42"
 authors = ["Justin Drew <justin.drew@networktocode.com>"]
@@ -11,7 +11,7 @@ include = [
     "README.md",
 ]
 packages = [
-    { include = "nautobot_device42_sync" },
+    { include = "nautobot_ssot_device42" },
 ]
 
 [tool.poetry.dependencies]
@@ -100,7 +100,7 @@ addopts = "-vv --doctest-modules"
 
 [tool.semantic_release]
 version_variable = [
-    "nautobot_device42_sync/__init__.py:__version__"
+    "nautobot_ssot_device42/__init__.py:__version__"
 ]
 version_toml = [
     "pyproject.toml:tool.poetry.version"

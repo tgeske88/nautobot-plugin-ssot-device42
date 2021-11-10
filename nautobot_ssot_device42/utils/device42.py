@@ -8,7 +8,7 @@ import urllib3
 from django.utils.text import slugify
 from netutils.lib_mapper import PYATS_LIB_MAPPER
 from nautobot.circuits.models import CircuitType
-from nautobot_device42_sync.constant import DEFAULTS, FC_INTF_MAP, INTF_NAME_MAP, PHY_INTF_MAP, PLUGIN_CFG
+from nautobot_ssot_device42.constant import DEFAULTS, FC_INTF_MAP, INTF_NAME_MAP, PHY_INTF_MAP, PLUGIN_CFG
 
 
 class MissingConfigSetting(Exception):

@@ -1,4 +1,4 @@
-"""Unit tests for nautobot_device42_sync."""
+"""Unit tests for nautobot_ssot_device42."""
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse

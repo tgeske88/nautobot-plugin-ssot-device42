@@ -33,13 +33,13 @@ def is_truthy(arg):
 
 
 # Use pyinvoke configuration for default values, see http://docs.pyinvoke.org/en/stable/concepts/configuration.html
-# Variables may be overwritten in invoke.yml or by the environment variables INVOKE_NAUTOBOT_DEVICE42_SYNC_xxx
-namespace = Collection("nautobot_device42_sync")
+# Variables may be overwritten in invoke.yml or by the environment variables INVOKE_NAUTOBOT_SSOT_DEVICE42_xxx
+namespace = Collection("nautobot_ssot_device42")
 namespace.configure(
     {
-        "nautobot_device42_sync": {
-            "nautobot_ver": "1.0.3",
-            "project_name": "nautobot_device42_sync",
+        "nautobot_ssot_device42": {
+            "nautobot_ver": "1.1.4",
+            "project_name": "nautobot-ssot-device42",
             "python_ver": "3.7",
             "local": False,
             "compose_dir": os.path.join(os.path.dirname(__file__), "development"),
@@ -82,12 +82,12 @@ def docker_compose(context, command, **kwargs):
         **kwargs: Passed through to the context.run() call.
     """
     build_env = {
-        "NAUTOBOT_VER": context.nautobot_device42_sync.nautobot_ver,
-        "PYTHON_VER": context.nautobot_device42_sync.python_ver,
+        "NAUTOBOT_VER": context.nautobot_ssot_device42.nautobot_ver,
+        "PYTHON_VER": context.nautobot_ssot_device42.python_ver,
     }
-    compose_command = f'docker-compose --project-name {context.nautobot_device42_sync.project_name} --project-directory "{context.nautobot_device42_sync.compose_dir}"'
-    for compose_file in context.nautobot_device42_sync.compose_files:
-        compose_file_path = os.path.join(context.nautobot_device42_sync.compose_dir, compose_file)
+    compose_command = f'docker-compose --project-name {context.nautobot_ssot_device42.project_name} --project-directory "{context.nautobot_ssot_device42.compose_dir}"'
+    for compose_file in context.nautobot_ssot_device42.compose_files:
+        compose_file_path = os.path.join(context.nautobot_ssot_device42.compose_dir, compose_file)
         compose_command += f' -f "{compose_file_path}"'
     compose_command += f" {command}"
     print(f'Running docker-compose command "{command}"')
@@ -96,7 +96,7 @@ def docker_compose(context, command, **kwargs):
 
 def run_command(context, command, **kwargs):
     """Wrapper to run a command locally or inside the nautobot container."""
-    if is_truthy(context.nautobot_device42_sync.local):
+    if is_truthy(context.nautobot_ssot_device42.local):
         context.run(command, **kwargs)
     else:
         # Check if netbox is running, no need to start another netbox container to run a command
@@ -128,7 +128,7 @@ def build(context, force_rm=False, cache=True):
     if force_rm:
         command += " --force-rm"
 
-    print(f"Building Nautobot with Python {context.nautobot_device42_sync.python_ver}...")
+    print(f"Building Nautobot with Python {context.nautobot_ssot_device42.python_ver}...")
     docker_compose(context, command)
 
 
@@ -180,9 +180,9 @@ def destroy(context):
 @task
 def vscode(context):
     """Launch Visual Studio Code with the appropriate Environment variables to run in a container."""
-    command = "code nautobot.code-workspace"
+    command = "code nautobot-plugin-ssot-device42.code-workspace"
 
-    context.run(command)
+    context.run(command, env={"PYTHON_VER": context.nautobot_ssot_device42.python_ver})
 
 
 # ------------------------------------------------------------------------------
@@ -220,7 +220,7 @@ def createsuperuser(context, user="admin"):
 )
 def makemigrations(context, name=""):
     """Perform makemigrations operation in Django."""
-    command = "nautobot-server makemigrations nautobot_device42_sync"
+    command = "nautobot-server makemigrations nautobot_ssot_device42"
 
     if name:
         command += f" --name {name}"
@@ -292,7 +292,7 @@ def hadolint(context):
 @task
 def pylint(context):
     """Run pylint code analysis."""
-    command = 'pylint --init-hook "import nautobot; nautobot.setup()" --rcfile pyproject.toml nautobot_device42_sync'
+    command = 'pylint --init-hook "import nautobot; nautobot.setup()" --rcfile pyproject.toml nautobot_ssot_device42'
     run_command(context, command)
 
 
@@ -327,7 +327,7 @@ def check_migrations(context):
         "buffer": "Discard output from passing tests",
     }
 )
-def unittest(context, keepdb=False, label="nautobot_device42_sync", failfast=False, buffer=True):
+def unittest(context, keepdb=False, label="nautobot_ssot_device42", failfast=False, buffer=True):
     """Run Nautobot unit tests."""
     command = f"coverage run --module nautobot.core.cli test {label}"
 
@@ -343,7 +343,7 @@ def unittest(context, keepdb=False, label="nautobot_device42_sync", failfast=Fal
 @task
 def unittest_coverage(context):
     """Report on code test coverage as measured by 'invoke unittest'."""
-    command = "coverage report --skip-covered --include 'nautobot_device42_sync/*' --omit *migrations*"
+    command = "coverage report --skip-covered --include 'nautobot_ssot_device42/*' --omit *migrations*"
 
     run_command(context, command)
 
@@ -356,7 +356,7 @@ def unittest_coverage(context):
 def tests(context, failfast=False):
     """Run all tests for this plugin."""
     # If we are not running locally, start the docker containers so we don't have to for each test
-    if not is_truthy(context.nautobot_device42_sync.local):
+    if not is_truthy(context.nautobot_ssot_device42.local):
         print("Starting Docker Containers...")
         start(context)
     # Sorted loosely from fastest to slowest

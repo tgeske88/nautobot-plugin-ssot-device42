@@ -12,8 +12,8 @@ from nautobot.dcim.models import Cable as NautobotCable
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.extras.models import Status as NautobotStatus
-from nautobot_device42_sync.constant import INTF_SPEED_MAP
-from nautobot_device42_sync.utils import device42, nautobot
+from nautobot_ssot_device42.constant import INTF_SPEED_MAP
+from nautobot_ssot_device42.utils import device42, nautobot
 
 
 class Provider(DiffSyncModel):

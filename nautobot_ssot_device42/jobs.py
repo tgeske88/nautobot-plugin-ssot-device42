@@ -9,9 +9,9 @@ from requests import HTTPError
 
 from diffsync import DiffSyncFlags
 from diffsync.exceptions import ObjectNotCreated
-from nautobot_device42_sync.constant import PLUGIN_CFG
-from nautobot_device42_sync.diffsync.from_d42.device42 import Device42Adapter
-from nautobot_device42_sync.diffsync.from_d42.nautobot import NautobotAdapter
+from nautobot_ssot_device42.constant import PLUGIN_CFG
+from nautobot_ssot_device42.diffsync.from_d42.device42 import Device42Adapter
+from nautobot_ssot_device42.diffsync.from_d42.nautobot import NautobotAdapter
 
 from .diff import CustomOrderingDiff
 
@@ -26,7 +26,7 @@ class Device42DataSource(DataSource, Job):
 
         name = "Device42"
         data_source = "Device42"
-        data_source_icon = static("nautobot_device42_sync/d42_logo.png")
+        data_source_icon = static("nautobot_ssot_device42/d42_logo.png")
         description = "Sync information from Device42 to Nautobot"
 
     @classmethod

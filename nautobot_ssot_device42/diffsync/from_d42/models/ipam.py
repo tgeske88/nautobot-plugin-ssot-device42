@@ -17,8 +17,8 @@ from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot.ipam.models import VRF as NautobotVRF
 from nautobot.ipam.models import IPAddress as NautobotIPAddress
 from nautobot.ipam.models import Prefix as NautobotPrefix
-from nautobot_device42_sync.constant import PLUGIN_CFG
-from nautobot_device42_sync.utils import nautobot
+from nautobot_ssot_device42.constant import PLUGIN_CFG
+from nautobot_ssot_device42.utils import nautobot
 
 
 class VRFGroup(DiffSyncModel):

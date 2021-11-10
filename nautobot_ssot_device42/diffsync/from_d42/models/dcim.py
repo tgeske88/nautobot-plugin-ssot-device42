@@ -23,8 +23,8 @@ from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot.ipam.models import VLAN as NautobotVLAN
-from nautobot_device42_sync.constant import DEFAULTS, INTF_SPEED_MAP, PLUGIN_CFG
-from nautobot_device42_sync.utils import device42, nautobot
+from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP, PLUGIN_CFG
+from nautobot_ssot_device42.utils import device42, nautobot
 
 
 class Building(DiffSyncModel):

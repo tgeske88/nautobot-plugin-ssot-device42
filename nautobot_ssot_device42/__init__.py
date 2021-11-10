@@ -1,4 +1,4 @@
-"""Plugin declaration for nautobot_device42_sync."""
+"""Plugin declaration for nautobot_ssot_device42."""
 
 __version__ = "0.12.0"
 
@@ -6,14 +6,14 @@ from nautobot.extras.plugins import PluginConfig
 
 
 class NautobotDevice42SyncConfig(PluginConfig):
-    """Plugin configuration for the nautobot_device42_sync plugin."""
+    """Plugin configuration for the nautobot_ssot_device42 plugin."""
 
-    name = "nautobot_device42_sync"
+    name = "nautobot_ssot_device42"
     verbose_name = "Nautobot Device42 Sync"
     version = __version__
     author = "Justin Drew"
     description = "Nautobot plugin for syncing to Device42."
-    base_url = "nautobot-device42-sync"
+    base_url = "nautobot-ssot-device42"
     required_settings = [
         "device42_host",
         "device42_username",

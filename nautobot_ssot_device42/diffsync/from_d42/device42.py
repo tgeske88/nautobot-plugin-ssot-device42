@@ -8,9 +8,9 @@ from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from django.utils.functional import classproperty
 from django.utils.text import slugify
-from nautobot_device42_sync.constant import PLUGIN_CFG
-from nautobot_device42_sync.diffsync.from_d42.models import circuits, dcim, ipam
-from nautobot_device42_sync.utils.device42 import Device42API, get_facility, get_intf_type, get_netmiko_platform
+from nautobot_ssot_device42.constant import PLUGIN_CFG
+from nautobot_ssot_device42.diffsync.from_d42.models import circuits, dcim, ipam
+from nautobot_ssot_device42.utils.device42 import Device42API, get_facility, get_intf_type, get_netmiko_platform
 from netutils.bandwidth import name_to_bits
 
 from nautobot.core.settings_funcs import is_truthy

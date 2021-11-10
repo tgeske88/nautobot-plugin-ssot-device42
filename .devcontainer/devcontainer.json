@@ -1,0 +1,24 @@
+{
+    "dockerComposeFile": [
+        "../development/docker-compose.requirements.yml",
+        "../development/docker-compose.base.yml",
+        "../development/docker-compose.dev.yml"
+    ],
+    "service": "nautobot",
+    "workspaceFolder": "/source/",
+    "extensions": [
+        "ms-python.vscode-pylance",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens",
+        "oderwat.indent-rainbow",
+        "ms-python.python",
+    ],
+    "settings": {
+        "python.pythonPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": [
+            "/source"
+        ],
+        "python.linting.pylintEnabled": true,
+        "python.linting.enabled": true
+    }
+}

@@ -1,6 +1,6 @@
 ---
-nautobot_device42_sync:
-  project_name: "nautobot-device42-sync"
+nautobot_ssot_device42:
+  project_name: "nautobot-ssot-device42"
   nautobot_ver: "1.0.3"
   local: false
   python_ver: "3.6"

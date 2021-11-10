@@ -8,9 +8,9 @@ from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ProtectedError
-from nautobot_device42_sync.constant import PLUGIN_CFG, USE_DNS
-from nautobot_device42_sync.diffsync.from_d42.models import circuits, dcim, ipam
-from nautobot_device42_sync.utils import nautobot
+from nautobot_ssot_device42.constant import PLUGIN_CFG, USE_DNS
+from nautobot_ssot_device42.diffsync.from_d42.models import circuits, dcim, ipam
+from nautobot_ssot_device42.utils import nautobot
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
 
 from nautobot.circuits.models import Circuit, CircuitTermination, Provider
