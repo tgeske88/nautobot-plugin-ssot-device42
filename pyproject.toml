@@ -22,7 +22,6 @@ diffsync = "^1.3.0"
 requests = "^2.26.0"
 nautobot-ssot = "^1.0.0"
 dnspython = "^2.1.0"
-Faker = "^8.12.1"
 # netutils = "^0.2.2"
 netutils = { git = "https://github.com/networktocode/netutils.git", branch = "develop" }
 
@@ -113,3 +112,4 @@ upload_to_release = false
 build_command = "pip install poetry && poetry build"
 changelog_file = "CHANGELOG.md"
 hvcs = "Gitlab"
+hvcs_domain = "gitlab.corp.zmi.global"

@@ -2,16 +2,13 @@
 from typing import List, OrderedDict
 
 from django.utils.text import slugify
+import random
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
 
 from nautobot.dcim.models import Device, DeviceRole, Interface, Manufacturer, Platform
 from nautobot.extras.models import Tag
 from nautobot.ipam.models import IPAddress
-from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
-
-
-fake = Factory.create()
 
 
 def get_random_color() -> str:
@@ -20,7 +17,7 @@ def get_random_color() -> str:
     Returns:
         str: Hex code value for a color with hash stripped.
     """
-    return fake.hex_color().strip("#")
+    return "%06x" % random.randint(0, 0xFFF)
 
 
 def verify_device_role(role_name: str, role_color: str = None) -> DeviceRole:
