@@ -43,7 +43,7 @@ def merge_offset_dicts(orig_dict: dict, offset_dict: dict) -> dict:
     return out
 
 
-def get_intf_type(diffsync, intf_record: dict) -> str:  # pylint: disable=too-many-branches
+def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=too-many-branches
     """Method to determine an Interface type based on a few factors.
 
     Those factors include:
@@ -52,6 +52,10 @@ def get_intf_type(diffsync, intf_record: dict) -> str:  # pylint: disable=too-ma
         - Discovered type for port
 
     Anything explicitly not matched will go to `other`.
+
+    Args:
+        intf_record (dict): Interface record from Device42 with details about the Port.
+        diffsync (obj): Object used for logging to Diffsync Job.
 
     Returns:
         _port_type (str): The Nautobot type appropriate for the interface based upon criteria explained above.
@@ -63,35 +67,43 @@ def get_intf_type(diffsync, intf_record: dict) -> str:  # pylint: disable=too-ma
 
     _port_type = "other"
     # if switch is physical and name is from PHY_INTF_MAP dict
-    if intf_record["port_type"] == "physical":
-        if "ethernet" in intf_record["discovered_type"] and intf_record["port_speed"] in PHY_INTF_MAP:
+    if intf_record["port_type"] == "physical" and intf_record.get("discovered_type"):
+        if (
+            "ethernet" in intf_record["discovered_type"]
+            and intf_record.get("port_speed")
+            and intf_record["port_speed"] in PHY_INTF_MAP
+        ):
             if PLUGIN_CFG.get("verbose_debug"):
                 diffsync.job.log_debug(f"Matched on intf mapping. {intf_record['port_speed']}")
             _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
-        if "fibreChannel" in intf_record["discovered_type"] and intf_record["port_speed"] in FC_INTF_MAP:
+        elif (
+            "fibreChannel" in intf_record["discovered_type"]
+            and intf_record.get("port_speed")
+            and intf_record["port_speed"] in FC_INTF_MAP
+        ):
             if PLUGIN_CFG.get("verbose_debug"):
                 diffsync.job.log_debug(
                     f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}"
                 )
             _port_type = FC_INTF_MAP[intf_record["port_speed"]]
-        if intf_record["port_speed"] in PHY_INTF_MAP:
+        elif intf_record["port_speed"] in PHY_INTF_MAP:
             if PLUGIN_CFG.get("verbose_debug"):
                 diffsync.job.log_debug(f"Matched on intf mapping. {intf_record['port_speed']}")
             _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
-        if _port_name in INTF_NAME_MAP:
+        elif _port_name and _port_name in INTF_NAME_MAP:
             if PLUGIN_CFG.get("verbose_debug"):
                 diffsync.job.log_debug(f"Matched on interface name {_port_name}")
             _port_type = INTF_NAME_MAP[_port_name]["itype"]
-        if "gigabitEthernet" in intf_record["discovered_type"]:
+        elif "gigabitEthernet" in intf_record["discovered_type"]:
             _port_type = "1000base-t"
-        if "dot11" in intf_record["discovered_type"]:
+        elif "dot11" in intf_record["discovered_type"]:
             _port_type = "ieee802.11a"
-    if intf_record["port_type"] == "logical":
+    if intf_record["port_type"] == "logical" and intf_record.get("discovered_type"):
         if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
             if PLUGIN_CFG.get("verbose_debug"):
                 diffsync.job.log_debug(f"LAG matched. {intf_record['port_name']} {intf_record['device_name']}")
             _port_type = "lag"
-        if (
+        elif (
             intf_record["discovered_type"] == "softwareLoopback"
             or intf_record["discovered_type"] == "l2vlan"
             or intf_record["discovered_type"] == "propVirtual"
@@ -100,9 +112,10 @@ def get_intf_type(diffsync, intf_record: dict) -> str:  # pylint: disable=too-ma
                 diffsync.job.log_debug(
                     f"Virtual, loopback, or l2vlan interface matched. {intf_record['port_name']} {intf_record['device_name']}."
                 )
-            if re.search(r"[pP]ort-?[cC]hannel", _port_name):
+            if _port_name and re.search(r"[pP]ort-?[cC]hannel", _port_name):
                 _port_type = "lag"
-            _port_type = "virtual"
+            else:
+                _port_type = "virtual"
     return _port_type
 
 
@@ -139,7 +152,7 @@ def find_device_role_from_tags(tag_list: List[str]) -> str:
     return DEFAULTS.get("device_role")
 
 
-def get_facility(diffsync, tags: List[str]):  # pylint: disable=inconsistent-return-statements
+def get_facility(tags: List[str], diffsync=None):  # pylint: disable=inconsistent-return-statements
     """Determine Site facility from a specified Tag."""
     if not PLUGIN_CFG.get("facility_prepend"):
         diffsync.job.log_failure("The `facility_prepend` setting is missing or invalid.")

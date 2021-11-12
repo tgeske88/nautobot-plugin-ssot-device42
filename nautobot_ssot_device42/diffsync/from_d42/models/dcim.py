@@ -62,7 +62,7 @@ class Building(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 new_site.tags.add(_tag)
-            _facility = device42.get_facility(diffsync, tags=attrs["tags"])
+            _facility = device42.get_facility(tags=attrs["tags"], diffsync=diffsync)
             if _facility:
                 new_site.facility = _facility.upper()
         if attrs.get("custom_fields"):
@@ -94,7 +94,7 @@ class Building(DiffSyncModel):
         if attrs.get("tags"):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _site.tags.add(_tag)
-            _facility = device42.get_facility(diffsync=self.diffsync, tags=attrs["tags"])
+            _facility = device42.get_facility(tags=attrs["tags"], diffsync=self.diffsync)
             if _facility:
                 _site.facility = _facility.upper()
         if attrs.get("custom_fields"):
@@ -578,9 +578,7 @@ class Device(DiffSyncModel):
         if attrs.get("building"):
             diffsync.job.log_debug(f"Creating device {ids['name']}.")
             if attrs.get("tags") and len(attrs["tags"]) > 0:
-                _role = nautobot.verify_device_role(
-                    device42.find_device_role_from_tags(diffsync, tag_list=attrs["tags"])
-                )
+                _role = nautobot.verify_device_role(device42.find_device_role_from_tags(tag_list=attrs["tags"]))
             else:
                 _role = nautobot.verify_device_role(role_name=DEFAULTS.get("device_role"))
             try:
