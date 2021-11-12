@@ -5,9 +5,7 @@ from typing import List
 
 import requests
 import urllib3
-from django.utils.text import slugify
 from netutils.lib_mapper import PYATS_LIB_MAPPER
-from nautobot.circuits.models import CircuitType
 from nautobot_ssot_device42.constant import DEFAULTS, FC_INTF_MAP, INTF_NAME_MAP, PHY_INTF_MAP, PLUGIN_CFG
 
 
@@ -149,26 +147,6 @@ def get_facility(diffsync, tags: List[str]):  # pylint: disable=inconsistent-ret
     for _tag in tags:
         if re.search(PLUGIN_CFG.get("facility_prepend"), _tag):
             return re.sub(PLUGIN_CFG.get("facility_prepend"), "", _tag)
-
-
-def verify_circuit_type(circuit_type: str) -> CircuitType:
-    """Method to find or create a CircuitType in Nautobot.
-
-    Args:
-        circuit_type (str): Name of CircuitType to be found or created.
-
-    Returns:
-        CircuitType: CircuitType object found or created.
-    """
-    try:
-        _ct = CircuitType.objects.get(slug=slugify(circuit_type))
-    except CircuitType.DoesNotExist:
-        _ct = CircuitType(
-            name=circuit_type,
-            slug=slugify(circuit_type),
-        )
-        _ct.validated_save()
-    return _ct
 
 
 class Device42API:  # pylint: disable=too-many-public-methods

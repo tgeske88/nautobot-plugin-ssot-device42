@@ -5,7 +5,7 @@ import random
 from django.utils.text import slugify
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
-
+from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Manufacturer, Platform
 from nautobot.extras.models import Tag
 from nautobot.ipam.models import IPAddress
@@ -218,3 +218,23 @@ def get_custom_field_dicts(cfields: OrderedDict) -> List[dict]:
         }
         cf_list.append(custom_field)
     return sorted(cf_list, key=lambda d: d["key"])
+
+
+def verify_circuit_type(circuit_type: str) -> CircuitType:
+    """Method to find or create a CircuitType in Nautobot.
+
+    Args:
+        circuit_type (str): Name of CircuitType to be found or created.
+
+    Returns:
+        CircuitType: CircuitType object found or created.
+    """
+    try:
+        _ct = CircuitType.objects.get(slug=slugify(circuit_type))
+    except CircuitType.DoesNotExist:
+        _ct = CircuitType(
+            name=circuit_type,
+            slug=slugify(circuit_type),
+        )
+        _ct.validated_save()
+    return _ct
