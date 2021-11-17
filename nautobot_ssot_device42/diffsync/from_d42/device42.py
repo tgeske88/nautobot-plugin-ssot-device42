@@ -664,28 +664,30 @@ class Device42Adapter(DiffSync):
                 tags=_tc["tags"].split(",") if _tc.get("tags") else [],
             )
             self.add(new_circuit)
-            # Add Connection from A size connection Device to Circuit
-            a_side_conn = self.conn(
-                src_device=origin_dev,
-                src_port=origin_int,
-                src_port_mac=self.port_map[_tc["origin_netport_fk"]]["hwaddress"],
-                src_type="interface",
-                dst_device=_tc["circuit_id"],
-                dst_port=_tc["circuit_id"],
-                dst_type="circuit",
-            )
-            self.add(a_side_conn)
-            # Add Connection from Z size connection Circuit to Device
-            z_side_conn = self.conn(
-                src_device=_tc["circuit_id"],
-                src_port=_tc["circuit_id"],
-                src_type="circuit",
-                dst_device=endpoint_dev,
-                dst_port=endpoint_int,
-                dst_port_mac=self.port_map[_tc["end_point_netport_fk"]]["hwaddress"],
-                dst_type="interface",
-            )
-            self.add(z_side_conn)
+            # Add Connection from A side connection Device to Circuit
+            if _tc["origin_type"] == "Device Port":
+                a_side_conn = self.conn(
+                    src_device=origin_dev,
+                    src_port=origin_int,
+                    src_port_mac=self.port_map[_tc["origin_netport_fk"]]["hwaddress"],
+                    src_type="interface",
+                    dst_device=_tc["circuit_id"],
+                    dst_port=_tc["circuit_id"],
+                    dst_type="circuit",
+                )
+                self.add(a_side_conn)
+            # Add Connection from Z side connection Circuit to Device
+            if _tc["end_point_type"] == "Device Port":
+                z_side_conn = self.conn(
+                    src_device=_tc["circuit_id"],
+                    src_port=_tc["circuit_id"],
+                    src_type="circuit",
+                    dst_device=endpoint_dev,
+                    dst_port=endpoint_int,
+                    dst_port_mac=self.port_map[_tc["end_point_netport_fk"]]["hwaddress"],
+                    dst_type="interface",
+                )
+                self.add(z_side_conn)
 
     def load(self):
         """Load data from Device42."""
