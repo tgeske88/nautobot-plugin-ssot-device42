@@ -24,6 +24,7 @@ nautobot-ssot = "^1.0.0"
 dnspython = "^2.1.0"
 # netutils = "^0.2.2"
 netutils = { git = "https://github.com/networktocode/netutils.git", branch = "develop" }
+nautobot-device-lifecycle-mgmt = {version = "^0.2.2", optional = true}
 
 [tool.poetry.dev-dependencies]
 bandit = "*"
@@ -42,6 +43,7 @@ parameterized = "^0.8.1"
 
 [tool.poetry.extras]
 nautobot = ["nautobot"]
+nautobot-device-lifecycle-mgmt = ["nautobot-device-lifecycle-mgmt"]
 
 [tool.black]
 line-length = 120
