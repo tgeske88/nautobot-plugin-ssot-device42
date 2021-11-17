@@ -1,12 +1,11 @@
 """Basic tests that do not require Django."""
-import unittest
 import os
 import toml
-
+from nautobot.utilities.testing import TestCase
 from nautobot_ssot_device42 import __version__ as project_version
 
 
-class TestVersion(unittest.TestCase):
+class TestVersion(TestCase):
     """Test Version is the same."""
 
     def test_version(self):

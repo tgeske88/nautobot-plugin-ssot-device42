@@ -1,11 +1,11 @@
 """Tests of Device42 utility methods."""
 
-import unittest
+from nautobot.utilities.testing import TestCase
 from parameterized import parameterized
 from nautobot_ssot_device42.utils import device42
 
 
-class TestUtilsDevice42(unittest.TestCase):
+class TestUtilsDevice42(TestCase):
     """Test Device42 util methods."""
 
     def test_merge_offset_dicts(self):
