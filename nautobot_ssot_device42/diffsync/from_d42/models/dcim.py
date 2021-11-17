@@ -623,8 +623,8 @@ class Device(DiffSyncModel):
                                 if node_pos:
                                     position = int(node_pos.group("pos")) + 1
                             else:
-                                position = len(
-                                    NautobotDevice.objects.filter(virtual_chassis__name=attrs["cluster_host"])
+                                position = (
+                                    len(NautobotDevice.objects.filter(virtual_chassis__name=attrs["cluster_host"])) + 1
                                 )
                             new_device.vc_position = position + 1
                     except NautobotVC.DoesNotExist as err:
