@@ -22,8 +22,7 @@ diffsync = "^1.3.0"
 requests = "^2.26.0"
 nautobot-ssot = "^1.0.0"
 dnspython = "^2.1.0"
-# netutils = "^0.2.2"
-netutils = { git = "https://github.com/networktocode/netutils.git", branch = "develop" }
+netutils = "^0.2.4"
 nautobot-device-lifecycle-mgmt = {version = "^0.2.2", optional = true}
 
 [tool.poetry.dev-dependencies]
