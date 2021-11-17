@@ -2,12 +2,12 @@
 x-nautobot-build: &nautobot-build
   build:
     args:
-      NAUTOBOT_VER: "${NAUTOBOT_VER}"
-      PYTHON_VER: "${PYTHON_VER}"
+      NAUTOBOT_VER: "${NAUTOBOT_VER:-1.1.4}"
+      PYTHON_VER: "${PYTHON_VER:-3.7}"
     context: "../"
     dockerfile: "development/Dockerfile"
 x-nautobot-base: &nautobot-base
-  image: "nautobot-ssot-device42/nautobot:${NAUTOBOT_VER}-py${PYTHON_VER}"
+  image: "nautobot-ssot-device42/nautobot:${NAUTOBOT_VER:-1.1.4}-py${PYTHON_VER:-3.7}"
   env_file:
     - "dev.env"
     - "creds.env"
