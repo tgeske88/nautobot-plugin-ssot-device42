@@ -131,7 +131,9 @@ class NautobotAdapter(DiffSync):
                 _devname = _dev.name.strip()
                 if PLUGIN_CFG.get("verbose_debug"):
                     self.job.log_info(f"Attempting to resolve {_dev.name} _devname: {_devname}")
-                if not re.search(r"\s-\s\w+\s?\d+", _devname) and not re.search(r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _devname):
+                if not re.search(r"\s-\s\w+\s?\d+", _devname) and not re.search(
+                    r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _devname
+                ):
                     _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", _devname)
                     if _devname:
                         _devname = _devname.group()
@@ -142,26 +144,26 @@ class NautobotAdapter(DiffSync):
                         _ans = answ[0].to_text()
                     except dns.resolver.NXDOMAIN as err:
                         if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_warning(f"Non-existent domain {_devname} {err}")
+                            self.job.log_warning(message=f"Non-existent domain {_devname} {err}")
                         continue
                     except dns.resolver.NoAnswer as err:
                         if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_warning(f"No record found for {_devname} {err}")
+                            self.job.log_warning(message=f"No record found for {_devname} {err}")
                         continue
                     except dns.exception.Timeout as err:
                         if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_warning(f"DNS resolution timed out for {_devname}. {err}")
+                            self.job.log_warning(message=f"DNS resolution timed out for {_devname}. {err}")
                         continue
                     if _dev.primary_ip and _ans == str(_dev.primary_ip):
                         if PLUGIN_CFG.get("verbose_debug"):
                             self.job.log_info(
-                                f"Primary IP for {_dev.name} already matches DNS. No need to change anything."
+                                message=f"Primary IP for {_dev.name} already matches DNS. No need to change anything."
                             )
                         continue
                     try:
                         if PLUGIN_CFG.get("verbose_debug"):
                             self.job.log_warning(
-                                f"{_dev.name} missing primary IP / or it doesn't match DNS response. Updating primary IP to {_ans}."
+                                message=f"{_dev.name} missing primary IP / or it doesn't match DNS response. Updating primary IP to {_ans}."
                             )
                         _ip = IPAddress.objects.get(host=_ans)
                         if _ip and _ip.assigned_object and (_ip.assigned_object.device == _dev):
@@ -172,7 +174,7 @@ class NautobotAdapter(DiffSync):
                             print(f"Unable to find IP Address {_ans}. {err}")
                     self.create_mgmt_assign_primary(_dev, _ans)
                 else:
-                    self.job.log_warning(f"Skipping {_devname} due to invalid Device name.")
+                    self.job.log_warning(message=f"Skipping {_devname} due to invalid Device name.")
 
     def create_mgmt_assign_primary(self, dev: Device, ans: str):
         """Method to create a Management Interface if one isn't found and assign the DNS resolved IP as primary to it.
