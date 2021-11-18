@@ -259,7 +259,7 @@ NAPALM_ARGS = {}
 PAGINATE_COUNT = int(os.environ.get("PAGINATE_COUNT", 50))
 
 # Enable installed plugins. Add the name of each plugin to the list.
-PLUGINS = ["nautobot_ssot", "nautobot_ssot_device42"]
+PLUGINS = ["nautobot_ssot", "nautobot_ssot_device42", "nautobot_device_lifecycle_mgmt"]
 
 # Plugins configuration settings. These settings are used by various plugins that the user may have installed.
 # Each key in the dictionary is the name of an installed plugin and its value is a dictionary of settings.
