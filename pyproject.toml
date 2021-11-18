@@ -39,6 +39,7 @@ pylint-django = "*"
 yamllint = "*"
 python-semantic-release = "^7.19.2"
 parameterized = "^0.8.1"
+responses = "^0.16.0"
 
 [tool.poetry.extras]
 nautobot = ["nautobot"]
