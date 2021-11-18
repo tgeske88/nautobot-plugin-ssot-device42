@@ -180,9 +180,15 @@ def destroy(context):
 @task
 def vscode(context):
     """Launch Visual Studio Code with the appropriate Environment variables to run in a container."""
-    command = "code nautobot-plugin-ssot-device42.code-workspace"
+    command = "code nautobot_ssot_device42.code-workspace"
 
-    context.run(command, env={"PYTHON_VER": context.nautobot_ssot_device42.python_ver})
+    context.run(
+        command,
+        env={
+            "PYTHON_VER": context.nautobot_ssot_device42.python_ver,
+            "NAUTOBOT_VER": context.nautobot_ssot_device42.nautobot_ver,
+        },
+    )
 
 
 # ------------------------------------------------------------------------------
