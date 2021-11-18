@@ -131,12 +131,7 @@ class NautobotAdapter(DiffSync):
                 _devname = _dev.name.strip()
                 if PLUGIN_CFG.get("verbose_debug"):
                     self.job.log_info(f"Attempting to resolve {_dev.name} _devname: {_devname}")
-                if not re.search(r"\s-\s\w+\s?\d+", _devname):
-                    # ignore AP device names, they appear like FQDNs but are actually a MAC addr
-                    if re.search(r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _devname):
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_info(f"AP found {_devname}, skipping.")
-                        continue
+                if not re.search(r"\s-\s\w+\s?\d+", _devname) and not re.search(r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _devname):
                     _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", _devname)
                     if _devname:
                         _devname = _devname.group()
