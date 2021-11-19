@@ -192,6 +192,26 @@ class TestDevice42Api(TestCase):
         }
         response = self.dev42.get_cluster_members()
         self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+        self.assertTrue(
+            responses.calls[0].request.url
+            == "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT+m.name+as+cluster%2C+string_agg%28d.name%2C+%27%253B+%27%29+as+members%2C+h.name+as+hardware%2C+d.network_device%2C+d.os_name+as+os%2C+b.name+as+customer%2C+d.tags+FROM+view_device_v1+m+JOIN+view_devices_in_cluster_v1+c+ON+c.parent_device_fk+%3D+m.device_pk+JOIN+view_device_v1+d+ON+d.device_pk+%3D+c.child_device_fk+JOIN+view_hardware_v1+h+ON+h.hardware_pk+%3D+d.hardware_fk+JOIN+view_customer_v1+b+ON+b.customer_pk+%3D+d.customer_fk+WHERE+m.type+like+%27%25cluster%25%27+GROUP+BY+m.name%2C+h.name%2C+d.network_device%2C+d.os_name%2C+b.name%2C+d.tags&output_type=json&_paging=1&_return_as_object=1&_max_results=1000"
+        )
+        # print(responses.calls[0].response.text)
+        # self.assertTrue(
+        #     responses.calls[0].response.text
+        #     == [
+        #         {
+        #             "cluster": "corea.testcluster.com",
+        #             "members": "corea.testcluster.com - Switch 2%3B corea.testcluster.com - Switch 1",
+        #             "hardware": "Nexus 9000V",
+        #             "network_device": True,
+        #             "os": "nxos",
+        #             "customer": "DFW",
+        #             "tags": "",
+        #         }
+        #     ]
+        # )
 
     @responses.activate
     def test_get_ports_with_vlans(self):
@@ -234,3 +254,66 @@ class TestDevice42Api(TestCase):
         ]
         response = self.dev42.get_ports_with_vlans()
         self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_ports_wo_vlans(self):
+        """Test get_ports_wo_vlans success."""
+        test_query = [
+            {
+                "port_name": "Ethernet1/1.100",
+                "description": "Ethernet1/0/1",
+                "up_admin": True,
+                "discovered_type": "l2vlan",
+                "hwaddress": "",
+                "port_type": "logical",
+                "port_speed": "40 Gbps",
+                "mtu": 9150,
+                "tags": "",
+                "device_name": "core-router.testexample.com",
+            },
+        ]
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT m.port as port_name, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port is not null GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = [
+            {
+                "port_name": "Ethernet1/1.100",
+                "description": "Ethernet1/0/1",
+                "up_admin": True,
+                "discovered_type": "l2vlan",
+                "hwaddress": "",
+                "port_type": "logical",
+                "port_speed": "40 Gbps",
+                "mtu": 9150,
+                "tags": "",
+                "device_name": "core-router.testexample.com",
+            },
+        ]
+        response = self.dev42.get_ports_wo_vlans()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_port_default_custom_fields(self):
+        """Test get_port_default_custom_fields success."""
+        test_query = [
+            {"key": "Software Version", "value": "10R.2D.2", "notes": None},
+            {"key": "EOL Date", "value": "12/31/2999", "notes": None},
+        ]
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT cf.key, cf.value, cf.notes FROM view_netport_custom_fields_v1 cf&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = [
+            {"key": "EOL Date", "value": None, "notes": None},
+            {"key": "Software Version", "value": None, "notes": None},
+        ]
+        response = self.dev42.get_port_default_custom_fields()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
