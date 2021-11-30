@@ -551,13 +551,15 @@ class NautobotAdapter(DiffSync):
                 type=_circuit.type.name,
                 status=_circuit.status.name,
                 install_date=_circuit.install_date,
-                origin_int=_circuit.termination_a.connected_endpoint.name,
-                origin_dev=_circuit.termination_a.connected_endpoint.device.name,
-                endpoint_int=_circuit.termination_z.connected_endpoint.name,
-                endpoint_dev=_circuit.termination_z.connected_endpoint.device.name,
                 bandwidth=_circuit.commit_rate,
                 tags=nautobot.get_tag_strings(_circuit.tags),
             )
+            if _circuit.termination_a.connected_endpoint:
+                new_circuit.origin_int = _circuit.termination_a.connected_endpoint.name
+                new_circuit.origin_dev = _circuit.termination_a.connected_endpoint.device.name
+            if _circuit.termination_z.connected_endpoint:
+                new_circuit.endpoint_int = _circuit.termination_z.connected_endpoint.name
+                new_circuit.endpoint_dev = _circuit.termination_z.connected_endpoint.device.name
             self.add(new_circuit)
 
     def load(self):
