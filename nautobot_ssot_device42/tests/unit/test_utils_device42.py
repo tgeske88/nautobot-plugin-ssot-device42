@@ -266,3 +266,18 @@ class TestDevice42Api(TestCase):
         response = self.dev42.get_port_custom_fields()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_subnets(self):
+        """Test get_subnets success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnets.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT s.name, s.network, s.mask_bits, s.tags, v.name as vrf FROM view_subnet_v1 s JOIN view_vrfgroup_v1 v ON s.vrfgroup_fk = v.vrfgroup_pk&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnets.json")
+        response = self.dev42.get_subnets()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
