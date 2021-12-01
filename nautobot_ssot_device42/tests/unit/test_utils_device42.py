@@ -296,3 +296,18 @@ class TestDevice42Api(TestCase):
         response = self.dev42.get_subnet_default_custom_fields()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_subnet_custom_fields(self):
+        """Test get_subnet_custom_fields success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnet_custom_fields_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT cf.key, cf.value, cf.notes, s.name AS subnet_name, s.network, s.mask_bits FROM view_subnet_custom_fields_v1 cf LEFT JOIN view_subnet_v1 s ON s.subnet_pk = cf.subnet_fk&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnet_custom_fields_recv.json")
+        response = self.dev42.get_subnet_custom_fields()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)

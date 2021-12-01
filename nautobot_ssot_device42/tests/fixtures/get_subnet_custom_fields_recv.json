@@ -1,0 +1,16 @@
+{
+    "172.16.0.0/24": [
+        {
+            "key": "Department",
+            "value": "Billing",
+            "notes": null
+        }
+    ],
+    "172.16.0.0/12": [
+        {
+            "key": "Public Subnet",
+            "value": "Yes",
+            "notes": null
+        }
+    ]
+}
