@@ -251,3 +251,18 @@ class TestDevice42Api(TestCase):
         response = self.dev42.get_port_default_custom_fields()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_port_custom_fields(self):
+        """Test get_port_custom_fields success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_custom_fields_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT cf.key, cf.value, cf.notes, np.port as port_name, d.name as device_name FROM view_netport_custom_fields_v1 cf LEFT JOIN view_netport_v1 np ON np.netport_pk = cf.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = np.device_fk&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_custom_fields_recv.json")
+        response = self.dev42.get_port_custom_fields()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
