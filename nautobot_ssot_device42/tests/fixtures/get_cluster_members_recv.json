@@ -1,0 +1,13 @@
+{
+    "corea.testcluster.com": {
+        "members": [
+            "corea.testcluster.com - Switch 2",
+            "corea.testcluster.com - Switch 1"
+        ],
+        "is_network": true,
+        "hardware": "Nexus 9000V",
+        "os": "nxos",
+        "customer": "DFW",
+        "tags": []
+    }
+}

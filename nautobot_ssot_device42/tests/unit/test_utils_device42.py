@@ -1,9 +1,16 @@
 """Tests of Device42 utility methods."""
 
+import json
 import responses
 from nautobot.utilities.testing import TestCase
 from parameterized import parameterized
 from nautobot_ssot_device42.utils import device42
+
+
+def load_json(path):
+    """Load a json file."""
+    with open(path, encoding="utf-8") as file:
+        return json.loads(file.read())
 
 
 class TestUtilsDevice42(TestCase):
@@ -163,33 +170,14 @@ class TestDevice42Api(TestCase):
     @responses.activate
     def test_get_cluster_members(self):
         """Test get_cluster_members success."""
-        test_query = [
-            {
-                "cluster": "corea.testcluster.com",
-                "members": "corea.testcluster.com - Switch 2%3B corea.testcluster.com - Switch 1",
-                "hardware": "Nexus 9000V",
-                "network_device": True,
-                "os": "nxos",
-                "customer": "DFW",
-                "tags": "",
-            },
-        ]
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_cluster_members_sent.json")
         responses.add(
             responses.GET,
             "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT+m.name+as+cluster%2C+string_agg%28d.name%2C+%27%253B+%27%29+as+members%2C+h.name+as+hardware%2C+d.network_device%2C+d.os_name+as+os%2C+b.name+as+customer%2C+d.tags+FROM+view_device_v1+m+JOIN+view_devices_in_cluster_v1+c+ON+c.parent_device_fk+%3D+m.device_pk+JOIN+view_device_v1+d+ON+d.device_pk+%3D+c.child_device_fk+JOIN+view_hardware_v1+h+ON+h.hardware_pk+%3D+d.hardware_fk+JOIN+view_customer_v1+b+ON+b.customer_pk+%3D+d.customer_fk+WHERE+m.type+like+%27%25cluster%25%27+GROUP+BY+m.name%2C+h.name%2C+d.network_device%2C+d.os_name%2C+b.name%2C+d.tags&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )
-        expected = {
-            "corea.testcluster.com": {
-                "members": ["corea.testcluster.com - Switch 2", "corea.testcluster.com - Switch 1"],
-                "is_network": True,
-                "hardware": "Nexus 9000V",
-                "os": "nxos",
-                "customer": "DFW",
-                "tags": [],
-            }
-        }
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_cluster_members_recv.json")
         response = self.dev42.get_cluster_members()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
@@ -216,42 +204,14 @@ class TestDevice42Api(TestCase):
     @responses.activate
     def test_get_ports_with_vlans(self):
         """Test get_ports_with_vlans success."""
-        test_query = [
-            {
-                "vlan_ids": ["1"],
-                "port_name": "GigabitEthernet1/0/1",
-                "description": "GigabitEthernet1/0/1",
-                "up": True,
-                "up_admin": True,
-                "discovered_type": "ethernetCsmacd",
-                "hwaddress": "abcdef012345",
-                "port_type": "physical",
-                "port_speed": "1.0 Gbps",
-                "mtu": 1518,
-                "device": "core-router.testexample.com",
-            },
-        ]
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_with_vlans_sent.json")
         responses.add(
             responses.GET,
             "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )
-        expected = [
-            {
-                "vlan_ids": ["1"],
-                "port_name": "GigabitEthernet1/0/1",
-                "description": "GigabitEthernet1/0/1",
-                "up": True,
-                "up_admin": True,
-                "discovered_type": "ethernetCsmacd",
-                "hwaddress": "abcdef012345",
-                "port_type": "physical",
-                "port_speed": "1.0 Gbps",
-                "mtu": 1518,
-                "device": "core-router.testexample.com",
-            },
-        ]
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_with_vlans_recv.json")
         response = self.dev42.get_ports_with_vlans()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
@@ -259,40 +219,14 @@ class TestDevice42Api(TestCase):
     @responses.activate
     def test_get_ports_wo_vlans(self):
         """Test get_ports_wo_vlans success."""
-        test_query = [
-            {
-                "port_name": "Ethernet1/1.100",
-                "description": "Ethernet1/0/1",
-                "up_admin": True,
-                "discovered_type": "l2vlan",
-                "hwaddress": "",
-                "port_type": "logical",
-                "port_speed": "40 Gbps",
-                "mtu": 9150,
-                "tags": "",
-                "device_name": "core-router.testexample.com",
-            },
-        ]
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_wo_vlans_sent.json")
         responses.add(
             responses.GET,
             "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT m.port as port_name, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port is not null GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )
-        expected = [
-            {
-                "port_name": "Ethernet1/1.100",
-                "description": "Ethernet1/0/1",
-                "up_admin": True,
-                "discovered_type": "l2vlan",
-                "hwaddress": "",
-                "port_type": "logical",
-                "port_speed": "40 Gbps",
-                "mtu": 9150,
-                "tags": "",
-                "device_name": "core-router.testexample.com",
-            },
-        ]
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_wo_vlans_recv.json")
         response = self.dev42.get_ports_wo_vlans()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
