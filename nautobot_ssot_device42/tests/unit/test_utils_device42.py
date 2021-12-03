@@ -363,3 +363,18 @@ class TestDevice42Api(TestCase):
         expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_all_custom_fields_recv.json")
         response = self.dev42.get_all_custom_fields(test_sample)
         self.assertEqual(response, expected)
+
+    @responses.activate
+    def test_get_vlans_with_location(self):
+        """Test get_vlans_with_location success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_vlans_with_location.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT v.vlan_pk, v.number AS vid, v.description, vn.vlan_name, b.name as building, c.name as customer FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n on n.netport_pk = vn.netport_fk LEFT JOIN view_device_v2 d on d.device_pk = n.device_fk LEFT JOIN view_building_v1 b ON b.building_pk = d.building_fk LEFT JOIN view_customer_v1 c ON c.customer_pk = d.customer_fk WHERE vn.vlan_name is not null and v.number <> 0 GROUP BY v.vlan_pk, v.number, v.description, vn.vlan_name, b.name, c.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_vlans_with_location.json")
+        response = self.dev42.get_vlans_with_location()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
