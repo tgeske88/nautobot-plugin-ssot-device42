@@ -341,3 +341,18 @@ class TestDevice42Api(TestCase):
         response = self.dev42.get_ipaddr_default_custom_fields()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_ipaddr_custom_fields(self):
+        """Test get_ipaddr_custom_fields success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_ipaddr_custom_fields_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT cf.key, cf.value, cf.notes, i.ip_address, s.mask_bits FROM view_ipaddress_custom_fields_v1 cf LEFT JOIN view_ipaddress_v1 i ON i.ipaddress_pk = cf.ipaddress_fk LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_ipaddr_custom_fields_recv.json")
+        response = self.dev42.get_ipaddr_custom_fields()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)

@@ -448,11 +448,10 @@ class Device42API:  # pylint: disable=too-many-public-methods
             }
             _fields[f"{_cf['ip_address']}/{_cf['mask_bits']}"].append(_field)
 
-        for _, cfields in _fields.items():
-            cfields = sorted(cfields, key=lambda d: d["key"])
-
         for _ip, _item in _fields.items():
             _fields[_ip] = list({x["key"]: x for x in _item}.values())
+        for _ip, cfields in _fields.items():
+            _fields[_ip] = sorted(cfields, key=lambda d: d["key"])
         return _fields
 
     @staticmethod
