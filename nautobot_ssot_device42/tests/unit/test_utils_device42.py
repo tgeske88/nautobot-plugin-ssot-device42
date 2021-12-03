@@ -356,3 +356,10 @@ class TestDevice42Api(TestCase):
         response = self.dev42.get_ipaddr_custom_fields()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
+
+    def test_get_all_custom_fields(self):
+        """Test get_all_custom_fields success."""
+        test_sample = load_json("./nautobot_ssot_device42/tests/fixtures/get_all_custom_fields_sent.json")
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_all_custom_fields_recv.json")
+        response = self.dev42.get_all_custom_fields(test_sample)
+        self.assertEqual(response, expected)
