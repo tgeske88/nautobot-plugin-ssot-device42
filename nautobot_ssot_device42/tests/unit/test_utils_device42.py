@@ -311,3 +311,18 @@ class TestDevice42Api(TestCase):
         response = self.dev42.get_subnet_custom_fields()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_ip_addrs(self):
+        """Test get_ip_addrs success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_ip_addrs.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT i.ip_address, i.available, i.label, i.tags, np.port AS port_name, s.network as subnet, s.mask_bits as netmask, v.name as vrf, d.name as device FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_device_v1 d ON d.device_pk = i.device_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_ip_addrs.json")
+        response = self.dev42.get_ip_addrs()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
