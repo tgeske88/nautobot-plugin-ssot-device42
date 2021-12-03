@@ -396,11 +396,9 @@ class TestDevice42Api(TestCase):
             json=cfields_query,
             status=200,
         )
-        expected = {
-            1: {"name": "Public", "vid": 100, "custom_fields": [{"key": "Owner", "value": "IT", "notes": None}]},
-            2: {"name": "DMZ", "vid": 200, "custom_fields": [{"key": "Purpose", "value": "Servers", "notes": None}]},
-            3: {"name": "App", "vid": 300},
-        }
+        with open("./nautobot_ssot_device42/tests/fixtures/get_vlan_info_recv.json", "r", encoding="utf-8") as file:
+            json_data = file.read()
+        expected = json.loads(json_data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
         response = self.dev42.get_vlan_info()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 2)
