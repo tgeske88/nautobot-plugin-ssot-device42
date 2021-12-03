@@ -378,3 +378,29 @@ class TestDevice42Api(TestCase):
         response = self.dev42.get_vlans_with_location()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_vlan_info(self):
+        """Test get_vlan_info success."""
+        vinfo_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_vlan_info_vlaninfo.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT v.vlan_pk, v.name, v.number as vid FROM view_vlan_v1 v&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=vinfo_query,
+            status=200,
+        )
+        cfields_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_vlan_info_cfields.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT cf.key, cf.value, cf.notes, v.vlan_pk FROM view_vlan_custom_fields_v1 cf LEFT JOIN view_vlan_v1 v ON v.vlan_pk = cf.vlan_fk&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=cfields_query,
+            status=200,
+        )
+        expected = {
+            1: {"name": "Public", "vid": 100, "custom_fields": [{"key": "Owner", "value": "IT", "notes": None}]},
+            2: {"name": "DMZ", "vid": 200, "custom_fields": [{"key": "Purpose", "value": "Servers", "notes": None}]},
+            3: {"name": "App", "vid": 300},
+        }
+        response = self.dev42.get_vlan_info()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 2)

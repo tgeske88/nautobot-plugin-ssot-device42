@@ -495,16 +495,16 @@ class Device42API:  # pylint: disable=too-many-public-methods
         cfields_query = "SELECT cf.key, cf.value, cf.notes, v.vlan_pk FROM view_vlan_custom_fields_v1 cf LEFT JOIN view_vlan_v1 v ON v.vlan_pk = cf.vlan_fk"
         doql_vlans = self.doql_query(query=vinfo_query)
         vlans_cfs = self.doql_query(query=cfields_query)
-        vlan_dict = {str(x["vlan_pk"]): {"name": x["name"], "vid": x["vid"]} for x in doql_vlans}
+        vlan_dict = {x["vlan_pk"]: {"name": x["name"], "vid": x["vid"]} for x in doql_vlans}
         for _cf in vlans_cfs:
-            if _cf["vlan_pk"] in doql_vlans:
+            if _cf["vlan_pk"] in vlan_dict.keys():
                 vlan_dict[_cf["vlan_pk"]]["custom_fields"] = []
-            for _cf in vlans_cfs:
-                _field = {
-                    "key": _cf["key"],
-                    "value": _cf["value"],
-                    "notes": _cf["notes"],
-                }
+        for _cf in vlans_cfs:
+            _field = {
+                "key": _cf["key"],
+                "value": _cf["value"],
+                "notes": _cf["notes"],
+            }
             vlan_dict[_cf["vlan_pk"]]["custom_fields"].append(_field)
         return vlan_dict
 
