@@ -403,7 +403,7 @@ class Device42Adapter(DiffSync):
     def load_ports(self):
         """Load Device42 ports."""
         vlan_ports = self._device42.get_ports_with_vlans()
-        no_vlan_ports = self._device42.get_logical_ports_wo_vlans()
+        no_vlan_ports = self._device42.get_ports_wo_vlans()
         _ports = vlan_ports + no_vlan_ports
         default_cfs = self._device42.get_port_default_custom_fields()
         _cfs = self._device42.get_port_custom_fields()
