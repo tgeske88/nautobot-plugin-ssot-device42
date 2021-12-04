@@ -161,7 +161,7 @@ class Device42Adapter(DiffSync):
 
     def load_buildings(self):
         """Load Device42 buildings."""
-        for record in self._device42.api_call(path="api/1.0/buildings")["buildings"]:
+        for record in self._device42.get_buildings():
             if PLUGIN_CFG.get("verbose_debug"):
                 self.job.log_info(f"Loading {record['name']} building from Device42.")
             _tags = record["tags"] if record.get("tags") else []
