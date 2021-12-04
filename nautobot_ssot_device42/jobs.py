@@ -12,6 +12,7 @@ from diffsync.exceptions import ObjectNotCreated
 from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.from_d42.device42 import Device42Adapter
 from nautobot_ssot_device42.diffsync.from_d42.nautobot import NautobotAdapter
+from nautobot_ssot_device42.utils.device42 import Device42API
 
 from .diff import CustomOrderingDiff
 
@@ -52,7 +53,13 @@ class Device42DataSource(DataSource, Job):
     def sync_data(self):
         """Device42 Sync."""
         self.log_info(message="Connecting to Device42...")
-        d42_adapter = Device42Adapter(job=self, sync=self.sync)
+        client = Device42API(
+            base_url=PLUGIN_CFG["device42_host"],
+            username=PLUGIN_CFG["device42_username"],
+            password=PLUGIN_CFG["device42_password"],
+            verify=PLUGIN_CFG["verify_ssl"],
+        )
+        d42_adapter = Device42Adapter(job=self, sync=self.sync, client=client)
         self.log_info(message="Loading data from Device42...")
         d42_adapter.load()
         self.log_info(message="Connecting to Nautobot...")

@@ -10,7 +10,7 @@ from django.utils.functional import classproperty
 from django.utils.text import slugify
 from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.from_d42.models import circuits, dcim, ipam
-from nautobot_ssot_device42.utils.device42 import Device42API, get_facility, get_intf_type, get_netmiko_platform
+from nautobot_ssot_device42.utils.device42 import get_facility, get_intf_type, get_netmiko_platform
 from netutils.bandwidth import name_to_bits
 
 from nautobot.core.settings_funcs import is_truthy
@@ -95,23 +95,19 @@ class Device42Adapter(DiffSync):
         "conn",
     ]
 
-    def __init__(self, *args, job=None, sync=None, **kwargs):
+    def __init__(self, *args, job=None, sync=None, client, **kwargs):
         """Initialize Device42Adapter.
 
         Args:
             job (object, optional): Nautobot job. Defaults to None.
             sync (object, optional): Nautobot DiffSync. Defaults to None.
+            client (object): Device42API client connection object.
         """
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
         self._device42_hardware_dict = {}
-        self._device42 = Device42API(
-            base_url=PLUGIN_CFG["device42_host"],
-            username=PLUGIN_CFG["device42_username"],
-            password=PLUGIN_CFG["device42_password"],
-            verify=PLUGIN_CFG["verify_ssl"],
-        )
+        self._device42 = client
         self._device42_clusters = self._device42.get_cluster_members()
 
         # mapping of SiteCode (facility) to Building name
