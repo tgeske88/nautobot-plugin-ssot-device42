@@ -168,6 +168,21 @@ class TestDevice42Api(TestCase):
         self.assertEqual(validate_url, "https://device42.testexample.com/api_endpoint")
 
     @responses.activate
+    def test_get_buildings(self):
+        """Test get_buildings success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_buildings.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/api/1.0/buildings",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_buildings_recv.json")
+        response = self.dev42.get_buildings()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
     def test_get_cluster_members(self):
         """Test get_cluster_members success."""
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_cluster_members_sent.json")
@@ -185,21 +200,6 @@ class TestDevice42Api(TestCase):
             responses.calls[0].request.url
             == "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT+m.name+as+cluster%2C+string_agg%28d.name%2C+%27%253B+%27%29+as+members%2C+h.name+as+hardware%2C+d.network_device%2C+d.os_name+as+os%2C+b.name+as+customer%2C+d.tags+FROM+view_device_v1+m+JOIN+view_devices_in_cluster_v1+c+ON+c.parent_device_fk+%3D+m.device_pk+JOIN+view_device_v1+d+ON+d.device_pk+%3D+c.child_device_fk+JOIN+view_hardware_v1+h+ON+h.hardware_pk+%3D+d.hardware_fk+JOIN+view_customer_v1+b+ON+b.customer_pk+%3D+d.customer_fk+WHERE+m.type+like+%27%25cluster%25%27+GROUP+BY+m.name%2C+h.name%2C+d.network_device%2C+d.os_name%2C+b.name%2C+d.tags&output_type=json&_paging=1&_return_as_object=1&_max_results=1000"
         )
-        # print(responses.calls[0].response.text)
-        # self.assertTrue(
-        #     responses.calls[0].response.text
-        #     == [
-        #         {
-        #             "cluster": "corea.testcluster.com",
-        #             "members": "corea.testcluster.com - Switch 2%3B corea.testcluster.com - Switch 1",
-        #             "hardware": "Nexus 9000V",
-        #             "network_device": True,
-        #             "os": "nxos",
-        #             "customer": "DFW",
-        #             "tags": "",
-        #         }
-        #     ]
-        # )
 
     @responses.activate
     def test_get_ports_with_vlans(self):
@@ -396,9 +396,7 @@ class TestDevice42Api(TestCase):
             json=cfields_query,
             status=200,
         )
-        with open("./nautobot_ssot_device42/tests/fixtures/get_vlan_info_recv.json", "r", encoding="utf-8") as file:
-            json_data = file.read()
-        expected = json.loads(json_data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_vlan_info_recv.json")
         response = self.dev42.get_vlan_info()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 2)
