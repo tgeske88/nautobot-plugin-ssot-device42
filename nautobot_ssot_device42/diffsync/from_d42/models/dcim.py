@@ -959,13 +959,13 @@ class Connection(DiffSyncModel):
                 circuit = NautobotCircuit.objects.get(cid=ids["dst_device"])
             except NautobotInterface.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
-                    print(
+                    diffsync.job.log_error(
                         f"Unable to find source port for {ids['src_device']}: {ids['src_port']} to connect to Circuit {ids['dst_device']} {err}"
                     )
                 return None
             except NautobotCircuit.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
-                    print(f"Unable to find Circuit {ids['dst_device']} {err}")
+                    diffsync.job.log_error(f"Unable to find Circuit {ids['dst_device']} {err}")
                 return None
         if attrs["dst_type"] == "interface":
             try:
@@ -975,13 +975,13 @@ class Connection(DiffSyncModel):
                 )
             except NautobotInterface.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
-                    print(
+                    diffsync.job.log_error(
                         f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} to connect to Circuit {ids['src_device']} {err}"
                     )
                 return None
             except NautobotCircuit.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
-                    print(f"Unable to find Circuit {ids['dst_device']} {err}")
+                    diffsync.job.log_error(f"Unable to find Circuit {ids['dst_device']} {err}")
                 return None
         _ct = {
             "circuit": circuit,
