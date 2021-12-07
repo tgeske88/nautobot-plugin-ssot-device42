@@ -32,7 +32,6 @@ class Building(DiffSyncModel):
 
     _modelname = "building"
     _identifiers = ("name",)
-    _shortname = ("name",)
     _attributes = ("address", "latitude", "longitude", "contact_name", "contact_phone", "tags", "custom_fields")
     _children = {"room": "rooms"}
     name: str
@@ -279,7 +278,6 @@ class Vendor(DiffSyncModel):
 
     _modelname = "vendor"
     _identifiers = ("name",)
-    _shortname = ("name",)
     _attributes = ("custom_fields",)
     _children = {}
     name: str
@@ -344,7 +342,6 @@ class Hardware(DiffSyncModel):
 
     _modelname = "hardware"
     _identifiers = ("name",)
-    _shortname = ("name",)
     _attributes = ("manufacturer", "size", "depth", "part_number", "custom_fields")
     _children = {}
     name: str
@@ -425,7 +422,6 @@ class Cluster(DiffSyncModel):
 
     _modelname = "cluster"
     _identifiers = ("name",)
-    _shortname = ("name",)
     _attributes = ("members", "tags", "custom_fields")
     _children = {}
     name: str
@@ -517,7 +513,6 @@ class Device(DiffSyncModel):
 
     _modelname = "device"
     _identifiers = ("name",)
-    _shortname = ("name",)
     _attributes = (
         "building",
         "room",

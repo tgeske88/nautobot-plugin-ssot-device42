@@ -26,7 +26,6 @@ class VRFGroup(DiffSyncModel):
 
     _modelname = "vrf"
     _identifiers = ("name",)
-    _shortname = ("name",)
     _attributes = ("description", "tags", "custom_fields")
     _children = {}
     name: str
@@ -94,11 +93,6 @@ class Subnet(DiffSyncModel):
 
     _modelname = "subnet"
     _identifiers = (
-        "network",
-        "mask_bits",
-        "vrf",
-    )
-    _shortname = (
         "network",
         "mask_bits",
         "vrf",
@@ -177,7 +171,6 @@ class IPAddress(DiffSyncModel):
 
     _modelname = "ipaddr"
     _identifiers = ("address",)
-    _shortname = ("address",)
     _attributes = ("available", "label", "device", "interface", "vrf", "tags", "custom_fields")
     _children = {}
 
