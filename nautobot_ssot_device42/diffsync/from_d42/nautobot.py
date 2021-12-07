@@ -49,6 +49,7 @@ class NautobotAdapter(DiffSync):
         "subnet": [],
         "vlan": [],
         "cable": [],
+        "provider": [],
     }
 
     building = dcim.Building
