@@ -642,6 +642,7 @@ class Device42Adapter(DiffSync):
     def load_providers_and_circuits(self):
         """Load Device42 Providrs and Telco Circuits."""
         _circuits = self._device42.get_telcocircuits()
+        origin_int, origin_dev, endpoint_int, endpoint_dev = False, False, False, False
         for _tc in _circuits:
             self.load_provider(_tc)
             if _tc["origin_type"] == "Device Port":
@@ -650,21 +651,22 @@ class Device42Adapter(DiffSync):
             if _tc["end_point_type"] == "Device Port":
                 endpoint_int = self.port_map[_tc["end_point_netport_fk"]]["port"]
                 endpoint_dev = self.port_map[_tc["end_point_netport_fk"]]["device"]
-            new_circuit = self.circuit(
-                circuit_id=_tc["circuit_id"],
-                provider=self.vendor_map[_tc["vendor_fk"]]["name"],
-                notes=_tc["notes"],
-                type=_tc["type_name"],
-                status=get_circuit_status(_tc["status"]),
-                install_date=_tc["turn_on_date"] if _tc.get("turn_on_date") else _tc["provision_date"],
-                origin_int=origin_int,
-                origin_dev=origin_dev,
-                endpoint_int=endpoint_int,
-                endpoint_dev=endpoint_dev,
-                bandwidth=name_to_bits(f"{_tc['bandwidth']}{_tc['unit'].capitalize()}") / 1000,
-                tags=_tc["tags"].split(",") if _tc.get("tags") else [],
-            )
-            self.add(new_circuit)
+            if origin_int and origin_dev and endpoint_int and endpoint_dev:
+                new_circuit = self.circuit(
+                    circuit_id=_tc["circuit_id"],
+                    provider=self.vendor_map[_tc["vendor_fk"]]["name"],
+                    notes=_tc["notes"],
+                    type=_tc["type_name"],
+                    status=get_circuit_status(_tc["status"]),
+                    install_date=_tc["turn_on_date"] if _tc.get("turn_on_date") else _tc["provision_date"],
+                    origin_int=origin_int,
+                    origin_dev=origin_dev,
+                    endpoint_int=endpoint_int,
+                    endpoint_dev=endpoint_dev,
+                    bandwidth=name_to_bits(f"{_tc['bandwidth']}{_tc['unit'].capitalize()}") / 1000,
+                    tags=_tc["tags"].split(",") if _tc.get("tags") else [],
+                )
+                self.add(new_circuit)
             # Add Connection from A side connection Device to Circuit
             if _tc["origin_type"] == "Device Port":
                 a_side_conn = self.conn(

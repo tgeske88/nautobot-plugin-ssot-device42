@@ -1015,9 +1015,7 @@ class Connection(DiffSyncModel):
         _intf = None
         if attrs["src_type"] == "interface":
             try:
-                _intf = NautobotInterface.objects.get(
-                    device__name=self.get_dev_name(ids["src_device"]), name=ids["src_port"]
-                )
+                _intf = NautobotInterface.objects.get(device__name=ids["src_device"], name=ids["src_port"])
                 circuit = NautobotCircuit.objects.get(cid=ids["dst_device"])
             except NautobotInterface.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
@@ -1032,9 +1030,7 @@ class Connection(DiffSyncModel):
         if attrs["dst_type"] == "interface":
             try:
                 circuit = NautobotCircuit.objects.get(cid=ids["src_device"])
-                _intf = NautobotInterface.objects.get(
-                    device__name=self.get_dev_name(ids["dst_device"]), name=ids["dst_port"]
-                )
+                _intf = NautobotInterface.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
             except NautobotInterface.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
                     diffsync.job.log_error(
@@ -1068,7 +1064,8 @@ class Connection(DiffSyncModel):
                 status=NautobotStatus.objects.get(name="Connected"),
                 color=nautobot.get_random_color(),
             )
-            new_cable.validated_save()
+            return new_cable
+        return None
 
     def get_device_connections(self, diffsync, ids) -> Optional[NautobotCable]:
         """Method to create a Cable between two Devices.
@@ -1082,13 +1079,11 @@ class Connection(DiffSyncModel):
         """
         _src_port, _dst_port = None, None
         try:
-            if ids.get("src_port_mac"):
+            if ids.get("src_port_mac") and ids["src_port_mac"] != ids.get("dst_port_mac"):
                 _src_port = NautobotInterface.objects.get(mac_address=ids["src_port_mac"])
         except NautobotInterface.DoesNotExist:
             try:
-                _src_port = NautobotInterface.objects.get(
-                    device__name=self.get_dev_name(ids["src_device"]), name=ids["src_port"]
-                )
+                _src_port = NautobotInterface.objects.get(device__name=ids["src_device"], name=ids["src_port"])
             except NautobotInterface.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
                     diffsync.job.log_warning(
@@ -1096,13 +1091,11 @@ class Connection(DiffSyncModel):
                     )
                 return None
         try:
-            if ids.get("dst_port_mac"):
+            if ids.get("dst_port_mac") and ids["dst_port_mac"] != ids.get("src_port_mac"):
                 _dst_port = NautobotInterface.objects.get(mac_address=ids["dst_port_mac"])
         except NautobotInterface.DoesNotExist:
             try:
-                _dst_port = NautobotInterface.objects.get(
-                    device__name=self.get_dev_name(ids["dst_device"]), name=ids["dst_port"]
-                )
+                _dst_port = NautobotInterface.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
             except NautobotInterface.DoesNotExist:
                 if PLUGIN_CFG.get("verbose_debug"):
                     diffsync.job.log_warning(
@@ -1120,24 +1113,6 @@ class Connection(DiffSyncModel):
             )
             return new_cable
         return None
-
-    @staticmethod
-    def get_dev_name(dev_name: str):
-        """Strips cluster member names to get cluster master name.
-
-        This is required as D42 API doesn't show interfaces on cluster members, just on the cluster master.
-
-        Args:
-            dev_name (str): Device name to check if cluster member or master.
-
-        Returns:
-            str: Returns name of cluster master if member found, else the device name itself.
-        """
-        if re.search(r"\s-\s\w.+", dev_name):
-            _dev = re.sub(r"\s-\s\w.+", "", dev_name)
-        else:
-            _dev = dev_name
-        return _dev
 
     def delete(self):
         """Delete Cable object from Nautobot."""
