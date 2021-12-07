@@ -377,6 +377,7 @@ class Device42Adapter(DiffSync):
                     rack_orientation="front" if _record.get("orientation") == 1 else "rear",
                     hardware=sanitize_string(_record["hw_model"]),
                     os=get_netmiko_platform(_record["os"]) if _record.get("os") else "",
+                    os_version=re.sub(r"^[a-zA-Z]+\s", "", _record["osver"]) if _record.get("osver") else "",
                     in_service=_record.get("in_service"),
                     serial_no=_record["serial_no"],
                     master_device=False,

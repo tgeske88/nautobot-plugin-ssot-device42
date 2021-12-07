@@ -29,6 +29,14 @@ from nautobot.dcim.models import (
 from nautobot.extras.models import Status
 from nautobot.ipam.models import VLAN, VRF, IPAddress, Prefix
 
+try:
+    import nautobot_device_lifecycle_mgmt  # noqa: F401
+
+    LIFECYCLE_MGMT = True
+except ImportError:
+    print("Device Lifecycle plugin isn't installed so will revert to CustomField for OS version.")
+    LIFECYCLE_MGMT = False
+
 
 class NautobotAdapter(DiffSync):
     """Nautobot adapter for DiffSync."""
@@ -304,6 +312,10 @@ class NautobotAdapter(DiffSync):
                 _platform = dev.platform.name
             else:
                 _platform = ""
+            if LIFECYCLE_MGMT:
+                _version = nautobot.get_software_version_from_lcm(relations=dev.get_relationships())
+            else:
+                _version = nautobot.get_version_from_custom_field(fields=dev.get_custom_fields())
             _dev = self.device(
                 name=dev.name,
                 building=dev.site.slug,
@@ -313,6 +325,7 @@ class NautobotAdapter(DiffSync):
                 rack_orientation=dev.face if dev.face else "rear",
                 hardware=dev.device_type.model,
                 os=_platform,
+                os_version=_version,
                 in_service=bool(str(dev.status) == "Active"),
                 serial_no=dev.serial if dev.serial else "",
                 tags=nautobot.get_tag_strings(dev.tags),

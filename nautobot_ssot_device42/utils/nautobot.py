@@ -7,8 +7,16 @@ from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_RE
 from taggit.managers import TaggableManager
 from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Manufacturer, Platform
-from nautobot.extras.models import Tag
+from nautobot.extras.models import Tag, Relationship
 from nautobot.ipam.models import IPAddress
+
+try:
+    from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
+
+    LIFECYCLE_MGMT = True
+except ImportError:
+    print("Device Lifecycle plugin isn't installed so will revert to CustomField for OS version.")
+    LIFECYCLE_MGMT = False
 
 
 def get_random_color() -> str:
@@ -238,3 +246,31 @@ def verify_circuit_type(circuit_type: str) -> CircuitType:
         )
         _ct.validated_save()
     return _ct
+
+
+def get_software_version_from_lcm(relations: dict):
+    """Method to obtain Software version for a Device from Relationship.
+
+    Args:
+        relations (dict): Results of a `get_relationships()` on a Device.
+
+    Returns:
+        str: String of SoftwareLCM version.
+    """
+    version = ""
+    if LIFECYCLE_MGMT:
+        _softwarelcm = Relationship.objects.get(name="Software on Device")
+        for _, relationships in relations.items():
+            for relationship, queryset in relationships.items():
+                if relationship == _softwarelcm:
+                    if len(queryset) > 0:
+                        version = SoftwareLCM.objects.get(id=queryset.get().source_id).version
+    return version
+
+
+def get_version_from_custom_field(fields: OrderedDict):
+    """Method to obtain a software version for a Device from its custom fields."""
+    for field, value in fields.items():
+        if field.label == "OS Version":
+            return value
+    return ""

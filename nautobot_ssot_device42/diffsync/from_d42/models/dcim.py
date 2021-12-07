@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 
 from diffsync import DiffSyncModel
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from nautobot.circuits.models import Circuit as NautobotCircuit
 from nautobot.circuits.models import CircuitTermination as NautobotCT
@@ -20,11 +21,19 @@ from nautobot.dcim.models import RackGroup as NautobotRackGroup
 from nautobot.dcim.models import Site as NautobotSite
 from nautobot.dcim.models import VirtualChassis as NautobotVC
 from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField
+from nautobot.extras.models import CustomField, Relationship, RelationshipAssociation
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP, PLUGIN_CFG
 from nautobot_ssot_device42.utils import device42, nautobot
+
+try:
+    from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
+
+    LIFECYCLE_MGMT = True
+except ImportError:
+    print("Device Lifecycle plugin isn't installed so will revert to CustomField for OS version.")
+    LIFECYCLE_MGMT = False
 
 
 class Building(DiffSyncModel):
@@ -521,6 +530,7 @@ class Device(DiffSyncModel):
         "rack_orientation",
         "hardware",
         "os",
+        "os_version",
         "in_service",
         "serial_no",
         "tags",
@@ -537,6 +547,7 @@ class Device(DiffSyncModel):
     rack_orientation: Optional[str]
     hardware: str
     os: Optional[str]
+    os_version: Optional[str]
     in_service: Optional[bool]
     interfaces: Optional[List["Port"]] = list()
     serial_no: Optional[str]
@@ -600,6 +611,14 @@ class Device(DiffSyncModel):
                         manu=NautobotDeviceType.objects.get(model=attrs["hardware"]).manufacturer,
                     )
                 new_device.validated_save()
+                if attrs.get("os_version"):
+                    if LIFECYCLE_MGMT and attrs.get("os"):
+                        soft_lcm = cls._add_software_lcm(
+                            os=attrs["os"], version=attrs["os_version"], hardware=attrs["hardware"]
+                        )
+                        cls._assign_version_to_device(device=new_device, software_lcm=soft_lcm)
+                    else:
+                        attrs["custom_fields"].append({"key": "OS Version", "value": attrs["os_version"]})
                 if attrs.get("cluster_host"):
                     try:
                         _vc = NautobotVC.objects.get(name=attrs["cluster_host"])
@@ -680,6 +699,22 @@ class Device(DiffSyncModel):
                 platform_name=attrs["os"],
                 manu=_hardware.manufacturer,
             )
+        if attrs.get("os_version"):
+            if attrs.get("os"):
+                _os = attrs["os"]
+            else:
+                _os = self.os
+            if attrs.get("hardware"):
+                _hardware = attrs["hardware"]
+            else:
+                _hardware = self.hardware
+            if LIFECYCLE_MGMT:
+                soft_lcm = self._add_software_lcm(os=_os, version=attrs["os_version"], hardware=_hardware)
+                self._assign_version_to_device(device=_dev, software_lcm=soft_lcm)
+            else:
+                attrs["custom_fields"].append(
+                    {"key": "OS Version", "value": attrs["os_version"] if attrs.get("os_version") else self.os_version}
+                )
         if attrs.get("in_service"):
             if attrs["in_service"]:
                 _status = NautobotStatus.objects.get(name="Active")
@@ -746,6 +781,38 @@ class Device(DiffSyncModel):
         _dev = NautobotDevice.objects.get(**self.get_identifiers())
         self.diffsync._objects_to_delete["device"].append(_dev)  # pylint: disable=protected-access
         return self
+
+    @staticmethod
+    def _add_software_lcm(os: str, version: str, hardware: str):
+        """Add OS Version as SoftwareLCM if Device Lifecycle Plugin found."""
+        _platform = nautobot.verify_platform(
+            platform_name=os,
+            manu=NautobotDeviceType.objects.get(model=hardware).manufacturer,
+        )
+        try:
+            os_ver = SoftwareLCM.objects.get(device_platform=_platform, version=version)
+        except SoftwareLCM.DoesNotExist:
+            os_ver = SoftwareLCM(
+                device_platform=_platform,
+                version=version,
+            )
+            os_ver.validated_save()
+        return os_ver
+
+    @staticmethod
+    def _assign_version_to_device(device, software_lcm):
+        """Add Relationship between Device and SoftwareLCM."""
+        new_assoc = RelationshipAssociation(
+            relationship=Relationship.objects.get(name="Software on Device"),
+            source_type=ContentType.objects.get_for_model(SoftwareLCM),
+            source_id=software_lcm.id,
+            destination_type=ContentType.objects.get_for_model(NautobotDevice),
+            destination_id=device.id,
+        )
+        try:
+            new_assoc.validated_save()
+        except ValidationError as err:
+            print(f"Validation Error for _add_softwarelcm_device method: {err}")
 
 
 class Port(DiffSyncModel):
