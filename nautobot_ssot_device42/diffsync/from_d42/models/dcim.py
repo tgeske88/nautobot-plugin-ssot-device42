@@ -658,13 +658,13 @@ class Device(DiffSyncModel):
                         field.content_types.add(ContentType.objects.get_for_model(NautobotDevice).id)
                         new_device.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
                 new_device.validated_save()
-                return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
             except NautobotRack.DoesNotExist:
                 diffsync.job.log_debug(f"Unable to find matching Rack {attrs.get('rack')} for {_site.name}")
             except NautobotDeviceType.DoesNotExist:
                 diffsync.job.log_debug(f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}.")
         else:
             diffsync.job.log_debug(f"Device {ids['name']} is missing a Building and won't be created.")
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
         """Update Device object in Nautobot."""
@@ -891,10 +891,10 @@ class Port(DiffSyncModel):
                 except NautobotVLAN.DoesNotExist as err:
                     diffsync.job.log_debug(f"{err}: {_vlan['vlan_name']} {_vlan['vlan_id']} ")
                 new_intf.validated_save()
-                return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
         except NautobotDevice.DoesNotExist as err:
             if PLUGIN_CFG.get("verbose_debug"):
                 diffsync.job.log_warning(f"{ids['name']} doesn't exist. {err}")
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
         """Update Interface object in Nautobot."""
