@@ -556,8 +556,8 @@ class Device(DiffSyncModel):
     master_device: bool
     custom_fields: Optional[List[dict]]
 
-    @classmethod
-    def _get_site(cls, diffsync, ids, attrs):
+    @staticmethod
+    def _get_site(diffsync, ids, attrs):
         if attrs.get("rack") and attrs.get("room"):
             try:
                 _site = NautobotRack.objects.get(name=attrs["rack"], group__name=attrs["room"]).site
