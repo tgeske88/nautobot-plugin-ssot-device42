@@ -15,10 +15,10 @@ from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import DeviceType as NautobotDeviceType
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.dcim.models import Manufacturer as NautobotManufacturer
+from nautobot.dcim.models import Rack as NautobotRack
+from nautobot.dcim.models import RackGroup as NautobotRackGroup
 from nautobot.dcim.models import Site as NautobotSite
 from nautobot.dcim.models import VirtualChassis as NautobotVC
-from nautobot.dcim.models.racks import Rack as NautobotRack
-from nautobot.dcim.models.racks import RackGroup as NautobotRackGroup
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
 from nautobot.extras.models import Status as NautobotStatus

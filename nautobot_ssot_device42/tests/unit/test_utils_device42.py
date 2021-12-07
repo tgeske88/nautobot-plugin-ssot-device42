@@ -136,7 +136,7 @@ class TestUtilsDevice42(TestCase):
         self.assertEqual(device42.get_facility(tags=tags), "DFW")
 
 
-class TestDevice42Api(TestCase):
+class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
     """Test Base Device42 API Client and Calls."""
 
     def setUp(self):
