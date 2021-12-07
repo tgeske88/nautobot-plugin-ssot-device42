@@ -430,7 +430,7 @@ class Device42Adapter(DiffSync):
                     if _port.get("vlan_pks"):
                         _tags = []
                         for _pk in _port["vlan_pks"]:
-                            if self.vlan_map[_pk]["vid"] != 0:
+                            if _pk in self.vlan_map and self.vlan_map[_pk]["vid"] != 0:
                                 _tags.append(
                                     {
                                         "vlan_name": self.vlan_map[_pk]["name"],
