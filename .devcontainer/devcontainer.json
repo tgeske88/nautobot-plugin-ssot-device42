@@ -18,11 +18,13 @@
     ],
     "workspaceFolder": "/source/",
     "extensions": [
-        "ms-python.vscode-pylance",
-        "streetsidesoftware.code-spell-checker",
-        "eamodio.gitlens",
-        "ms-python.python",
-    ],
+		"ms-python.vscode-pylance",
+		"streetsidesoftware.code-spell-checker",
+		"eamodio.gitlens",
+		"ms-python.python",
+		"vivaxy.vscode-conventional-commits",
+		"njpwerner.autodocstring"
+	],
     "settings": {
         "python.pythonPath": "/usr/local/bin/python",
         "python.analysis.extraPaths": [
