@@ -690,6 +690,99 @@ class Device42Adapter(DiffSync):
                 )
                 self.add(z_side_conn)
 
+    def check_dns(self):
+        """Method to check if a Device has a DNS record and assign as primary if so."""
+        for _device in self._data["device"]:
+            if not re.search(r"\s-\s\w+\s?\d+", _device) and not re.search(
+                r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _device
+            ):
+                _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", _device)
+                if _devname:
+                    _devname = _devname.group()
+                else:
+                    continue
+                self.set_primary_from_dns(dev_name=_devname, diffsync=self.job)
+            else:
+                if PLUGIN_CFG.get("verbose_debug"):
+                    self.job.log_warning(message=f"Skipping {_devname} due to invalid Device name.")
+                continue
+
+    def set_primary_from_dns(self, dev_name: str, diffsync=None):
+        """Method to resolve Device FQDNs A records into an IP and set primary IP for that Device to it if found.
+
+            Checks if `use_dns` setting variable is `True`.
+
+        Args:
+            dev_name (str): Name of Device to perform DNS query on.
+            diffsync (object, optional): Diffsync object for handling interactions with Job, such as logging. Defaults to None.
+        """
+        interface = None
+        try:
+            _intf = self.get(self.port, {"device": dev_name, "name": "mgmt0"})
+            interface = "mgmt0"
+        except ObjectNotFound:
+            try:
+                _intf = self.get(self.port, {"device": dev_name, "name": "management"})
+                interface = "management"
+            except ObjectNotFound:
+                try:
+                    _intf = self.get(self.port, {"device": dev_name, "name": "management0"})
+                    interface = "management0"
+                except ObjectNotFound:
+                    try:
+                        _intf = self.get(self.port, {"device": dev_name, "name": "Management"})
+                        interface = "Management"
+                    except ObjectNotFound:
+                        _intf = self.port(
+                            name="Management",
+                            device=dev_name,
+                            type="other",
+                            enabled=True,
+                            description="Interface added by script for Management of device using DNS A record.",
+                            mode="access",
+                        )
+                        interface = "Management"
+                        try:
+                            self.add(_intf)
+                            _device = self.get(self.device, dev_name)
+                            _device.add_child(_intf)
+                        except ObjectAlreadyExists as err:
+                            diffsync.log_warning(message=f"Management interface for {dev_name} already exists. {err}")
+        _a_record = get_dns_a_record(dev_name=dev_name, diffsync=diffsync)
+        if _a_record:
+            _ip = self.find_ipaddr(address=_a_record)
+            if _ip:
+                _ip.device = dev_name
+                _ip.interface = interface
+                _ip.primary = True
+            else:
+                self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=interface)
+
+    def find_ipaddr(self, address: str):
+        """Method to find IPAddress DiffSyncModel object."""
+        bits = 24
+        while bits > 0:
+            try:
+                return self.get(self.ipaddr, f"{address}/{bits}")
+            except ObjectNotFound:
+                bits = bits - 1
+        else:
+            return False
+
+    def add_ipaddr(self, address: str, dev_name: str, interface: str):
+        """Method to add IPAddress DiffSyncModel object if one isn't found.
+
+        Used in conjunction with the `use_dns` feature.
+        """
+        _ip = self.ipaddr(
+            address=address,
+            available=False,
+            device=dev_name,
+            interface=interface,
+            primary=True,
+        )
+        self.add(_ip)
+
     def load(self):
         """Load data from Device42."""
         self.load_buildings()
@@ -703,5 +796,7 @@ class Device42Adapter(DiffSync):
         self.load_devices_and_clusters()
         self.load_ports()
         self.load_ip_addresses()
+        if is_truthy(PLUGIN_CFG.get("use_dns")):
+            self.check_dns()
         self.load_connections()
         self.load_providers_and_circuits()

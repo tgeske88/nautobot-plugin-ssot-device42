@@ -1,20 +1,16 @@
 """DiffSync adapter class for Nautobot as source-of-truth."""
 
 import ipaddress
-import re
-
-import dns.resolver
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists
-from django.contrib.contenttypes.models import ContentType
 from django.db.models import ProtectedError
-from nautobot_ssot_device42.constant import PLUGIN_CFG, USE_DNS
+from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.from_d42.models import circuits, dcim, ipam
 from nautobot_ssot_device42.utils import nautobot
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
 
 from nautobot.circuits.models import Circuit, CircuitTermination, Provider
-from nautobot.core.settings_funcs import is_truthy
+
 from nautobot.dcim.models import (
     Cable,
     Device,
@@ -26,7 +22,6 @@ from nautobot.dcim.models import (
     Site,
     VirtualChassis,
 )
-from nautobot.extras.models import Status
 from nautobot.ipam.models import VLAN, VRF, IPAddress, Prefix
 
 try:
@@ -126,93 +121,7 @@ class NautobotAdapter(DiffSync):
                     self.job.log(f"Deletion failed protected object: {nautobot_object}")
             self._objects_to_delete[grouping] = []
 
-        self.set_primary_from_dns()
         return super().sync_complete(source, *args, **kwargs)
-
-    def set_primary_from_dns(self):
-        """Method to resolve Device FQDNs A records into an IP and set primary IP for that Device to it if found.
-
-        Checks if `use_dns` setting variable is `True`.
-        """
-        if is_truthy(USE_DNS):
-            for _dev in Device.objects.all():
-                _devname = _dev.name.strip()
-                if PLUGIN_CFG.get("verbose_debug"):
-                    self.job.log_info(f"Attempting to resolve {_dev.name} _devname: {_devname}")
-                if not re.search(r"\s-\s\w+\s?\d+", _devname) and not re.search(
-                    r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _devname
-                ):
-                    _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", _devname)
-                    if _devname:
-                        _devname = _devname.group()
-                    else:
-                        continue
-                    try:
-                        answ = dns.resolver.resolve(_devname, "A")
-                        _ans = answ[0].to_text()
-                    except dns.resolver.NXDOMAIN as err:
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_warning(message=f"Non-existent domain {_devname} {err}")
-                        continue
-                    except dns.resolver.NoAnswer as err:
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_warning(message=f"No record found for {_devname} {err}")
-                        continue
-                    except dns.exception.Timeout as err:
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_warning(message=f"DNS resolution timed out for {_devname}. {err}")
-                        continue
-                    if _dev.primary_ip and _ans == str(_dev.primary_ip):
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_info(
-                                message=f"Primary IP for {_dev.name} already matches DNS. No need to change anything."
-                            )
-                        continue
-                    try:
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_warning(
-                                message=f"{_dev.name} missing primary IP / or it doesn't match DNS response. Updating primary IP to {_ans}."
-                            )
-                        _ip = IPAddress.objects.get(host=_ans)
-                        if _ip and _ip.assigned_object and (_ip.assigned_object.device == _dev):
-                            nautobot.assign_primary(dev=_dev, ipaddr=_ip)
-                            continue
-                    except IPAddress.DoesNotExist as err:
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            print(f"Unable to find IP Address {_ans}. {err}")
-                    self.create_mgmt_assign_primary(_dev, _ans)
-                else:
-                    self.job.log_warning(message=f"Skipping {_devname} due to invalid Device name.")
-
-    def create_mgmt_assign_primary(self, dev: Device, ans: str):
-        """Method to create a Management Interface if one isn't found and assign the DNS resolved IP as primary to it.
-
-        Args:
-            dev (Device): Device to assign the
-            ans (str): IP address from DNS query to assign as primary IP.
-        """
-        _intf = nautobot.get_or_create_mgmt_intf(intf_name="Management", dev=dev)
-        try:
-            _ip = IPAddress.objects.get(host=ans)
-        except IPAddress.DoesNotExist:
-            _pf = Prefix.objects.net_contains(f"{ans}/32")
-            # the last Prefix is the most specific and is assumed the one the IP address resides in
-            if len(_pf) > 1:
-                _range = _pf[len(_pf) - 1]
-                _netmask = _range.prefix_length
-            else:
-                # for the edge case where the DNS answer doesn't reside in a pre-existing Prefix
-                _netmask = "32"
-            _ip = IPAddress(
-                address=f"{ans}/{_netmask}",
-                vrf=_range.vrf if _range else None,
-                status=Status.objects.get(name="Active"),
-                description="Management address via DNS",
-            )
-        _ip.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
-        _ip.assigned_object_id = _intf.id
-        _ip.validated_save()
-        nautobot.assign_primary(dev, _ip)
 
     def load_sites(self):
         """Add Nautobot Site objects as DiffSync Building models."""

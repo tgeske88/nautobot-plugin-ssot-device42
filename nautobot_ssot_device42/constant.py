@@ -7,8 +7,6 @@ PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_device42"]
 
 DEFAULTS = PLUGIN_CFG.get("defaults")
 
-USE_DNS = PLUGIN_CFG.get("use_dns")
-
 PHY_INTF_MAP = {  # pylint: disable=invalid-name
     "100 Mbps": "100base-tx",
     "1.0 Gbps": "1000base-t",

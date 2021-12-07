@@ -179,6 +179,7 @@ class IPAddress(DiffSyncModel):
     label: Optional[str]
     device: Optional[str]
     interface: Optional[str]
+    primary: Optional[bool] = False
     vrf: Optional[str]
     tags: Optional[List[str]]
     custom_fields: Optional[List[dict]]
@@ -186,8 +187,20 @@ class IPAddress(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create IP Address object in Nautobot."""
+        if "/32" in ids["address"] and attrs.get("primary"):
+            _pf = NautobotPrefix.objects.net_contains(ids["address"])
+            # the last Prefix is the most specific and is assumed the one the IP address resides in
+            if len(_pf) > 1:
+                _range = _pf[len(_pf) - 1]
+                _netmask = _range.prefix_length
+            else:
+                # for the edge case where the DNS answer doesn't reside in a pre-existing Prefix
+                _netmask = "32"
+            _address = re.sub(r"\/32", f"/{_netmask}", ids["address"])
+        else:
+            _address = ids["address"]
         _ip = NautobotIPAddress(
-            address=ids["address"],
+            address=_address,
             vrf=NautobotVRF.objects.get(name=attrs["vrf"]) if attrs.get("vrf") else None,
             status=NautobotStatus.objects.get(name="Active")
             if not attrs.get("available")
