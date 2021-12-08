@@ -12,6 +12,7 @@ from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.from_d42.models import circuits, dcim, ipam
 from nautobot_ssot_device42.utils.device42 import get_facility, get_intf_type, get_netmiko_platform
 from netutils.bandwidth import name_to_bits
+from netutils.dns import is_fqdn_resolvable, fqdn_to_ip
 
 from nautobot.core.settings_funcs import is_truthy
 
@@ -59,6 +60,21 @@ def get_site_from_mapping(device_name: str) -> Union[str, bool]:
             if site_match:
                 return _slug
     return False
+
+
+def get_dns_a_record(dev_name: str):
+    """Method to obtain A record for a Device.
+
+    Args:
+        dev_name (str): Name of Device to perform DNS query for.
+
+    Returns:
+        str: A record for Device if exists, else False.
+    """
+    if is_fqdn_resolvable(dev_name):
+        return fqdn_to_ip(dev_name)
+    else:
+        return False
 
 
 class Device42Adapter(DiffSync):
@@ -537,6 +553,7 @@ class Device42Adapter(DiffSync):
                     label=_ip["label"],
                     device=_ip["device"] if _ip.get("device") else "",
                     interface=_ip["port_name"] if _ip.get("port_name") else "",
+                    primary=False,
                     vrf=_ip["vrf"],
                     tags=_tags,
                 )
@@ -698,42 +715,33 @@ class Device42Adapter(DiffSync):
             if not re.search(r"\s-\s\w+\s?\d+", _device) and not re.search(
                 r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _device
             ):
-                _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", _device)
-                if _devname:
-                    _devname = _devname.group()
-                else:
-                    continue
-                self.set_primary_from_dns(dev_name=_devname, diffsync=self.job)
+                self.set_primary_from_dns(dev_name=_device)
             else:
                 if PLUGIN_CFG.get("verbose_debug"):
-                    self.job.log_warning(message=f"Skipping {_devname} due to invalid Device name.")
+                    self.job.log_warning(message=f"Skipping {_device} due to invalid Device name.")
                 continue
 
-    def set_primary_from_dns(self, dev_name: str, diffsync=None):
-        """Method to resolve Device FQDNs A records into an IP and set primary IP for that Device to it if found.
-
-            Checks if `use_dns` setting variable is `True`.
+    def get_management_intf(self, dev_name: str, diffsync=None):
+        """Method to find a Device's management interface or create one if one doesn't exist.
 
         Args:
-            dev_name (str): Name of Device to perform DNS query on.
+            dev_name (str): Name of Device to find Management interface.
             diffsync (object, optional): Diffsync object for handling interactions with Job, such as logging. Defaults to None.
+
+        Returns:
+            Port: DiffSyncModel Port object that's assumed to be Management interface.
         """
-        interface = None
         try:
             _intf = self.get(self.port, {"device": dev_name, "name": "mgmt0"})
-            interface = "mgmt0"
         except ObjectNotFound:
             try:
                 _intf = self.get(self.port, {"device": dev_name, "name": "management"})
-                interface = "management"
             except ObjectNotFound:
                 try:
                     _intf = self.get(self.port, {"device": dev_name, "name": "management0"})
-                    interface = "management0"
                 except ObjectNotFound:
                     try:
                         _intf = self.get(self.port, {"device": dev_name, "name": "Management"})
-                        interface = "Management"
                     except ObjectNotFound:
                         _intf = self.port(
                             name="Management",
@@ -743,22 +751,38 @@ class Device42Adapter(DiffSync):
                             description="Interface added by script for Management of device using DNS A record.",
                             mode="access",
                         )
-                        interface = "Management"
                         try:
                             self.add(_intf)
                             _device = self.get(self.device, dev_name)
                             _device.add_child(_intf)
                         except ObjectAlreadyExists as err:
                             diffsync.log_warning(message=f"Management interface for {dev_name} already exists. {err}")
-        _a_record = get_dns_a_record(dev_name=dev_name, diffsync=diffsync)
+        return _intf
+
+    def set_primary_from_dns(self, dev_name: str):
+        """Method to resolve Device FQDNs A records into an IP and set primary IP for that Device to it if found.
+
+            Checks if `use_dns` setting variable is `True`.
+
+        Args:
+            dev_name (str): Name of Device to perform DNS query on.
+        """
+        _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", dev_name)
+        if _devname:
+            _devname = _devname.group()
+        else:
+            return ""
+        _a_record = get_dns_a_record(dev_name=_devname)
         if _a_record:
             _ip = self.find_ipaddr(address=_a_record)
+            mgmt_intf = self.get_management_intf(dev_name=dev_name)
             if _ip:
-                _ip.device = dev_name
-                _ip.interface = interface
-                _ip.primary = True
+                if mgmt_intf:
+                    _ip.device = dev_name
+                    _ip.interface = mgmt_intf.name
+                    _ip.primary = True
             else:
-                self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=interface)
+                self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=mgmt_intf.name)
 
     def find_ipaddr(self, address: str):
         """Method to find IPAddress DiffSyncModel object."""
