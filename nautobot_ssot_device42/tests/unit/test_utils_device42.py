@@ -126,11 +126,15 @@ class TestUtilsDevice42(TestCase):
         self.assertEqual(device42.get_netmiko_platform(sent), received)
 
     def test_find_device_role_from_tags(self):
-        tags = [
+        tags_w_role = [
             "core-router",
             "nautobot-core-router",
         ]
-        self.assertEqual(device42.find_device_role_from_tags(tag_list=tags), "core-router")
+        self.assertEqual(device42.find_device_role_from_tags(tag_list=tags_w_role), "core-router")
+        tags_missing_role = [
+            "802.1x",
+        ]
+        self.assertEqual(device42.find_device_role_from_tags(tag_list=tags_missing_role), "Unknown")
 
     def test_get_facility(self):
         tags = ["core-router", "nautobot-core-router", "sitecode-DFW"]
