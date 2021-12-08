@@ -118,6 +118,7 @@ class TestUtilsDevice42(TestCase):
         ("iosxe", "iosxe", "cisco_ios"),
         ("nxos", "nxos", "cisco_nxos"),
         ("junos", "junos", "juniper_junos"),
+        ("dell", "dell", "dell"),
     ]
 
     @parameterized.expand(netmiko_platforms, skip_on_empty=True)
