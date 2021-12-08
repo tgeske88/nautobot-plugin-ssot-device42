@@ -179,7 +179,7 @@ class IPAddress(DiffSyncModel):
     label: Optional[str]
     device: Optional[str]
     interface: Optional[str]
-    primary: Optional[bool] = False
+    primary: Optional[bool]
     vrf: Optional[str]
     tags: Optional[List[str]]
     custom_fields: Optional[List[dict]]
@@ -259,6 +259,7 @@ class IPAddress(DiffSyncModel):
 
     def update(self, attrs):
         """Update IPAddress object in Nautobot."""
+        print(f"IPAddr update: {self.get_identifiers()}")
         _ipaddr = NautobotIPAddress.objects.get(address=self.address)
         if attrs.get("available"):
             _ipaddr.status = (

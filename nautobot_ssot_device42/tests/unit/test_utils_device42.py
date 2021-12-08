@@ -434,3 +434,18 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         response = self.dev42.get_port_pks()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_port_connections(self):
+        """Test get_port_connections success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_connections.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT netport_pk as src_port, device_fk as src_device, second_device_fk as dst_device, remote_netport_fk as dst_port FROM view_netport_v1 WHERE second_device_fk is not null AND remote_netport_fk is not null&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_connections.json")
+        response = self.dev42.get_port_connections()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
