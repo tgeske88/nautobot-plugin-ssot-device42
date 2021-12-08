@@ -449,3 +449,18 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         response = self.dev42.get_port_connections()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_telcocircuits(self):
+        """Test get_telcocircuits success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_telcocircuits.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT * FROM view_telcocircuit_v1&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_telcocircuits.json")
+        response = self.dev42.get_telcocircuits()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
