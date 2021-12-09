@@ -786,7 +786,10 @@ class Device42Adapter(DiffSync):
 
     def find_ipaddr(self, address: str):
         """Method to find IPAddress DiffSyncModel object."""
-        bits = 24
+        if ":" in address:
+            bits = 128
+        else:
+            bits = 32
         while bits > 0:
             try:
                 return self.get(self.ipaddr, f"{address}/{bits}")
