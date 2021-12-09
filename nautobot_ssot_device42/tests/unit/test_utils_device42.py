@@ -46,7 +46,14 @@ class TestUtilsDevice42(TestCase):
             "discovered_type": "ethernetCsmacd",
             "port_speed": "1.0 Gbps",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=eth_intf), "1000base-t")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=eth_intf, diffsync=dsync), "1000base-t")
+        dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_fc_intf(self):
         # test physical FiberChannel interfaces
