@@ -955,19 +955,14 @@ class Port(DiffSyncModel):
         return super().update(attrs)
 
     def delete(self):
-        """Delete Interface object from Nautobot.
-
-        Because Interface has a direct relationship with Cables and IP Addresses it can't be deleted before they are.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
-        in the correct order. This is used in the Nautobot adapter sync_complete function.
-        """
+        """Delete Interface object from Nautobot."""
         if PLUGIN_CFG.get("verbose_debug"):
             self.diffsync.job.log_warning(f"Interface {self.name} for {self.device} will be deleted.")
-        super().delete()
-        _dev = NautobotInterface.objects.get(
+        _intf = NautobotInterface.objects.get(
             name=self.get_identifiers()["name"], device__name=self.get_identifiers()["device"]
         )
-        self.diffsync._objects_to_delete["port"].append(_dev)  # pylint: disable=protected-access
+        _intf.delete()
+        super().delete()
         return self
 
 

@@ -104,7 +104,6 @@ class NautobotAdapter(DiffSync):
             source (DiffSync): DiffSync
         """
         for grouping in (
-            "port",
             "cluster",
             "device",
             "rack",
