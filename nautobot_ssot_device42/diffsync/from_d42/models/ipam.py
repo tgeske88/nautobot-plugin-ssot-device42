@@ -171,7 +171,7 @@ class IPAddress(DiffSyncModel):
 
     _modelname = "ipaddr"
     _identifiers = ("address",)
-    _attributes = ("available", "label", "device", "interface", "vrf", "tags", "custom_fields")
+    _attributes = ("available", "label", "device", "interface", "primary", "vrf", "tags", "custom_fields")
     _children = {}
 
     address: str
@@ -233,14 +233,17 @@ class IPAddress(DiffSyncModel):
         _ip.validated_save()
 
         # Define regex match for Management interface (ex Management/Mgmt/mgmt/management)
-        mgmt = r"[mM]anagement|[mM]gmt"
+        mgmt = r"^[mM]anagement|^[mM]gmt"
 
         if attrs.get("device"):
             try:
                 _dev = NautobotDevice.objects.get(name=attrs["device"])
-                # If the Interface is defined, see if it matches regex
+                # If the Interface is defined, see if it matches regex and the IP is marked primary
                 if attrs.get("interface"):
-                    if re.search(mgmt, attrs["interface"].strip()):
+                    if attrs.get("primary"):
+                        _intf = NautobotInterface.objects.get(name=attrs["interface"], device__name=attrs["device"])
+                        nautobot.set_primary_ip_and_mgmt(_ip, _dev, _intf)
+                    elif re.search(mgmt, attrs["interface"].strip()) and attrs.get("primary"):
                         _intf = NautobotInterface.objects.get(name=attrs["interface"], device__name=attrs["device"])
                         nautobot.set_primary_ip_and_mgmt(_ip, _dev, _intf)
                 # else check the label to see if it matches
@@ -259,8 +262,11 @@ class IPAddress(DiffSyncModel):
 
     def update(self, attrs):
         """Update IPAddress object in Nautobot."""
-        print(f"IPAddr update: {self.get_identifiers()}")
-        _ipaddr = NautobotIPAddress.objects.get(address=self.address)
+        try:
+            _ipaddr = NautobotIPAddress.objects.get(address=self.address)
+        except NautobotIPAddress.DoesNotExist:
+            print("IP Address passed to update but can't be found. This shouldn't happen. Why is this happening?!?!")
+            return
         if attrs.get("available"):
             _ipaddr.status = (
                 NautobotStatus.objects.get(name="Active")
@@ -302,6 +308,16 @@ class IPAddress(DiffSyncModel):
                 _ipaddr.assigned_object_id = intf.id
             except NautobotInterface.DoesNotExist as err:
                 self.diffsync.job.log_debug(f"Unable to find Interface {self.interface} for {attrs['device']}. {err}")
+        if attrs.get("primary"):
+            if attrs.get("device"):
+                _device = NautobotDevice.objects.get(name=attrs["device"])
+            else:
+                _device = self.device
+            if attrs.get("interface"):
+                _intf = NautobotInterface.objects.get(name=attrs["interface"], device=_device)
+            else:
+                _intf = NautobotInterface.objects.get(name=self.interface, device=_device)
+            nautobot.set_primary_ip_and_mgmt(ipaddr=_ipaddr, dev=_device, intf=_intf)
         if attrs.get("vrf"):
             _ipaddr.vrf = NautobotVRF.objects.get(name=attrs["vrf"])
         if attrs.get("tags"):

@@ -715,7 +715,7 @@ class Device42Adapter(DiffSync):
             if not re.search(r"\s-\s\w+\s?\d+", _device) and not re.search(
                 r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _device
             ):
-                self.set_primary_from_dns(dev_name=_device)
+                self.set_primary_from_dns(dev_name=_device, diffsync=self.job)
             else:
                 if PLUGIN_CFG.get("verbose_debug"):
                     self.job.log_warning(message=f"Skipping {_device} due to invalid Device name.")
@@ -729,7 +729,7 @@ class Device42Adapter(DiffSync):
             diffsync (object, optional): Diffsync object for handling interactions with Job, such as logging. Defaults to None.
 
         Returns:
-            Port: DiffSyncModel Port object that's assumed to be Management interface.
+            Port: DiffSyncModel Port object that's assumed to be Management interface if found. False if not found.
         """
         try:
             _intf = self.get(self.port, {"device": dev_name, "name": "mgmt0"})
@@ -743,23 +743,33 @@ class Device42Adapter(DiffSync):
                     try:
                         _intf = self.get(self.port, {"device": dev_name, "name": "Management"})
                     except ObjectNotFound:
-                        _intf = self.port(
-                            name="Management",
-                            device=dev_name,
-                            type="other",
-                            enabled=True,
-                            description="Interface added by script for Management of device using DNS A record.",
-                            mode="access",
-                        )
-                        try:
-                            self.add(_intf)
-                            _device = self.get(self.device, dev_name)
-                            _device.add_child(_intf)
-                        except ObjectAlreadyExists as err:
-                            diffsync.log_warning(message=f"Management interface for {dev_name} already exists. {err}")
+                        return False
         return _intf
 
-    def set_primary_from_dns(self, dev_name: str):
+    def add_management_interface(self, dev_name: str, diffsync=None):
+        """Method to add a Management interface DiffSyncModel object.
+
+        Args:
+            dev_name (str): Name of Device to find Management interface.
+            diffsync (object, optional): Diffsync object for handling interactions with Job, such as logging. Defaults to None.
+        """
+        _intf = self.port(
+            name="Management",
+            device=dev_name,
+            type="other",
+            enabled=True,
+            description="Interface added by script for Management of device using DNS A record.",
+            mode="access",
+        )
+        try:
+            self.add(_intf)
+            _device = self.get(self.device, dev_name)
+            _device.add_child(_intf)
+            return _intf
+        except ObjectAlreadyExists as err:
+            diffsync.log_warning(message=f"Management interface for {dev_name} already exists. {err}")
+
+    def set_primary_from_dns(self, dev_name: str, diffsync=None):
         """Method to resolve Device FQDNs A records into an IP and set primary IP for that Device to it if found.
 
             Checks if `use_dns` setting variable is `True`.
@@ -777,11 +787,15 @@ class Device42Adapter(DiffSync):
             _ip = self.find_ipaddr(address=_a_record)
             mgmt_intf = self.get_management_intf(dev_name=dev_name)
             if _ip:
-                if mgmt_intf:
+                if mgmt_intf and _ip.device != dev_name:
                     _ip.device = dev_name
                     _ip.interface = mgmt_intf.name
                     _ip.primary = True
+                elif _ip.device == dev_name:
+                    _ip.primary = True
             else:
+                if not mgmt_intf:
+                    mgmt_intf = self.add_management_interface(dev_name=dev_name, diffsync=diffsync)
                 self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=mgmt_intf.name)
 
     def find_ipaddr(self, address: str):
