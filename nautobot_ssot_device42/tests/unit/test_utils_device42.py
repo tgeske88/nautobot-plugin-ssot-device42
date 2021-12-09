@@ -13,6 +13,19 @@ def load_json(path):
         return json.loads(file.read())
 
 
+class TestMissingConfigSetting(TestCase):
+    """Test MissingConfigSetting Exception."""
+
+    def setUp(self):
+        """Setup MissingConfigSetting instance."""
+        self.setting = "D42_URL"
+        self.missing_setting = device42.MissingConfigSetting(setting=self.setting)
+
+    def test_missingconfigsetting(self):
+        self.assertTrue(self.missing_setting.setting == "D42_URL")
+        self.assertLogs("Missing configuration setting - D42_URL!")
+
+
 class TestUtilsDevice42(TestCase):
     """Test Device42 util methods."""
 
