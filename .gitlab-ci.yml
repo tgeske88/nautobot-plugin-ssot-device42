@@ -31,5 +31,5 @@ test:
     - "poetry run bandit --recursive . --configfile .bandit.yml"
     - "poetry run pydocstyle --config=.pydocstyle.ini ."
     - "poetry run flake8 ."
-    # - "poetry run pylint --init-hook 'import nautobot; nautobot.setup()' --rcfile pyproject.toml nautobot_device42_sync"
-    # - "poetry run coverage run --module nautobot.core.cli test nautobot_device42_sync --failfast --buffer"
+    # - "poetry run pylint --init-hook 'import nautobot; nautobot.setup()' --rcfile pyproject.toml nautobot_ssot_device42"
+    # - "poetry run coverage run --module nautobot.core.cli test nautobot_ssot_device42 --failfast --buffer"

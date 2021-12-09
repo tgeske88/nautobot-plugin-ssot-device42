@@ -7,25 +7,25 @@ A plugin for [Nautobot](https://github.com/nautobot/nautobot).
 The plugin is available as a Python package in pypi and can be installed with pip
 
 ```shell
-pip install nautobot-device42-sync
+pip install nautobot-ssot-device42
 ```
 
 > The plugin is compatible with Nautobot 1.1.0 and higher
 
-To ensure Nautobot Device42 Sync is automatically re-installed during future upgrades, create a file named `local_requirements.txt` (if not already existing) in the Nautobot root directory (alongside `requirements.txt`) and list the `nautobot-device42-sync` package:
+To ensure Nautobot Device42 Sync is automatically re-installed during future upgrades, create a file named `local_requirements.txt` (if not already existing) in the Nautobot root directory (alongside `requirements.txt`) and list the `nautobot-ssot-device42` package:
 
 ```no-highlight
-# echo nautobot-device42-sync >> local_requirements.txt
+# echo nautobot-ssot-device42 >> local_requirements.txt
 ```
 
 Once installed, the plugin needs to be enabled in your `nautobot_configuration.py`
 
 ```python
 # In your configuration.py
-PLUGINS = ["nautobot_device42_sync"]
+PLUGINS = ["nautobot_ssot_device42"]
 
 PLUGINS_CONFIG = {
-  "nautobot_device42_sync": {
+  "nautobot_ssot_device42": {
     "device42_host": os.getenv("DEVICE42_HOST", ""),
     "device42_username": os.getenv("DEVICE42_USERNAME", ""),
     "device42_password": os.getenv("DEVICE42_PASSWORD", ""),
@@ -78,13 +78,13 @@ Below is a quick start guide if you're already familiar with the development env
 The [PyInvoke](http://www.pyinvoke.org/) library is used to provide some helper commands based on the environment.  There are a few configuration parameters which can be passed to PyInvoke to override the default configuration:
 
 * `nautobot_ver`: the version of Nautobot to use as a base for any built docker containers (default: 1.0.3)
-* `project_name`: the default docker compose project name (default: nautobot_device42_sync)
+* `project_name`: the default docker compose project name (default: nautobot_ssot_device42)
 * `python_ver`: the version of Python to use as a base for any built docker containers (default: 3.6)
 * `local`: a boolean flag indicating if invoke tasks should be run on the host or inside the docker containers (default: False, commands will be run in docker containers)
 * `compose_dir`: the full path to a directory containing the project compose files
 * `compose_files`: a list of compose files applied in order (see [Multiple Compose files](https://docs.docker.com/compose/extends/#multiple-compose-files) for more information)
 
-Using **PyInvoke** these configuration options can be overridden using [several methods](http://docs.pyinvoke.org/en/stable/concepts/configuration.html).  Perhaps the simplest is simply setting an environment variable `INVOKE_NAUTOBOT_DEVICE42_SYNC_VARIABLE_NAME` where `VARIABLE_NAME` is the variable you are trying to override.  The only exception is `compose_files`, because it is a list it must be overridden in a yaml file.  There is an example `invoke.yml` (`invoke.example.yml`) in this directory which can be used as a starting point.
+Using **PyInvoke** these configuration options can be overridden using [several methods](http://docs.pyinvoke.org/en/stable/concepts/configuration.html).  Perhaps the simplest is simply setting an environment variable `INVOKE_NAUTOBOT_SSOT_DEVICE42_VARIABLE_NAME` where `VARIABLE_NAME` is the variable you are trying to override.  The only exception is `compose_files`, because it is a list it must be overridden in a yaml file.  There is an example `invoke.yml` (`invoke.example.yml`) in this directory which can be used as a starting point.
 
 #### Local Poetry Development Environment
 
@@ -94,7 +94,7 @@ Using **PyInvoke** these configuration options can be overridden using [several 
 
 ```yaml
 ---
-nautobot_device42_sync:
+nautobot_ssot_device42:
   local: true
   compose_files:
     - "docker-compose.requirements.yml"
@@ -149,7 +149,7 @@ To either stop or destroy the development environment use the following options.
 
 The project is coming with a CLI helper based on [invoke](http://www.pyinvoke.org/) to help setup the development environment. The commands are listed below in 3 categories `dev environment`, `utility` and `testing`.
 
-Each command can be executed with `invoke <command>`. Environment variables `INVOKE_NAUTOBOT_DEVICE42_SYNC_PYTHON_VER` and `INVOKE_NAUTOBOT_DEVICE42_SYNC_NAUTOBOT_VER` may be specified to override the default versions. Each command also has its own help `invoke <command> --help`
+Each command can be executed with `invoke <command>`. Environment variables `INVOKE_NAUTOBOT_SSOT_DEVICE42_PYTHON_VER` and `INVOKE_NAUTOBOT_SSOT_DEVICE42_NAUTOBOT_VER` may be specified to override the default versions. Each command also has its own help `invoke <command> --help`
 
 #### Docker dev environment
 

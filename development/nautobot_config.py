@@ -259,7 +259,7 @@ NAPALM_ARGS = {}
 PAGINATE_COUNT = int(os.environ.get("PAGINATE_COUNT", 50))
 
 # Enable installed plugins. Add the name of each plugin to the list.
-PLUGINS = ["nautobot_ssot", "nautobot_device42_sync"]
+PLUGINS = ["nautobot_ssot", "nautobot_ssot_device42", "nautobot_device_lifecycle_mgmt"]
 
 # Plugins configuration settings. These settings are used by various plugins that the user may have installed.
 # Each key in the dictionary is the name of an installed plugin and its value is a dictionary of settings.
@@ -267,7 +267,7 @@ PLUGINS_CONFIG = {
     "nautobot_ssot": {
         "hide_example_jobs": True,
     },
-    "nautobot_device42_sync": {
+    "nautobot_ssot_device42": {
         "device42_host": os.getenv("DEVICE42_HOST", ""),
         "device42_username": os.getenv("DEVICE42_USERNAME", ""),
         "device42_password": os.getenv("DEVICE42_PASSWORD", ""),

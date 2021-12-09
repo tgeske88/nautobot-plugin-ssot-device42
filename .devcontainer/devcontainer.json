@@ -1,0 +1,59 @@
+{
+    "name": "nautobot_ssot_device42",
+    "dockerComposeFile": [
+        "../development/docker-compose.requirements.yml",
+        "../development/docker-compose.base.yml",
+        "../development/docker-compose.dev.yml",
+        "../development/docker-compose.debug.yml",
+    ],
+    "remoteEnv": {
+        "DJANGO_SETTINGS_MODULE": "nautobot.core.settings"
+    },
+    "service": "nautobot",
+    "runServices": [
+        "celery",
+        "worker",
+        "postgres",
+        "redis"
+    ],
+    "workspaceFolder": "/source/",
+    "extensions": [
+		"ms-python.vscode-pylance",
+		"streetsidesoftware.code-spell-checker",
+		"eamodio.gitlens",
+		"ms-python.python",
+		"vivaxy.vscode-conventional-commits",
+		"njpwerner.autodocstring"
+	],
+    "settings": {
+        "python.pythonPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": [
+            "/source"
+        ],
+        "python.linting.pylintEnabled": true,
+        "python.linting.enabled": true,
+        "pythonTestExplorer.testFramework": "pytest",
+        "python.formatting.blackEnabled": true,
+        "python.formatting.blackPath": "/usr/local/bin/black",
+        "python.linting.banditPath": "/usr/local/bin/bandit",
+        "python.linting.pylintPath": "/usr/local/bin/pylint",
+        "python.testing.pytestPath": "/usr/local/bin/pytest",
+        "python.linting.pydocstyleEnabled": true,
+        "python.linting.pydocstylePath": "/usr/local/bin/pydocstyle",
+        "python.linting.flake8Enabled": true,
+        "python.linting.flake8Path": "/usr/local/bin/flake8",
+        "python.formatting.autopep8Path": "/usr/local/bin/flake8",
+        "python.linting.pycodestyleEnabled": true,
+        "python.linting.pycodestylePath": "/usr/local/bin/flake8",
+        "python.linting.pylintArgs": [
+            "--load-plugins",
+            "pylint_django"
+        ],
+        "python.linting.pycodestyleArgs": [
+            "--ignore=E501"
+        ], // E501 is line to long
+    },
+    "forwardPorts": [
+        8080
+    ],
+}

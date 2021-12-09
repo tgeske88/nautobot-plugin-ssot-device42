@@ -1,0 +1,18 @@
+[
+    {
+        "vlan_pk": 1,
+        "vid": 100,
+        "description": "Public",
+        "vlan_name": "Public",
+        "building": "Austin",
+        "customer": "AUS"
+    },
+    {
+        "vlan_pk": 2,
+        "vid": 200,
+        "description": "DMZ",
+        "vlan_name": "DMZ",
+        "building": "Los Angeles",
+        "customer": "LAX"
+    }
+]
