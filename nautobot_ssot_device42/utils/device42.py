@@ -155,7 +155,7 @@ def find_device_role_from_tags(tag_list: List[str]) -> str:
 def get_facility(tags: List[str], diffsync=None):  # pylint: disable=inconsistent-return-statements
     """Determine Site facility from a specified Tag."""
     if not PLUGIN_CFG.get("facility_prepend"):
-        diffsync.log_failure("The `facility_prepend` setting is missing or invalid.")
+        diffsync.log_failure(message="The `facility_prepend` setting is missing or invalid.")
         raise MissingConfigSetting("facility_prepend")
     for _tag in tags:
         if re.search(PLUGIN_CFG.get("facility_prepend"), _tag):
