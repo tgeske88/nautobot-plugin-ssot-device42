@@ -776,6 +776,7 @@ class Device42Adapter(DiffSync):
 
         Args:
             dev_name (str): Name of Device to perform DNS query on.
+            diffsync (object, optional): Diffsync object for handling interactions with Job, such as logging. Defaults to None.
         """
         _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", dev_name)
         if _devname:
