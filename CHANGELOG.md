@@ -6,6 +6,34 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## [v0.13.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.13.0) - 2021-12-09
+
+<small>[Compare with v0.12.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.12.0...v0.13.0)</small>
+
+### Feature
+* :sparkles: Add support for Device Lifecycle Management plugin for software version tracking. ([`e578f0e`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/e578f0e9886ffd451dc9bbe7455a1dd1664e43f5))
+* :heavy_plus_sign: Start adding support for Device Lifecycle plugin ([`e6806df`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/e6806df829cc3fbfeb33f2b389161cf619703f5a))
+
+### Fix
+* :bug: Change Port deletion to standard method instead of delayed. ([`056c117`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/056c1178135d117e7b9dcf7bda0fe17c68b13e81))
+* :bug: Update find_ipaddr method to allow for IPv6 and all subnets in IPv4. ([`3e10fb0`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/3e10fb0c0ae26597820bb59e31299d7f8c9c7437))
+* :bug: Add provider to _objects_to_delete dict ([`09a3aad`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/09a3aaddb24a2759f8110bd3fce8be20abbd3008))
+* :bug: Update Circuit processing to handle Circuits/Connections without terminations. ([`000d0e7`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/000d0e7bb80d07652cda6b1b958fc73c59069006))
+* :bug: Validate VLAN PK is in vlan_map ([`c31cede`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/c31cede201435c7b2bb40ee02ed4d0ca81231303))
+* :bug: Ensure that the object is always returned for accurate logs. ([`d16dbba`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/d16dbbaeb10618c3fcdae3278ca3fb2aae59bca8))
+* :bug: Validate Circuit has termination when loading ([`8f6d7d3`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/8f6d7d34c38b75b4e0fd873baaf3a91e1f6a76f8))
+* :bug: Ensure that logs are sent in message. ([`6de3553`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/6de355338a5c5d5cbe55082b83d6ca4dd054d95e))
+* :bug: Fix APs being processed as FQDNs. ([`469123e`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/469123ec4dc046b34829d86d2fb958837fece7bd))
+* :bug: Provider account number is limited to 30 characters. ([`4183a65`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/4183a65f89bd93f8f1a09129c0ba2d79b9ac01ce))
+* :bug: Fix the a/z side connections to Device Ports ([`545ec66`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/545ec6680b046000a7df79bf538435d2c9f6699d))
+* :bug: Ensure that the first spot is reserved for master device in VC ([`b5d7884`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/b5d7884eab6b79deea6186724b9a0c7ea5ab8ceb))
+
+### Documentation
+* :memo: Correct name of project in docstring ([`8090ecb`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/8090ecb0f51f99daf554af5808636468430930ae))
+
+### Performance
+* :white_check_mark: Add test for get_vlans_with_location method ([`6e5714a`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/6e5714a269bb625a1f3f4fbd36a9022128b2f1f4))
+
 ## [v0.12.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.12.0) - 2021-11-09
 
 <small>[Compare with v0.11.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.11.0...v0.12.0)</small>
