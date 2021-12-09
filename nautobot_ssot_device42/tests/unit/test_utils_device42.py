@@ -1,7 +1,10 @@
 """Tests of Device42 utility methods."""
 
 import json
+from unittest.mock import MagicMock
+
 import responses
+from django.conf import settings
 from nautobot.utilities.testing import TestCase
 from parameterized import parameterized
 from nautobot_ssot_device42.utils import device42
@@ -152,6 +155,20 @@ class TestUtilsDevice42(TestCase):
     def test_get_facility(self):
         tags = ["core-router", "nautobot-core-router", "sitecode-DFW"]
         self.assertEqual(device42.get_facility(tags=tags), "DFW")
+
+    def test_get_facility_exception(self):
+        """Test that get_facility throws Exception if setting is missing."""
+        tags = ["core-router", "nautobot-core-router", "sitecode-DFW"]
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original = configs["facility_prepend"]
+        configs.pop("facility_prepend")
+        dsync = MagicMock()
+        dsync.log_failure = MagicMock()
+        with self.assertRaises(device42.MissingConfigSetting):
+            device42.get_facility(tags=tags, diffsync=dsync)
+        dsync.log_failure.assert_called_once_with(message="The `facility_prepend` setting is missing or invalid.")
+        # restore setting to what it was before
+        configs["facility_prepend"] = original
 
 
 class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
