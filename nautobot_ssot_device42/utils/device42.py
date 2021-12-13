@@ -288,6 +288,10 @@ class Device42API:  # pylint: disable=too-many-public-methods
         """Method to get all Buildings from Device42."""
         return self.api_call(path="api/1.0/buildings")["buildings"]
 
+    def get_rooms(self) -> List:
+        """Method to get all Rooms from Device42."""
+        return self.api_call(path="api/1.0/rooms")["rooms"]
+
     def get_cluster_members(self) -> dict:
         """Method to get all member devices of a cluster from Device42.
 
