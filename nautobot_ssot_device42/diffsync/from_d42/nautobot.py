@@ -39,7 +39,6 @@ class NautobotAdapter(DiffSync):
     _objects_to_delete = {
         "device": [],
         "site": [],
-        "rack_group": [],
         "rack": [],
         "manufacturer": [],
         "device_type": [],
@@ -107,7 +106,6 @@ class NautobotAdapter(DiffSync):
             "cluster",
             "device",
             "rack",
-            "rack_group",
             "vrf",
             "subnet",
             "vlan",
