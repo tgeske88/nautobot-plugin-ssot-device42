@@ -190,8 +190,18 @@ class TestUtilsDevice42(TestCase):
             "port_type": "logical",
             "discovered_type": "propVirtual",
             "port_speed": "20 Gbps",
+            "device_name": "distro-switch.testexample.com",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf), "lag")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf, diffsync=dsync), "lag")
+        dsync.log_debug.assert_called_once_with(
+            message="Virtual, loopback, or l2vlan interface matched. port-channel100 distro-switch.testexample.com."
+        )
+        configs["verbose_debug"] = original_setting
 
     netmiko_platforms = [
         ("asa", "asa", "cisco_asa"),
