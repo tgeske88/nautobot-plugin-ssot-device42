@@ -62,8 +62,16 @@ class TestUtilsDevice42(TestCase):
             "port_type": "physical",
             "discovered_type": "fibreChannel",
             "port_speed": "1.0 Gbps",
+            "device_name": "core-router.testexample.com",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=fc_intf), "1gfc-sfp")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=fc_intf, diffsync=dsync), "1gfc-sfp")
+        dsync.log_debug.assert_called_once_with(message="Matched on FibreChannel. FC0/1 core-router.testexample.com")
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_unknown_phy_intf(self):
         # test physical interfaces that don't have a discovered_type of Ethernet or FiberChannel
