@@ -193,6 +193,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
             path (str): API path to send request to.
             method (str, optional): API request method. Defaults to "GET".
             params (dict, optional): Additional parameters to send to API. Defaults to None.
+            payload (dict, optional): Message payload to be sent as part of API call.
 
         Raises:
             Exception: Error thrown if request errors.
