@@ -170,8 +170,18 @@ class TestUtilsDevice42(TestCase):
             "port_type": "logical",
             "discovered_type": "propVirtual",
             "port_speed": "1.0 Gbps",
+            "device_name": "distro-switch.testexample.com",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=virtual_intf), "virtual")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=virtual_intf, diffsync=dsync), "virtual")
+        dsync.log_debug.assert_called_once_with(
+            message="Virtual, loopback, or l2vlan interface matched. Vlan100 distro-switch.testexample.com."
+        )
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_port_channel_intf(self):
         # test Port-Channel logical interface
