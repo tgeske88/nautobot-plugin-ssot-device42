@@ -152,8 +152,16 @@ class TestUtilsDevice42(TestCase):
             "port_type": "logical",
             "discovered_type": "lacp",
             "port_speed": "40 Gbps",
+            "device_name": "core-router.testexample.com",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=lacp_intf), "lag")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=lacp_intf, diffsync=dsync), "lag")
+        dsync.log_debug.assert_called_once_with(message="LAG matched. Internal_Trunk core-router.testexample.com")
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_virtual_intf(self):
         # test "virtual" logical interface
