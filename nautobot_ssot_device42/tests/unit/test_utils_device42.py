@@ -260,6 +260,14 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         validate_url = self.dev42.validate_url("api_endpoint")
         self.assertEqual(validate_url, "https://device42.testexample.com/api_endpoint")
 
+    def test_validate_url_path_has_slash(self):
+        """Test validate_url success when path has '/'."""
+        # Instantiate a new object, to test additional logic for missing'/':
+        self.uri = "https://device42.testexample.com"
+        self.dev42 = device42.Device42API(self.uri, self.username, self.password, self.verify)
+        validate_url = self.dev42.validate_url("/api_endpoint")
+        self.assertEqual(validate_url, "https://device42.testexample.com/api_endpoint")
+
     def test_validate_url_verify_true(self):
         """Test validate_url success with verify true."""
         # Instantiate a new object, to test additional logic for verify True
