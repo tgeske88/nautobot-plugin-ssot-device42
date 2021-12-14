@@ -81,7 +81,14 @@ class TestUtilsDevice42(TestCase):
             "discovered_type": "Unknown",
             "port_speed": "1.0 Gbps",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=unknown_phy_intf_speed), "1000base-t")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=unknown_phy_intf_speed, diffsync=dsync), "1000base-t")
+        dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_gigabit_ethernet_intf(self):
         # test physical interface that's discovered as gigabitEthernet
