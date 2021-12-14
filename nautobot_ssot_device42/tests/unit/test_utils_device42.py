@@ -90,6 +90,23 @@ class TestUtilsDevice42(TestCase):
         dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
         configs["verbose_debug"] = original_setting
 
+    def test_get_intf_name_mapping(self):
+        # test name of Interface matching INTF_NAME_MAP
+        ethernet_interface = {
+            "port_name": "FastEthernet1/1",
+            "port_type": "physical",
+            "discovered_type": "ethernetCsmacd",
+            "port_speed": "10 Mbps",
+        }
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=ethernet_interface, diffsync=dsync), "100base-tx")
+        dsync.log_debug.assert_called_once_with(message="Matched on interface name FastEthernet")
+        configs["verbose_debug"] = original_setting
+
     def test_get_intf_type_gigabit_ethernet_intf(self):
         # test physical interface that's discovered as gigabitEthernet
         gigabit_ethernet_intf = {
