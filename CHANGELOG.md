@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v0.13.1 (2021-12-15)
+
+
 ## [v0.13.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.13.0) - 2021-12-09
 
 <small>[Compare with v0.12.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.12.0...v0.13.0)</small>
