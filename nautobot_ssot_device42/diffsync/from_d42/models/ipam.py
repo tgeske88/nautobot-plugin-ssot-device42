@@ -170,8 +170,8 @@ class IPAddress(DiffSyncModel):
     """Device42 IP Address model."""
 
     _modelname = "ipaddr"
-    _identifiers = ("address",)
-    _attributes = ("available", "label", "device", "interface", "primary", "vrf", "tags", "custom_fields")
+    _identifiers = ("address", "vrf")
+    _attributes = ("available", "label", "device", "interface", "primary", "tags", "custom_fields")
     _children = {}
 
     address: str
@@ -201,7 +201,7 @@ class IPAddress(DiffSyncModel):
             _address = ids["address"]
         _ip = NautobotIPAddress(
             address=_address,
-            vrf=NautobotVRF.objects.get(name=attrs["vrf"]) if attrs.get("vrf") else None,
+            vrf=NautobotVRF.objects.get(name=ids["vrf"]) if ids.get("vrf") else None,
             status=NautobotStatus.objects.get(name="Active")
             if not attrs.get("available")
             else NautobotStatus.objects.get(name="Reserved"),
@@ -328,8 +328,6 @@ class IPAddress(DiffSyncModel):
                 _intf = NautobotInterface.objects.get(name=self.label, device=_device)
             if _device and _intf:
                 nautobot.set_primary_ip_and_mgmt(ipaddr=_ipaddr, dev=_device, intf=_intf)
-        if attrs.get("vrf"):
-            _ipaddr.vrf = NautobotVRF.objects.get(name=attrs["vrf"])
         if attrs.get("tags"):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _ipaddr.tags.add(_tag)
