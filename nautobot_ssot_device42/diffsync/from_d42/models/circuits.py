@@ -215,7 +215,7 @@ class Circuit(DiffSyncModel):
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         self.diffsync.job.log_warning(message=f"Circuit {self.circuit_id} will be deleted.")
-        circuit = NautobotCircuit.objects.get(cid=self.get_identifiers()["circuit_id"])
-        circuit.delete()
         super().delete()
+        circuit = NautobotCircuit.objects.get(cid=self.get_identifiers()["circuit_id"])
+        self.diffsync._objects_to_delete["circuit"].append(circuit)  # pylint: disable=protected-access
         return self

@@ -42,13 +42,14 @@ class NautobotAdapter(DiffSync):
         "rack": [],
         "manufacturer": [],
         "device_type": [],
+        "ipaddr": [],
         "vrf": [],
         "cluster": [],
         "port": [],
         "subnet": [],
         "vlan": [],
-        "cable": [],
         "provider": [],
+        "circuit": [],
     }
 
     building = dcim.Building
@@ -103,14 +104,19 @@ class NautobotAdapter(DiffSync):
             source (DiffSync): DiffSync
         """
         for grouping in (
-            "cluster",
-            "device",
-            "rack",
-            "vrf",
+            "ipaddr",
             "subnet",
+            "vrf",
             "vlan",
-            "site",
+            "circuit",
+            "provider",
+            "cluster",
+            "port",
+            "device",
+            "device_type",
             "manufacturer",
+            "rack",
+            "site",
         ):
             for nautobot_object in self._objects_to_delete[grouping]:
                 try:

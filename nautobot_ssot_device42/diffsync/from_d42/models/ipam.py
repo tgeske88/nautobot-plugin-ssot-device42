@@ -159,10 +159,14 @@ class Subnet(DiffSyncModel):
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        self.diffsync.job.log_warning(message=f"Subnet {self.network}/{self.mask_bits} will be deleted.")
+        self.diffsync.job.log_warning(message=f"Subnet {self.network} will be deleted.")
         super().delete()
-        site = NautobotPrefix.objects.get(**self.get_identifiers())
-        self.diffsync._objects_to_delete["subnet"].append(site)  # pylint: disable=protected-access
+        ids = self.get_identifiers()
+        if ids.get("vrf") and ids["vrf"] != "":
+            subnet = NautobotPrefix.objects.get(network=ids["network"], vrf=ids["vrf"])
+        else:
+            subnet = NautobotPrefix.objects.get(network=ids["network"])
+        self.diffsync._objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
         return self
 
 
@@ -345,11 +349,20 @@ class IPAddress(DiffSyncModel):
         return super().update(attrs)
 
     def delete(self):
-        """Delete IPAddress object from Nautobot."""
+        """Delete IPAddress object from Nautobot.
+
+        Because IPAddress has a direct relationship with many other objects it can't be deleted before anything else.
+        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        in the correct order. This is used in the Nautobot adapter sync_complete function.
+        """
         print(f"IP Address {self.address} will be deleted.")
-        ipaddr = NautobotIPAddress.objects.get(**self.get_identifiers())
-        ipaddr.delete()
+        ids = self.get_identifiers()
         super().delete()
+        if ids.get("vrf") and ids["vrf"] != "":
+            ipaddr = NautobotIPAddress.objects.get(address=ids["address"], vrf=ids["vrf"])
+        else:
+            ipaddr = NautobotIPAddress.objects.get(address=ids["address"])
+        self.diffsync._objects_to_delete["ipaddr"].append(ipaddr)  # pylint: disable=protected-access
         return self
 
 
