@@ -249,7 +249,7 @@ class NautobotAdapter(DiffSync):
     def load_interfaces(self):
         """Add Nautobot Interface objects as DiffSync Port models."""
         for port in Interface.objects.all():
-            # self.job.log_debug(f"Loading Interface: {port.name} for {port.device}.")
+            # self.job.log_debug(message=f"Loading Interface: {port.name} for {port.device}.")
             if port.mac_address:
                 _mac_addr = str(port.mac_address).replace(":", "").lower()
             else:
@@ -290,12 +290,12 @@ class NautobotAdapter(DiffSync):
                 _dev.add_child(_port)
             except ObjectAlreadyExists as err:
                 if PLUGIN_CFG.get("verbose_debug"):
-                    self.job.log_warning(f"Port already exists for {port.device_name}. {err}")
+                    self.job.log_warning(message=f"Port already exists for {port.device_name}. {err}")
                 continue
 
     def load_vrfs(self):
         """Add Nautobot VRF objects as DiffSync VRFGroup models."""
-        # self.job.log_debug(f"Loading VRF: {self.name}.")
+        # self.job.log_debug(message=f"Loading VRF: {self.name}.")
         for vrf in VRF.objects.all():
             _vrf = self.vrf(
                 name=vrf.name,
@@ -308,7 +308,7 @@ class NautobotAdapter(DiffSync):
     def load_prefixes(self):
         """Add Nautobot Prefix objects as DiffSync Subnet models."""
         for _pf in Prefix.objects.all():
-            # self.job.log_debug(f"Loading Prefix: {_pf.prefix}.")
+            # self.job.log_debug(message=f"Loading Prefix: {_pf.prefix}.")
             ip_net = ipaddress.ip_network(_pf.prefix)
             new_pf = self.subnet(
                 network=str(ip_net.network_address),
@@ -323,7 +323,7 @@ class NautobotAdapter(DiffSync):
     def load_ip_addresses(self):
         """Add Nautobot IPAddress objects as DiffSync IPAddress models."""
         for _ip in IPAddress.objects.all():
-            # self.job.log_debug(f"Loading IPAddress: {_ip.address}.")
+            # self.job.log_debug(message=f"Loading IPAddress: {_ip.address}.")
             new_ip = self.ipaddr(
                 address=str(_ip.address),
                 available=bool(_ip.status.name != "Active"),
@@ -348,7 +348,7 @@ class NautobotAdapter(DiffSync):
         """Add Nautobot VLAN objects as DiffSync VLAN models."""
         for vlan in VLAN.objects.all():
             if PLUGIN_CFG.get("verbose_debug"):
-                self.job.log_debug(f"Loading VLAN: {vlan.name}.")
+                self.job.log_debug(message=f"Loading VLAN: {vlan.name}.")
             try:
                 _vlan = self.vlan(
                     name=vlan.name,

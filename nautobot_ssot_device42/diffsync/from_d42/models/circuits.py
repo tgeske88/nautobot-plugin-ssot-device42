@@ -76,7 +76,7 @@ class Provider(DiffSyncModel):
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        self.diffsync.job.log_warning(f"Provider {self.name} will be deleted.")
+        self.diffsync.job.log_warning(message=f"Provider {self.name} will be deleted.")
         super().delete()
         provider = NautobotProvider.objects.get(**self.get_identifiers())
         self.diffsync._objects_to_delete["provider"].append(provider)  # pylint: disable=protected-access
@@ -214,7 +214,7 @@ class Circuit(DiffSyncModel):
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        self.diffsync.job.log_warning(f"Circuit {self.circuit_id} will be deleted.")
+        self.diffsync.job.log_warning(message=f"Circuit {self.circuit_id} will be deleted.")
         circuit = NautobotCircuit.objects.get(cid=self.get_identifiers()["circuit_id"])
         circuit.delete()
         super().delete()
