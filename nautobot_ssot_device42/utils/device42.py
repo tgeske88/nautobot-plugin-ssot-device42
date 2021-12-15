@@ -193,6 +193,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
             path (str): API path to send request to.
             method (str, optional): API request method. Defaults to "GET".
             params (dict, optional): Additional parameters to send to API. Defaults to None.
+            payload (dict, optional): Message payload to be sent as part of API call.
 
         Raises:
             Exception: Error thrown if request errors.
@@ -287,6 +288,10 @@ class Device42API:  # pylint: disable=too-many-public-methods
     def get_buildings(self) -> List:
         """Method to get all Buildings from Device42."""
         return self.api_call(path="api/1.0/buildings")["buildings"]
+
+    def get_rooms(self) -> List:
+        """Method to get all Rooms from Device42."""
+        return self.api_call(path="api/1.0/rooms")["rooms"]
 
     def get_cluster_members(self) -> dict:
         """Method to get all member devices of a cluster from Device42.

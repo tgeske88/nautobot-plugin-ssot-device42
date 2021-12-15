@@ -187,16 +187,13 @@ class Room(DiffSyncModel):
         return super().update(attrs)
 
     def delete(self):
-        """Delete RackGroup object from Nautobot.
-
-        Because RackGroup has a direct relationship to Rack objects it can't be deleted before any Racks.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
-        in the correct order. This is used in the Nautobot adapter sync_complete function.
-        """
+        """Delete RackGroup object from Nautobot."""
         self.diffsync.job.log_warning(f"RackGroup {self.name} will be deleted.")
         super().delete()
-        rackgroup = NautobotRackGroup.objects.get(**self.get_identifiers())
-        self.diffsync._objects_to_delete["rackgroup"].append(rackgroup)  # pylint: disable=protected-access
+        rackgroup = NautobotRackGroup.objects.get(
+            name=self.get_identifiers()["name"], site__name=self.get_identifiers()["building"]
+        )
+        rackgroup.delete()
         return self
 
 

@@ -62,8 +62,16 @@ class TestUtilsDevice42(TestCase):
             "port_type": "physical",
             "discovered_type": "fibreChannel",
             "port_speed": "1.0 Gbps",
+            "device_name": "core-router.testexample.com",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=fc_intf), "1gfc-sfp")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=fc_intf, diffsync=dsync), "1gfc-sfp")
+        dsync.log_debug.assert_called_once_with(message="Matched on FibreChannel. FC0/1 core-router.testexample.com")
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_unknown_phy_intf(self):
         # test physical interfaces that don't have a discovered_type of Ethernet or FiberChannel
@@ -73,7 +81,31 @@ class TestUtilsDevice42(TestCase):
             "discovered_type": "Unknown",
             "port_speed": "1.0 Gbps",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=unknown_phy_intf_speed), "1000base-t")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=unknown_phy_intf_speed, diffsync=dsync), "1000base-t")
+        dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
+        configs["verbose_debug"] = original_setting
+
+    def test_get_intf_name_mapping(self):
+        # test name of Interface matching INTF_NAME_MAP
+        ethernet_interface = {
+            "port_name": "FastEthernet1/1",
+            "port_type": "physical",
+            "discovered_type": "ethernetCsmacd",
+            "port_speed": "10 Mbps",
+        }
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=ethernet_interface, diffsync=dsync), "100base-tx")
+        dsync.log_debug.assert_called_once_with(message="Matched on interface name FastEthernet")
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_gigabit_ethernet_intf(self):
         # test physical interface that's discovered as gigabitEthernet
@@ -102,8 +134,16 @@ class TestUtilsDevice42(TestCase):
             "port_type": "logical",
             "discovered_type": "ieee8023adLag",
             "port_speed": "100 Mbps",
+            "device_name": "core-router.testexample.com",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=ad_lag_intf), "lag")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=ad_lag_intf, diffsync=dsync), "lag")
+        dsync.log_debug.assert_called_once_with(message="LAG matched. port-channel100 core-router.testexample.com")
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_lacp_intf(self):
         # test lacp logical interface
@@ -112,8 +152,16 @@ class TestUtilsDevice42(TestCase):
             "port_type": "logical",
             "discovered_type": "lacp",
             "port_speed": "40 Gbps",
+            "device_name": "core-router.testexample.com",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=lacp_intf), "lag")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=lacp_intf, diffsync=dsync), "lag")
+        dsync.log_debug.assert_called_once_with(message="LAG matched. Internal_Trunk core-router.testexample.com")
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_virtual_intf(self):
         # test "virtual" logical interface
@@ -122,8 +170,18 @@ class TestUtilsDevice42(TestCase):
             "port_type": "logical",
             "discovered_type": "propVirtual",
             "port_speed": "1.0 Gbps",
+            "device_name": "distro-switch.testexample.com",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=virtual_intf), "virtual")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=virtual_intf, diffsync=dsync), "virtual")
+        dsync.log_debug.assert_called_once_with(
+            message="Virtual, loopback, or l2vlan interface matched. Vlan100 distro-switch.testexample.com."
+        )
+        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_port_channel_intf(self):
         # test Port-Channel logical interface
@@ -132,8 +190,18 @@ class TestUtilsDevice42(TestCase):
             "port_type": "logical",
             "discovered_type": "propVirtual",
             "port_speed": "20 Gbps",
+            "device_name": "distro-switch.testexample.com",
         }
-        self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf), "lag")
+        dsync = MagicMock()
+        dsync.log_debug = MagicMock()
+        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
+        original_setting = configs["verbose_debug"]
+        configs["verbose_debug"] = True
+        self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf, diffsync=dsync), "lag")
+        dsync.log_debug.assert_called_once_with(
+            message="Virtual, loopback, or l2vlan interface matched. port-channel100 distro-switch.testexample.com."
+        )
+        configs["verbose_debug"] = original_setting
 
     netmiko_platforms = [
         ("asa", "asa", "cisco_asa"),
@@ -202,6 +270,14 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         validate_url = self.dev42.validate_url("api_endpoint")
         self.assertEqual(validate_url, "https://device42.testexample.com/api_endpoint")
 
+    def test_validate_url_path_has_slash(self):
+        """Test validate_url success when path has '/'."""
+        # Instantiate a new object, to test additional logic for missing'/':
+        self.uri = "https://device42.testexample.com"
+        self.dev42 = device42.Device42API(self.uri, self.username, self.password, self.verify)
+        validate_url = self.dev42.validate_url("/api_endpoint")
+        self.assertEqual(validate_url, "https://device42.testexample.com/api_endpoint")
+
     def test_validate_url_verify_true(self):
         """Test validate_url success with verify true."""
         # Instantiate a new object, to test additional logic for verify True
@@ -221,6 +297,21 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         )
         expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_buildings_recv.json")
         response = self.dev42.get_buildings()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_rooms(self):
+        """Test get_rooms success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_rooms.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/api/1.0/rooms",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_rooms_recv.json")
+        response = self.dev42.get_rooms()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
 

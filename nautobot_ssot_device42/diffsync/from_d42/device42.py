@@ -201,7 +201,7 @@ class Device42Adapter(DiffSync):
 
     def load_rooms(self):
         """Load Device42 rooms."""
-        for record in self._device42.api_call(path="api/1.0/rooms")["rooms"]:
+        for record in self._device42.get_rooms():
             if PLUGIN_CFG.get("verbose_debug"):
                 self.job.log_info(message=f"Loading {record['name']} room from Device42.")
             _tags = record["tags"] if record.get("tags") else []
