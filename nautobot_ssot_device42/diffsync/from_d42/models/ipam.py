@@ -308,16 +308,22 @@ class IPAddress(DiffSyncModel):
                 _ipaddr.assigned_object_id = intf.id
             except NautobotInterface.DoesNotExist as err:
                 self.diffsync.job.log_debug(f"Unable to find Interface {self.interface} for {attrs['device']}. {err}")
-        if attrs.get("primary"):
-            if attrs.get("device"):
+        if attrs.get("primary") and attrs["primary"] is not None:
+            _device, _intf = False, False
+            if attrs.get("device") and self.device != "":
                 _device = NautobotDevice.objects.get(name=attrs["device"])
-            else:
-                _device = self.device
-            if attrs.get("interface"):
+            elif self.device != "":
+                _device = NautobotDevice.objects.get(name=self.device)
+            if attrs.get("interface") and attrs["interface"] != "" and _device:
                 _intf = NautobotInterface.objects.get(name=attrs["interface"], device=_device)
-            else:
+            elif attrs.get("label") and _device:
+                _intf = NautobotInterface.objects.get(name=attrs["label"], device=_device)
+            elif self.interface != "" and _device:
                 _intf = NautobotInterface.objects.get(name=self.interface, device=_device)
-            nautobot.set_primary_ip_and_mgmt(ipaddr=_ipaddr, dev=_device, intf=_intf)
+            elif self.label != "" and _device:
+                _intf = NautobotInterface.objects.get(name=self.label, device=_device)
+            if _device and _intf:
+                nautobot.set_primary_ip_and_mgmt(ipaddr=_ipaddr, dev=_device, intf=_intf)
         if attrs.get("vrf"):
             _ipaddr.vrf = NautobotVRF.objects.get(name=attrs["vrf"])
         if attrs.get("tags"):
