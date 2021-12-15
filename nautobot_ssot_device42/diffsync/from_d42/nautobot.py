@@ -338,6 +338,10 @@ class NautobotAdapter(DiffSync):
                 _intf = Interface.objects.get(id=_ip.assigned_object_id)
                 new_ip.interface = _intf.name
                 new_ip.device = _intf.device.name
+            if hasattr(_ip, "primary_ip4_for") or hasattr(_ip, "primary_ip6_for"):
+                new_ip.primary = True
+            else:
+                new_ip.primary = False
             self.add(new_ip)
 
     def load_vlans(self):
