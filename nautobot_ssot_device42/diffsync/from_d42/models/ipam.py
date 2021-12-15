@@ -163,7 +163,7 @@ class Subnet(DiffSyncModel):
         super().delete()
         ids = self.get_identifiers()
         if ids.get("vrf") and ids["vrf"] != "":
-            subnet = NautobotPrefix.objects.get(network=ids["network"], vrf=ids["vrf"])
+            subnet = NautobotPrefix.objects.get(network=ids["network"], vrf__name=ids["vrf"])
         else:
             subnet = NautobotPrefix.objects.get(network=ids["network"])
         self.diffsync._objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
@@ -359,7 +359,7 @@ class IPAddress(DiffSyncModel):
         ids = self.get_identifiers()
         super().delete()
         if ids.get("vrf") and ids["vrf"] != "":
-            ipaddr = NautobotIPAddress.objects.get(address=ids["address"], vrf=ids["vrf"])
+            ipaddr = NautobotIPAddress.objects.get(address=ids["address"], vrf__name=ids["vrf"])
         else:
             ipaddr = NautobotIPAddress.objects.get(address=ids["address"])
         self.diffsync._objects_to_delete["ipaddr"].append(ipaddr)  # pylint: disable=protected-access
