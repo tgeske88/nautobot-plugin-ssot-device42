@@ -805,13 +805,27 @@ class Device42Adapter(DiffSync):
             bits = 128
         else:
             bits = 32
-        while bits > 0:
-            try:
-                return self.get(self.ipaddr, f"{address}/{bits}")
-            except ObjectNotFound:
-                bits = bits - 1
+
+        addr_found = False
+        while not addr_found:
+            while bits > 0:
+                _addr = f"{address}/{bits}"
+                for _vrf in self.get_all("vrf"):
+                    try:
+                        _addr = self.get(self.ipaddr, {"address": _addr, "vrf": _vrf.name})
+                        if _addr:
+                            addr_found = True
+                    except ObjectNotFound:
+                        print(f"Didn't find {_addr} in {_vrf.name} VRF.")
+                else:
+                    try:
+                        addr_found = self.get(self.ipaddr, {"address": _addr, "vrf": None})
+                    except ObjectNotFound:
+                        break
+                if not addr_found:
+                    bits = bits - 1
         else:
-            return False
+            return addr_found
 
     def add_ipaddr(self, address: str, dev_name: str, interface: str):
         """Method to add IPAddress DiffSyncModel object if one isn't found.
