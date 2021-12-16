@@ -83,8 +83,8 @@ class VRFGroup(DiffSyncModel):
         """
         self.diffsync.job.log_warning(message=f"VRF {self.name} will be deleted.")
         super().delete()
-        site = NautobotVRF.objects.get(**self.get_identifiers())
-        self.diffsync._objects_to_delete["vrf"].append(site)  # pylint: disable=protected-access
+        vrf = NautobotVRF.objects.get(**self.get_identifiers())
+        self.diffsync._objects_to_delete["vrf"].append(vrf)  # pylint: disable=protected-access
         return self
 
 
@@ -355,13 +355,17 @@ class IPAddress(DiffSyncModel):
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        print(f"IP Address {self.address} will be deleted.")
+        print(f"IP Address {self.address} will be deleted. {self}")
         ids = self.get_identifiers()
         super().delete()
-        if ids.get("vrf") and ids["vrf"] != "":
+        if ids["vrf"] is not None:
             ipaddr = NautobotIPAddress.objects.get(address=ids["address"], vrf__name=ids["vrf"])
         else:
-            ipaddr = NautobotIPAddress.objects.get(address=ids["address"])
+            ipaddrs = NautobotIPAddress.objects.filter(address=ids["address"])
+            if len(ipaddrs) > 0:
+                for _addr in ipaddrs:
+                    if not hasattr(_addr, "vrf"):
+                        ipaddr = _addr
         self.diffsync._objects_to_delete["ipaddr"].append(ipaddr)  # pylint: disable=protected-access
         return self
 
