@@ -821,9 +821,7 @@ class Device42Adapter(DiffSync):
                     try:
                         addr_found = self.get(self.ipaddr, {"address": _addr, "vrf": None})
                     except ObjectNotFound:
-                        break
-                if not addr_found:
-                    bits = bits - 1
+                        bits = bits - 1
         else:
             return addr_found
 
