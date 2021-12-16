@@ -787,17 +787,18 @@ class Device42Adapter(DiffSync):
         if _a_record:
             _ip = self.find_ipaddr(address=_a_record)
             mgmt_intf = self.get_management_intf(dev_name=dev_name)
-            if _ip:
+            if _ip is False:
+                if not mgmt_intf:
+                    mgmt_intf = self.add_management_interface(dev_name=dev_name, diffsync=diffsync)
+                self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=mgmt_intf.name)
+            else:
                 if mgmt_intf and _ip.device != dev_name:
                     _ip.device = dev_name
                     _ip.interface = mgmt_intf.name
                     _ip.primary = True
                 elif _ip.device == dev_name:
                     _ip.primary = True
-            else:
-                if not mgmt_intf:
-                    mgmt_intf = self.add_management_interface(dev_name=dev_name, diffsync=diffsync)
-                self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=mgmt_intf.name)
+
 
     def find_ipaddr(self, address: str):
         """Method to find IPAddress DiffSyncModel object."""
@@ -812,14 +813,12 @@ class Device42Adapter(DiffSync):
                 _addr = f"{address}/{bits}"
                 for _vrf in self.get_all("vrf"):
                     try:
-                        _addr = self.get(self.ipaddr, {"address": _addr, "vrf": _vrf.name})
-                        if _addr:
-                            addr_found = True
+                        return self.get(self.ipaddr, {"address": _addr, "vrf": _vrf.name})
                     except ObjectNotFound:
                         print(f"Didn't find {_addr} in {_vrf.name} VRF.")
                 else:
                     try:
-                        addr_found = self.get(self.ipaddr, {"address": _addr, "vrf": None})
+                        return self.get(self.ipaddr, {"address": _addr, "vrf": None})
                     except ObjectNotFound:
                         bits = bits - 1
         else:
