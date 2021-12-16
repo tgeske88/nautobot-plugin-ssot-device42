@@ -269,7 +269,14 @@ class IPAddress(DiffSyncModel):
     def update(self, attrs):
         """Update IPAddress object in Nautobot."""
         try:
-            _ipaddr = NautobotIPAddress.objects.get(address=self.address)
+            if self.vrf is not None:
+                _ipaddr = NautobotIPAddress.objects.get(address=self.address, vrf__name=self.vrf)
+            else:
+                ipaddrs = NautobotIPAddress.objects.filter(address=self.address)
+                if len(ipaddrs) > 0:
+                    for _addr in ipaddrs:
+                        if not hasattr(_addr, "vrf"):
+                            _ipaddr = _addr
         except NautobotIPAddress.DoesNotExist:
             print("IP Address passed to update but can't be found. This shouldn't happen. Why is this happening?!?!")
             return
