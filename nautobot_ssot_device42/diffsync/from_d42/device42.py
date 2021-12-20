@@ -387,7 +387,9 @@ class Device42Adapter(DiffSync):
                 # only consider devices that have a Building
                 if _building == "":
                     if PLUGIN_CFG.get("verbose_debug"):
-                        self.job.log_debug(message=f"Device {_record['name']} is not being added. Unable to find Building.")
+                        self.job.log_debug(
+                            message=f"Device {_record['name']} is not being added. Unable to find Building."
+                        )
                     continue
                 _device = self.device(
                     name=_record["name"][:64],
