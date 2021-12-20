@@ -140,6 +140,7 @@ class NautobotAdapter(DiffSync):
                     contact_phone=site.contact_phone,
                     tags=nautobot.get_tag_strings(site.tags),
                     custom_fields=nautobot.get_custom_field_dicts(site.get_custom_fields()),
+                    uuid=site.id,
                 )
                 self.add(building)
             except AttributeError:
@@ -153,6 +154,7 @@ class NautobotAdapter(DiffSync):
                 building=Site.objects.get(name=_rg.site).name,
                 notes=_rg.description,
                 custom_fields=nautobot.get_custom_field_dicts(_rg.get_custom_fields()),
+                uuid=_rg.id,
             )
             self.add(room)
             _site = self.get(self.building, Site.objects.get(name=_rg.site).name)
@@ -171,6 +173,7 @@ class NautobotAdapter(DiffSync):
                     numbering_start_from_bottom="no" if rack.desc_units else "yes",
                     tags=nautobot.get_tag_strings(rack.tags),
                     custom_fields=nautobot.get_custom_field_dicts(rack.get_custom_fields()),
+                    uuid=rack.id,
                 )
                 self.add(new_rack)
                 _room = self.get(self.room, {"name": rack.group, "building": _building_name})
@@ -185,6 +188,7 @@ class NautobotAdapter(DiffSync):
             new_manu = self.vendor(
                 name=manu.name,
                 custom_fields=nautobot.get_custom_field_dicts(manu.get_custom_fields()),
+                uuid=manu.id,
             )
             self.add(new_manu)
 
@@ -198,6 +202,7 @@ class NautobotAdapter(DiffSync):
                 depth="Full Depth" if _dt.is_full_depth else "Half Depth",
                 part_number=_dt.part_number,
                 custom_fields=nautobot.get_custom_field_dicts(_dt.get_custom_fields()),
+                uuid=_dt.id,
             )
             self.add(dtype)
 
@@ -213,6 +218,7 @@ class NautobotAdapter(DiffSync):
                 members=_members,
                 tags=nautobot.get_tag_strings(_vc.tags),
                 custom_fields=nautobot.get_custom_field_dicts(_vc.get_custom_fields()),
+                uuid=_vc.id,
             )
             self.add(new_vc)
 
@@ -244,6 +250,7 @@ class NautobotAdapter(DiffSync):
                 tags=nautobot.get_tag_strings(dev.tags),
                 master_device=False,
                 custom_fields=nautobot.get_custom_field_dicts(dev.get_custom_fields()),
+                uuid=dev.id,
             )
             if dev.virtual_chassis:
                 _dev.cluster_host = str(dev.virtual_chassis)
@@ -271,6 +278,7 @@ class NautobotAdapter(DiffSync):
                 tags=nautobot.get_tag_strings(port.tags),
                 mode=port.mode,
                 custom_fields=nautobot.get_custom_field_dicts(port.get_custom_fields()),
+                uuid=port.id,
             )
             if port.mode == "access" and port.untagged_vlan:
                 _port.vlans = [
@@ -308,6 +316,7 @@ class NautobotAdapter(DiffSync):
                 description=vrf.description,
                 tags=nautobot.get_tag_strings(vrf.tags),
                 custom_fields=nautobot.get_custom_field_dicts(vrf.get_custom_fields()),
+                uuid=vrf.id,
             )
             self.add(_vrf)
 
@@ -323,6 +332,7 @@ class NautobotAdapter(DiffSync):
                 vrf=_pf.vrf.name,
                 tags=nautobot.get_tag_strings(_pf.tags),
                 custom_fields=nautobot.get_custom_field_dicts(_pf.get_custom_fields()),
+                uuid=_pf.id,
             )
             self.add(new_pf)
 
@@ -339,6 +349,7 @@ class NautobotAdapter(DiffSync):
                 interface="",
                 device="",
                 custom_fields=nautobot.get_custom_field_dicts(_ip.get_custom_fields()),
+                uuid=_ip.id,
             )
             if _ip.assigned_object_id:
                 _intf = Interface.objects.get(id=_ip.assigned_object_id)
@@ -363,6 +374,7 @@ class NautobotAdapter(DiffSync):
                     building=vlan.site.name if vlan.site else "Unknown",
                     custom_fields=nautobot.get_custom_field_dicts(vlan.get_custom_fields()),
                     tags=nautobot.get_tag_strings(vlan.tags),
+                    uuid=vlan.id,
                 )
                 self.add(_vlan)
             except ObjectAlreadyExists as err:
@@ -380,6 +392,7 @@ class NautobotAdapter(DiffSync):
                 dst_port="",
                 dst_type="interface",
                 tags=nautobot.get_tag_strings(_cable.tags),
+                uuid=_cable.id,
             )
             new_conn = self.add_src_connection(
                 cable_term_type=_cable.termination_a_type, cable_term_id=_cable.termination_a_id, connection=new_conn
@@ -468,6 +481,7 @@ class NautobotAdapter(DiffSync):
                 vendor_contact1=_prov.noc_contact,
                 vendor_contact2=_prov.admin_contact,
                 tags=nautobot.get_tag_strings(_prov.tags),
+                uuid=_prov.id,
             )
             self.add(new_prov)
 
@@ -483,6 +497,7 @@ class NautobotAdapter(DiffSync):
                 install_date=_circuit.install_date,
                 bandwidth=_circuit.commit_rate,
                 tags=nautobot.get_tag_strings(_circuit.tags),
+                uuid=_circuit.id,
             )
             if hasattr(_circuit.termination_a, "connected_endpoint") and hasattr(
                 _circuit.termination_a.connected_endpoint, "name"

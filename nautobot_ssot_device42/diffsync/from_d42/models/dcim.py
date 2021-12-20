@@ -2,7 +2,8 @@
 
 import re
 from decimal import Decimal
-from typing import List, Optional, Union
+from typing import List, Optional
+from uuid import UUID
 
 from diffsync import DiffSyncModel
 from django.contrib.contenttypes.models import ContentType
@@ -52,6 +53,7 @@ class Building(DiffSyncModel):
     rooms: List["Room"] = list()
     tags: Optional[List[str]]
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -127,7 +129,7 @@ class Building(DiffSyncModel):
         """
         self.diffsync.job.log_warning(message=f"Site {self.name} will be deleted.")
         super().delete()
-        site = NautobotSite.objects.get(**self.get_identifiers())
+        site = NautobotSite.objects.get(id=self.uuid)
         self.diffsync._objects_to_delete["site"].append(site)  # pylint: disable=protected-access
         return self
 
@@ -145,6 +147,7 @@ class Room(DiffSyncModel):
     notes: Optional[str]
     racks: List["Rack"] = list()
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -212,6 +215,7 @@ class Rack(DiffSyncModel):
     numbering_start_from_bottom: str
     tags: Optional[List[str]]
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -288,6 +292,7 @@ class Vendor(DiffSyncModel):
     _children = {}
     name: str
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -356,6 +361,7 @@ class Hardware(DiffSyncModel):
     depth: Optional[str]
     part_number: Optional[str]
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -434,6 +440,7 @@ class Cluster(DiffSyncModel):
     members: Optional[List[str]]
     tags: Optional[List[str]]
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -554,6 +561,7 @@ class Device(DiffSyncModel):
     cluster_host: Optional[str]
     master_device: bool
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @staticmethod
     def _get_site(diffsync, ids, attrs):
@@ -671,7 +679,7 @@ class Device(DiffSyncModel):
 
     def update(self, attrs):
         """Update Device object in Nautobot."""
-        _dev = NautobotDevice.objects.get(name=self.name)
+        _dev = NautobotDevice.objects.get(id=self.uuid)
         if attrs.get("building"):
             _dev.site = self._get_site(diffsync=self.diffsync, ids=self.get_identifiers(), attrs=attrs)
         if attrs.get("rack") and attrs.get("room"):
@@ -771,6 +779,7 @@ class Device(DiffSyncModel):
             except NautobotVC.DoesNotExist as err:
                 if PLUGIN_CFG.get("verbose_debug"):
                     self.diffsync.job.log_warning(message=f"Unable to find VC {_clus_host} {err}")
+        print(f"Saving Device {self.name} in {_dev.site} {_dev.rack}")
         _dev.validated_save()
         return super().update(attrs)
 
@@ -783,7 +792,7 @@ class Device(DiffSyncModel):
         """
         self.diffsync.job.log_warning(message=f"Device {self.name} will be deleted.")
         super().delete()
-        _dev = NautobotDevice.objects.get(**self.get_identifiers())
+        _dev = NautobotDevice.objects.get(id=self.uuid)
         self.diffsync._objects_to_delete["device"].append(_dev)  # pylint: disable=protected-access
         return self
 
@@ -839,6 +848,7 @@ class Port(DiffSyncModel):
     mode: Optional[str]
     vlans: Optional[List[dict]] = list()
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
@@ -903,7 +913,7 @@ class Port(DiffSyncModel):
 
     def update(self, attrs):
         """Update Interface object in Nautobot."""
-        _port = NautobotInterface.objects.get(name=self.name, device__name=self.device)
+        _port = NautobotInterface.objects.get(id=self.uuid)
         if attrs.get("enabled"):
             _port.enabled = is_truthy(attrs["enabled"])
         if attrs.get("mtu"):
@@ -963,11 +973,9 @@ class Port(DiffSyncModel):
         """Delete Interface object from Nautobot."""
         if PLUGIN_CFG.get("verbose_debug"):
             self.diffsync.job.log_warning(message=f"Interface {self.name} for {self.device} will be deleted.")
-        _intf = NautobotInterface.objects.get(
-            name=self.get_identifiers()["name"], device__name=self.get_identifiers()["device"]
-        )
-        _intf.delete()
         super().delete()
+        _intf = NautobotInterface.objects.get(id=self.uuid)
+        self.diffsync._objects_to_delete["port"].append(_intf)  # pylint: disable=protected-access
         return self
 
 
@@ -988,6 +996,7 @@ class Connection(DiffSyncModel):
     dst_type: str
     dst_port_mac: Optional[str]
     tags: Optional[List[str]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
@@ -999,7 +1008,9 @@ class Connection(DiffSyncModel):
             new_cable = cls.get_device_connections(cls, diffsync=diffsync, ids=ids)
         if new_cable:
             new_cable.validated_save()
-        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+        else:
+            return None
 
     def get_circuit_connections(self, diffsync, ids, attrs) -> Optional[NautobotCable]:
         """Method to create a Cable between a Circuit and a Device.
@@ -1116,133 +1127,13 @@ class Connection(DiffSyncModel):
 
     def delete(self):
         """Delete Cable object from Nautobot."""
-        print(f"Deleting {self.get_identifiers()}")
+        print(f"Deleting Cable {self.get_identifiers()} UUID: {self.uuid}")
         if PLUGIN_CFG.get("verbose_debug"):
             print(f"Cable between {self.src_device} and {self.dst_device} will be deleted.")
-        try:
-            if self.src_port_mac is not None:
-                _term_a = NautobotInterface.objects.get(mac_address=self.src_port_mac)
-            else:
-                # Circuit Terminations should have identical port and device, the CircuitID
-                if self.src_port == self.src_device:
-                    _circuit = NautobotCircuit.objects.get(cid=self.src_device)
-                    _term_a = NautobotCT.objects.get(circuit=_circuit, term_side="A")
-                else:
-                    _term_a = NautobotInterface.objects.get(name=self.src_port, device__name=self.src_device)
-        except NautobotInterface.DoesNotExist as err:
-            if PLUGIN_CFG.get("verbose_debug"):
-                print(f"Unable to find source port. {self.src_port} {self.src_port_mac} {self.src_device} {err}")
-            return None
-        except NautobotCT.DoesNotExist as err:
-            if PLUGIN_CFG.get("verbose_debug"):
-                print(f"Unable to find Circuit ID. {self.src_device} {self.src_port} {err}")
-            return None
-        try:
-            if self.dst_port_mac is not None:
-                _term_b = NautobotInterface.objects.get(mac_address=self.dst_port_mac)
-            else:
-                # Circuit Terminations should have identical port and device, the CircuitID
-                if self.dst_port == self.dst_device:
-                    _circuit = NautobotCircuit.objects.get(cid=self.dst_device)
-                    _term_b = NautobotCT.objects.get(circuit=_circuit, term_side="Z")
-                else:
-                    _term_b = NautobotInterface.objects.get(name=self.dst_port, device__name=self.dst_device)
-        except NautobotInterface.DoesNotExist as err:
-            if PLUGIN_CFG.get("verbose_debug"):
-                print(f"Unable to find destination port. {self.dst_port} {self.dst_port_mac}  {self.dst_device} {err}")
-            return None
-        except NautobotCT.DoesNotExist as err:
-            if PLUGIN_CFG.get("verbose_debug"):
-                print(f"Unable to find Circuit ID. {self.dst_device} {self.dst_port} {err}")
-            return None
-        if self.src_device == self.src_port:
-            _conn = self.find_cable_to_circuitterm(term_a=_term_a, term_b=_term_b)
-        elif self.dst_device == self.dst_port:
-            _conn = self.find_cable_to_circuitterm(term_a=_term_a, term_b=_term_b)
-        else:
-            try:
-                _conn = self.find_cable_to_interface(term_a=_term_a, term_b=_term_b)
-            except NautobotCable.DoesNotExist:
-                _conn = self.find_cable_to_interface(term_a=_term_b, term_b=_term_a)
-        if _conn:
-            _conn.delete()
-            super().delete()
+        super().delete()
+        _conn = NautobotCable.objects.get(id=self.uuid)
+        _conn.delete()
         return self
-
-    def find_cable_to_circuitterm(self, term_a, term_b):
-        """Method to find a Cable between an interface and a Circuit Termination.
-
-        Args:
-            term_a (Union[NautobotCable, NautobotCT]): Either a Cable or CircuitTermination.
-            term_b (Union[NautobotCable, NautobotCT]): Either a Cable or CircuitTermination.
-
-        Returns:
-            NautobotCable: Cable if found.
-        """
-        try:
-            conn = self.find_cable(
-                term_a=term_a,
-                term_a_type=ContentType.objects.get(app_label="circuits", model="circuittermination"),
-                term_b=term_b,
-                term_b_type=ContentType.objects.get(app_label="dcim", model="interface"),
-            )
-        except NautobotCable.DoesNotExist:
-            try:
-                conn = self.find_cable(
-                    term_a=term_a,
-                    term_a_type=ContentType.objects.get(app_label="dcim", model="interface"),
-                    term_b=term_b,
-                    term_b_type=ContentType.objects.get(app_label="circuits", model="circuittermination"),
-                )
-            except NautobotCable.DoesNotExist:
-                return False
-        return conn
-
-    def find_cable_to_interface(self, term_a, term_b):
-        """Method to find a Cable between two interfaces.
-
-        Args:
-            term_a (Union[NautobotCable, NautobotCT]): Either a Cable or CircuitTermination.
-            term_b (Union[NautobotCable, NautobotCT]): Either a Cable or CircuitTermination.
-
-        Returns:
-            NautobotCable: Cable if found.
-        """
-        try:
-            conn = self.find_cable(
-                term_a=term_a,
-                term_a_type=ContentType.objects.get(app_label="dcim", model="interface"),
-                term_b=term_b,
-                term_b_type=ContentType.objects.get(app_label="dcim", model="interface"),
-            )
-            return conn
-        except NautobotCable.DoesNotExist:
-            return False
-
-    def find_cable(
-        self,
-        term_a: Union[NautobotCable, NautobotCT],
-        term_a_type: ContentType,
-        term_b: Union[NautobotCable, NautobotCT],
-        term_b_type: ContentType,
-    ) -> NautobotCable:
-        """Method to find a Cable.
-
-        Args:
-            term_a (Union[NautobotCable, NautobotCT]): Either a Cable or CircuitTermination.
-            term_a_type (ContentType): The ContentType for `term_a`.
-            term_b (Union[NautobotCable, NautobotCT]): Either a Cable or CircuitTermination.
-            term_b_type (ContentType): The ContentType for `term_b`.
-
-        Returns:
-            NautobotCable: Cable if found.
-        """
-        return NautobotCable.objects.get(
-            termination_a_type=term_a_type,
-            termination_a_id=term_a.id,
-            termination_b_type=term_b_type,
-            termination_b_id=term_b.id,
-        )
 
 
 Building.update_forward_refs()

@@ -2,6 +2,7 @@
 
 import re
 from typing import List, Optional
+from uuid import UUID
 
 from diffsync import DiffSyncModel
 from diffsync.exceptions import ObjectAlreadyExists
@@ -32,6 +33,7 @@ class VRFGroup(DiffSyncModel):
     description: Optional[str]
     tags: Optional[List[str]]
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -105,6 +107,7 @@ class Subnet(DiffSyncModel):
     vrf: Optional[str]
     tags: Optional[List[str]]
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -133,7 +136,7 @@ class Subnet(DiffSyncModel):
 
     def update(self, attrs):
         """Update Prefix object in Nautobot."""
-        _pf = NautobotPrefix.objects.get(prefix=f"{self.network}/{self.mask_bits}", vrf__name=self.vrf)
+        _pf = NautobotPrefix.objects.get(id=self.uuid)
         if attrs.get("description"):
             _pf.description = attrs["description"]
         if attrs.get("tags"):
@@ -161,11 +164,7 @@ class Subnet(DiffSyncModel):
         """
         self.diffsync.job.log_warning(message=f"Subnet {self.network} will be deleted.")
         super().delete()
-        ids = self.get_identifiers()
-        if ids.get("vrf") and ids["vrf"] != "":
-            subnet = NautobotPrefix.objects.get(network=ids["network"], vrf__name=ids["vrf"])
-        else:
-            subnet = NautobotPrefix.objects.get(network=ids["network"])
+        subnet = NautobotPrefix.objects.get(id=self.uuid)
         self.diffsync._objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
         return self
 
@@ -187,6 +186,7 @@ class IPAddress(DiffSyncModel):
     vrf: Optional[str]
     tags: Optional[List[str]]
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -269,14 +269,7 @@ class IPAddress(DiffSyncModel):
     def update(self, attrs):
         """Update IPAddress object in Nautobot."""
         try:
-            if self.vrf is not None:
-                _ipaddr = NautobotIPAddress.objects.get(address=self.address, vrf__name=self.vrf)
-            else:
-                ipaddrs = NautobotIPAddress.objects.filter(address=self.address)
-                if len(ipaddrs) > 0:
-                    for _addr in ipaddrs:
-                        if not hasattr(_addr, "vrf"):
-                            _ipaddr = _addr
+            _ipaddr = NautobotIPAddress.objects.get(id=self.uuid)
         except NautobotIPAddress.DoesNotExist:
             print("IP Address passed to update but can't be found. This shouldn't happen. Why is this happening?!?!")
             return
@@ -363,16 +356,8 @@ class IPAddress(DiffSyncModel):
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         print(f"IP Address {self.address} will be deleted. {self}")
-        ids = self.get_identifiers()
         super().delete()
-        if ids["vrf"] is not None:
-            ipaddr = NautobotIPAddress.objects.get(address=ids["address"], vrf__name=ids["vrf"])
-        else:
-            ipaddrs = NautobotIPAddress.objects.filter(address=ids["address"])
-            if len(ipaddrs) > 0:
-                for _addr in ipaddrs:
-                    if not hasattr(_addr, "vrf"):
-                        ipaddr = _addr
+        ipaddr = NautobotIPAddress.objects.get(id=self.uuid)
         self.diffsync._objects_to_delete["ipaddr"].append(ipaddr)  # pylint: disable=protected-access
         return self
 
@@ -394,6 +379,7 @@ class VLAN(DiffSyncModel):
     description: Optional[str]
     building: Optional[str]
     custom_fields: Optional[List[dict]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -434,21 +420,7 @@ class VLAN(DiffSyncModel):
 
     def update(self, attrs):
         """Update VLAN object in Nautobot."""
-        try:
-            if self.building != "Unknown":
-                _vlan = NautobotVLAN.objects.get(name=self.name, vid=self.vlan_id, site__name=self.building)
-            else:
-                _vlan = NautobotVLAN.objects.get(name=self.name, vid=self.vlan_id, site=None)
-        except NautobotVLAN.DoesNotExist as err:
-            if PLUGIN_CFG.get("verbose_debug"):
-                self.diffsync.job.log_warning(message=f"Unable to find Site {self.building}. {err}")
-            return None
-        except NautobotVLAN.MultipleObjectsReturned as err:
-            if PLUGIN_CFG.get("verbose_debug"):
-                self.diffsync.job.log_warning(
-                    f"Unable to find VLAN {self.get_identifiers()} due to multiple objects found. {err}"
-                )
-            return None
+        _vlan = NautobotVLAN.objects.get(id=self.uuid)
         if attrs.get("description"):
             self.description = attrs["description"]
         if attrs.get("custom_fields"):
@@ -473,13 +445,6 @@ class VLAN(DiffSyncModel):
         """
         self.diffsync.job.log_warning(message=f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted.")
         super().delete()
-        try:
-            vlan = NautobotVLAN.objects.get(vid=self.vlan_id, name=self.name, site__name=self.building)
-        except NautobotVLAN.DoesNotExist:
-            vlans = NautobotVLAN.objects.filter(vid=self.vlan_id, name=self.name)
-            for _vlan in vlans:
-                if not _vlan.site:
-                    vlan = _vlan
-                    break
+        vlan = NautobotVLAN.objects.get(id=self.uuid)
         self.diffsync._objects_to_delete["vlan"].append(vlan)  # pylint: disable=protected-access
         return self
