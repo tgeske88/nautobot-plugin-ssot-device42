@@ -817,7 +817,7 @@ class Device42Adapter(DiffSync):
                 try:
                     return self.get(self.ipaddr, {"address": _addr, "vrf": _vrf.name})
                 except ObjectNotFound:
-                    print(f"Didn't find {_addr} in {_vrf.name} VRF.")
+                    pass
             else:
                 try:
                     return self.get(self.ipaddr, {"address": _addr, "vrf": None})
