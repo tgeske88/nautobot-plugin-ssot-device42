@@ -384,9 +384,16 @@ class Device42Adapter(DiffSync):
                 if len(_tags) > 1:
                     _tags.sort()
                 _building = self.get_building_for_device(dev_record=_record)
+                # only consider devices that have a Building
+                if _building == "":
+                    if PLUGIN_CFG.get("verbose_debug"):
+                        self.job.log_debug(
+                            message=f"Device {_record['name']} is not being added. Unable to find Building."
+                        )
+                    continue
                 _device = self.device(
                     name=_record["name"][:64],
-                    building=_building if _building else "",
+                    building=_building,
                     room=_record["room"] if _record.get("room") else "",
                     rack=_record["rack"] if _record.get("rack") else "",
                     rack_position=int(_record["start_at"]) if _record.get("start_at") else None,
@@ -411,8 +418,8 @@ class Device42Adapter(DiffSync):
                         _device.cluster_host = cluster_host
                         if _device.name == cluster_host:
                             _device.master_device = True
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_info(message=f"Device {_record['name']} being added.")
+                    if PLUGIN_CFG.get("verbose_debug"):
+                        self.job.log_info(message=f"Device {_record['name']} being added.")
                     self.add(_device)
                 except ObjectAlreadyExists as err:
                     if PLUGIN_CFG.get("verbose_debug"):
@@ -787,17 +794,17 @@ class Device42Adapter(DiffSync):
         if _a_record:
             _ip = self.find_ipaddr(address=_a_record)
             mgmt_intf = self.get_management_intf(dev_name=dev_name)
-            if _ip:
+            if _ip is False:
+                if not mgmt_intf:
+                    mgmt_intf = self.add_management_interface(dev_name=dev_name, diffsync=diffsync)
+                self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=mgmt_intf.name)
+            else:
                 if mgmt_intf and _ip.device != dev_name:
                     _ip.device = dev_name
                     _ip.interface = mgmt_intf.name
                     _ip.primary = True
                 elif _ip.device == dev_name:
                     _ip.primary = True
-            else:
-                if not mgmt_intf:
-                    mgmt_intf = self.add_management_interface(dev_name=dev_name, diffsync=diffsync)
-                self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=mgmt_intf.name)
 
     def find_ipaddr(self, address: str):
         """Method to find IPAddress DiffSyncModel object."""
@@ -805,11 +812,19 @@ class Device42Adapter(DiffSync):
             bits = 128
         else:
             bits = 32
+
         while bits > 0:
-            try:
-                return self.get(self.ipaddr, f"{address}/{bits}")
-            except ObjectNotFound:
-                bits = bits - 1
+            _addr = f"{address}/{bits}"
+            for _vrf in self.get_all("vrf"):
+                try:
+                    return self.get(self.ipaddr, {"address": _addr, "vrf": _vrf.name})
+                except ObjectNotFound:
+                    pass
+            else:
+                try:
+                    return self.get(self.ipaddr, {"address": _addr, "vrf": None})
+                except ObjectNotFound:
+                    bits = bits - 1
         else:
             return False
 

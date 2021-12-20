@@ -13,7 +13,8 @@
                 "key": "Monitoring ID",
                 "value": null
             }
-        ]
+        ],
+        "tags": []
     },
     {
         "building": "Apple Park",
@@ -29,7 +30,8 @@
                 "key": "Monitoring ID",
                 "value": null
             }
-        ]
+        ],
+        "tags": []
     },
     {
         "building": "Microsoft HQ",
@@ -45,7 +47,8 @@
                 "key": "Monitoring ID",
                 "value": null
             }
-        ]
+        ],
+        "tags": []
     },
     {
         "building": "Microsoft HQ",
@@ -61,6 +64,7 @@
                 "key": "Monitoring ID",
                 "value": null
             }
-        ]
+        ],
+        "tags": []
     }
 ]

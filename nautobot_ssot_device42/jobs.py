@@ -81,7 +81,7 @@ class Device42DataSource(DataSource, Job):
                 self.log_failure(message="Sync failed.")
                 raise err
             except ObjectNotCreated as err:
-                self.log_debug(f"Unable to create object. {err}")
+                self.log_debug(message=f"Unable to create object. {err}")
             self.log_success(message="Sync complete.")
 
 

@@ -1,6 +1,7 @@
 """DiffSyncModel DCIM subclasses for Nautobot Device42 data sync."""
 
 from typing import List, Optional
+from uuid import UUID
 
 from diffsync import DiffSyncModel
 from django.contrib.contenttypes.models import ContentType
@@ -31,6 +32,7 @@ class Provider(DiffSyncModel):
     vendor_contact1: Optional[str]
     vendor_contact2: Optional[str]
     tags: Optional[List[str]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -55,7 +57,7 @@ class Provider(DiffSyncModel):
 
     def update(self, attrs):
         """Update Provider object in Nautobot."""
-        _prov = NautobotProvider.objects.get(name=self.name)
+        _prov = NautobotProvider.objects.get(id=self.uuid)
         if attrs.get("notes"):
             _prov.comments = attrs["notes"]
         if attrs.get("vendor_url"):
@@ -76,9 +78,9 @@ class Provider(DiffSyncModel):
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        self.diffsync.job.log_warning(f"Provider {self.name} will be deleted.")
+        self.diffsync.job.log_warning(message=f"Provider {self.name} will be deleted.")
         super().delete()
-        provider = NautobotProvider.objects.get(**self.get_identifiers())
+        provider = NautobotProvider.objects.get(id=self.uuid)
         self.diffsync._objects_to_delete["provider"].append(provider)  # pylint: disable=protected-access
         return self
 
@@ -116,6 +118,7 @@ class Circuit(DiffSyncModel):
     endpoint_dev: Optional[str]
     bandwidth: Optional[int]
     tags: Optional[List[str]]
+    uuid: Optional[UUID]
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
@@ -148,7 +151,7 @@ class Circuit(DiffSyncModel):
 
     def update(self, attrs):
         """Update Circuit object in Nautobot."""
-        _circuit = NautobotCircuit.objects.get(cid=self.circuit_id)
+        _circuit = NautobotCircuit.objects.get(id=self.uuid)
         if attrs.get("notes"):
             _circuit.comments = attrs["notes"]
         if attrs.get("type"):
@@ -214,8 +217,8 @@ class Circuit(DiffSyncModel):
         The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        self.diffsync.job.log_warning(f"Circuit {self.circuit_id} will be deleted.")
-        circuit = NautobotCircuit.objects.get(cid=self.get_identifiers()["circuit_id"])
-        circuit.delete()
+        self.diffsync.job.log_warning(message=f"Circuit {self.circuit_id} will be deleted.")
         super().delete()
+        circuit = NautobotCircuit.objects.get(id=self.uuid)
+        self.diffsync._objects_to_delete["circuit"].append(circuit)  # pylint: disable=protected-access
         return self
