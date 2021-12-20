@@ -584,92 +584,90 @@ class Device(DiffSyncModel):
             _status = NautobotStatus.objects.get(name="Active")
         else:
             _status = NautobotStatus.objects.get(name="Offline")
-        if attrs.get("building"):
+        if PLUGIN_CFG.get("verbose_debug"):
             diffsync.job.log_debug(message=f"Creating device {ids['name']}.")
-            if attrs.get("tags") and len(attrs["tags"]) > 0:
-                _role = nautobot.verify_device_role(device42.find_device_role_from_tags(tag_list=attrs["tags"]))
-            else:
-                _role = nautobot.verify_device_role(role_name=DEFAULTS.get("device_role"))
-            try:
-                _dt = NautobotDeviceType.objects.get(model=attrs["hardware"])
-                _site = cls._get_site(diffsync, ids, attrs)
-                if not _site:
-                    diffsync.job.log_debug(message=f"Can't create {ids['name']} as unable to determine Site.")
-                    return None
-                new_device = NautobotDevice(
-                    name=ids["name"][:64],
-                    status=_status,
-                    site=_site,
-                    device_type=_dt,
-                    device_role=_role,
-                    serial=attrs["serial_no"] if attrs.get("serial_no") else "",
-                )
-                if attrs.get("rack"):
-                    new_device.rack = NautobotRack.objects.get(name=attrs["rack"], group__name=attrs["room"])
-                    new_device.position = int(attrs["rack_position"]) if attrs["rack_position"] else None
-                    new_device.face = attrs["rack_orientation"] if attrs["rack_orientation"] else "front"
-                if attrs.get("os"):
-                    new_device.platform = nautobot.verify_platform(
-                        platform_name=attrs["os"],
-                        manu=NautobotDeviceType.objects.get(model=attrs["hardware"]).manufacturer,
-                    )
-                new_device.validated_save()
-                if attrs.get("os_version"):
-                    if LIFECYCLE_MGMT and attrs.get("os"):
-                        soft_lcm = cls._add_software_lcm(
-                            os=attrs["os"], version=attrs["os_version"], hardware=attrs["hardware"]
-                        )
-                        cls._assign_version_to_device(device=new_device, software_lcm=soft_lcm)
-                    else:
-                        attrs["custom_fields"].append({"key": "OS Version", "value": attrs["os_version"]})
-                if attrs.get("cluster_host"):
-                    try:
-                        _vc = NautobotVC.objects.get(name=attrs["cluster_host"])
-                        new_device.virtual_chassis = _vc
-                        if attrs.get("master_device") and attrs["master_device"]:
-                            new_device.vc_position = 1
-                            new_device.validated_save()
-                            _vc.master = new_device
-                            _vc.validated_save()
-                        else:
-                            switch_pos = re.search(r".+-\s([sS]witch)\s?(?P<pos>\d+)", ids["name"])
-                            node_pos = re.search(r".+-\s([nN]ode)\s?(?P<pos>\d+)", ids["name"])
-                            if switch_pos or node_pos:
-                                if switch_pos:
-                                    position = int(switch_pos.group("pos"))
-                                if node_pos:
-                                    position = int(node_pos.group("pos")) + 1
-                            else:
-                                position = (
-                                    len(NautobotDevice.objects.filter(virtual_chassis__name=attrs["cluster_host"])) + 1
-                                )
-                            new_device.vc_position = position + 1
-                    except NautobotVC.DoesNotExist as err:
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            diffsync.job.log_warning(message=f"Unable to find VC {attrs['cluster_host']} {err}")
-                if attrs.get("tags"):
-                    for _tag in nautobot.get_tags(attrs["tags"]):
-                        new_device.tags.add(_tag)
-                if attrs.get("custom_fields"):
-                    for _cf in attrs["custom_fields"]:
-                        _cf_dict = {
-                            "name": slugify(_cf["key"]),
-                            "type": CustomFieldTypeChoices.TYPE_TEXT,
-                            "label": _cf["key"],
-                        }
-                        field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                        field.content_types.add(ContentType.objects.get_for_model(NautobotDevice).id)
-                        new_device.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
-                new_device.validated_save()
-            except NautobotRack.DoesNotExist:
-                diffsync.job.log_debug(message=f"Unable to find matching Rack {attrs.get('rack')} for {_site.name}")
-            except NautobotDeviceType.DoesNotExist:
-                diffsync.job.log_debug(
-                    message=f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}."
-                )
+        if attrs.get("tags") and len(attrs["tags"]) > 0:
+            _role = nautobot.verify_device_role(device42.find_device_role_from_tags(tag_list=attrs["tags"]))
         else:
-            diffsync.job.log_debug(message=f"Device {ids['name']} is missing a Building and won't be created.")
-        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+            _role = nautobot.verify_device_role(role_name=DEFAULTS.get("device_role"))
+        try:
+            _dt = NautobotDeviceType.objects.get(model=attrs["hardware"])
+            _site = cls._get_site(diffsync, ids, attrs)
+            if not _site:
+                diffsync.job.log_debug(message=f"Can't create {ids['name']} as unable to determine Site.")
+                return None
+            new_device = NautobotDevice(
+                name=ids["name"][:64],
+                status=_status,
+                site=_site,
+                device_type=_dt,
+                device_role=_role,
+                serial=attrs["serial_no"] if attrs.get("serial_no") else "",
+            )
+            if attrs.get("rack"):
+                new_device.rack = NautobotRack.objects.get(name=attrs["rack"], group__name=attrs["room"])
+                new_device.position = int(attrs["rack_position"]) if attrs["rack_position"] else None
+                new_device.face = attrs["rack_orientation"] if attrs["rack_orientation"] else "front"
+            if attrs.get("os"):
+                new_device.platform = nautobot.verify_platform(
+                    platform_name=attrs["os"],
+                    manu=NautobotDeviceType.objects.get(model=attrs["hardware"]).manufacturer,
+                )
+            new_device.validated_save()
+            if attrs.get("os_version"):
+                if LIFECYCLE_MGMT and attrs.get("os"):
+                    soft_lcm = cls._add_software_lcm(
+                        os=attrs["os"], version=attrs["os_version"], hardware=attrs["hardware"]
+                    )
+                    cls._assign_version_to_device(device=new_device, software_lcm=soft_lcm)
+                else:
+                    attrs["custom_fields"].append({"key": "OS Version", "value": attrs["os_version"]})
+            if attrs.get("cluster_host"):
+                try:
+                    _vc = NautobotVC.objects.get(name=attrs["cluster_host"])
+                    new_device.virtual_chassis = _vc
+                    if attrs.get("master_device") and attrs["master_device"]:
+                        new_device.vc_position = 1
+                        new_device.validated_save()
+                        _vc.master = new_device
+                        _vc.validated_save()
+                    else:
+                        switch_pos = re.search(r".+-\s([sS]witch)\s?(?P<pos>\d+)", ids["name"])
+                        node_pos = re.search(r".+-\s([nN]ode)\s?(?P<pos>\d+)", ids["name"])
+                        position = 1
+                        if switch_pos or node_pos:
+                            if switch_pos:
+                                position = int(switch_pos.group("pos"))
+                            if node_pos:
+                                position = int(node_pos.group("pos")) + 1
+                        else:
+                            position = (
+                                len(NautobotDevice.objects.filter(virtual_chassis__name=attrs["cluster_host"])) + 1
+                            )
+                        new_device.vc_position = position + 1
+                except NautobotVC.DoesNotExist as err:
+                    if PLUGIN_CFG.get("verbose_debug"):
+                        diffsync.job.log_warning(message=f"Unable to find VC {attrs['cluster_host']} {err}")
+            if attrs.get("tags"):
+                for _tag in nautobot.get_tags(attrs["tags"]):
+                    new_device.tags.add(_tag)
+            if attrs.get("custom_fields"):
+                for _cf in attrs["custom_fields"]:
+                    _cf_dict = {
+                        "name": slugify(_cf["key"]),
+                        "type": CustomFieldTypeChoices.TYPE_TEXT,
+                        "label": _cf["key"],
+                    }
+                    field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                    field.content_types.add(ContentType.objects.get_for_model(NautobotDevice).id)
+                    new_device.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            new_device.validated_save()
+            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+        except NautobotRack.DoesNotExist:
+            diffsync.job.log_debug(message=f"Unable to find matching Rack {attrs.get('rack')} for {_site.name}")
+        except NautobotDeviceType.DoesNotExist:
+            diffsync.job.log_debug(message=f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}.")
+            return None
 
     def update(self, attrs):
         """Update Device object in Nautobot."""

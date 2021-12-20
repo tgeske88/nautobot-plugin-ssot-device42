@@ -384,9 +384,14 @@ class Device42Adapter(DiffSync):
                 if len(_tags) > 1:
                     _tags.sort()
                 _building = self.get_building_for_device(dev_record=_record)
+                # only consider devices that have a Building
+                if _building == "":
+                    if PLUGIN_CFG.get("verbose_debug"):
+                        self.job.log_debug(message=f"Device {_record['name']} is not being added. Unable to find Building.")
+                    continue
                 _device = self.device(
                     name=_record["name"][:64],
-                    building=_building if _building else "",
+                    building=_building,
                     room=_record["room"] if _record.get("room") else "",
                     rack=_record["rack"] if _record.get("rack") else "",
                     rack_position=int(_record["start_at"]) if _record.get("start_at") else None,
@@ -411,8 +416,8 @@ class Device42Adapter(DiffSync):
                         _device.cluster_host = cluster_host
                         if _device.name == cluster_host:
                             _device.master_device = True
-                        if PLUGIN_CFG.get("verbose_debug"):
-                            self.job.log_info(message=f"Device {_record['name']} being added.")
+                    if PLUGIN_CFG.get("verbose_debug"):
+                        self.job.log_info(message=f"Device {_record['name']} being added.")
                     self.add(_device)
                 except ObjectAlreadyExists as err:
                     if PLUGIN_CFG.get("verbose_debug"):
