@@ -25,8 +25,7 @@ from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Relationship, RelationshipAssociation
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot.ipam.models import VLAN as NautobotVLAN
-from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP
-from nautobot_ssot_device42.jobs import VERBOSE_DEBUG
+from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP, VERBOSE_DEBUG
 from nautobot_ssot_device42.utils import device42, nautobot
 
 try:
@@ -323,7 +322,7 @@ class Vendor(DiffSyncModel):
 
     def update(self, attrs):
         """Update Manufacturer object in Nautobot."""
-        _manu = NautobotManufacturer.objects.get(name=self.name)
+        _manu = NautobotManufacturer.objects.get(id=self.uuid)
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
@@ -345,7 +344,7 @@ class Vendor(DiffSyncModel):
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
-        _manu = NautobotManufacturer.objects.get(**self.get_identifiers())
+        _manu = NautobotManufacturer.objects.get(id=self.uuid)
         if VERBOSE_DEBUG:
             self.diffsync.job.log_warning(object=_manu, message=f"Manufacturer {self.name} will be deleted.")
         self.diffsync._objects_to_delete["manufacturer"].append(_manu)  # pylint: disable=protected-access
@@ -398,7 +397,7 @@ class Hardware(DiffSyncModel):
 
     def update(self, attrs):
         """Update DeviceType object in Nautobot."""
-        _dt = NautobotDeviceType.objects.get(model=self.name)
+        _dt = NautobotDeviceType.objects.get(id=self.uuid)
         if attrs.get("manufacturer"):
             _dt.manufacturer = NautobotManufacturer.objects.get(slug=slugify(attrs["manufacturer"]))
         if attrs.get("part_number"):
@@ -478,7 +477,7 @@ class Cluster(DiffSyncModel):
 
     def update(self, attrs):
         """Update Virtual Chassis object in Nautobot."""
-        _vc = NautobotVC.objects.get(name=self.name)
+        _vc = NautobotVC.objects.get(id=self.uuid)
         if attrs.get("members"):
             for _member in attrs["members"]:
                 try:
