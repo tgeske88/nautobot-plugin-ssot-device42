@@ -1,0 +1,50 @@
+{
+    "1": {
+        "patchpanelmodel_pk": 1,
+        "name": "Ortronics OR-PHAHJU72",
+        "type_id": 1,
+        "type": "Singular",
+        "port_type_id": 1,
+        "port_type_name": "RJ45",
+        "vendor_fk": 5,
+        "number_of_ports": 72,
+        "number_of_ports_in_row": 24,
+        "paired_ports": false,
+        "module_pos": "horizontal",
+        "module_vertical_size": 0.6,
+        "numbering_start_location": "top-left",
+        "numbering_direction": "left-right"
+    },
+    "2": {
+        "patchpanelmodel_pk": 2,
+        "name": "Ortronics OR-PHDHJU48",
+        "type_id": 1,
+        "type": "Singular",
+        "port_type_id": 3,
+        "port_type_name": "Fiber LC",
+        "vendor_fk": 5,
+        "number_of_ports": 48,
+        "number_of_ports_in_row": 24,
+        "paired_ports": false,
+        "module_pos": "horizontal",
+        "module_vertical_size": 1.0,
+        "numbering_start_location": "top-left",
+        "numbering_direction": "left-right"
+    },
+    "3": {
+        "patchpanelmodel_pk": 3,
+        "name": "Panduit DP24688TGY",
+        "type_id": 1,
+        "type": "Singular",
+        "port_type_id": 1,
+        "port_type_name": "RJ45",
+        "vendor_fk": 7,
+        "number_of_ports": 24,
+        "number_of_ports_in_row": 24,
+        "paired_ports": false,
+        "module_pos": "horizontal",
+        "module_vertical_size": 1.0,
+        "numbering_start_location": "top-left",
+        "numbering_direction": "left-right"
+    }
+}
