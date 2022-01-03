@@ -9,7 +9,7 @@ from requests import HTTPError
 
 from diffsync import DiffSyncFlags
 from diffsync.exceptions import ObjectNotCreated
-from nautobot_ssot_device42.constant import PLUGIN_CFG
+from nautobot_ssot_device42.constant import PLUGIN_CFG, VERBOSE_DEBUG  # noqa: F401, pylint: disable=unused-import
 from nautobot_ssot_device42.diffsync.from_d42.device42 import Device42Adapter
 from nautobot_ssot_device42.diffsync.from_d42.nautobot import NautobotAdapter
 from nautobot_ssot_device42.utils.device42 import Device42API
@@ -52,6 +52,8 @@ class Device42DataSource(DataSource, Job):
 
     def sync_data(self):
         """Device42 Sync."""
+        if self.kwargs["debug"]:
+            VERBOSE_DEBUG = True  # noqa: F841, F811, pylint: disable=redefined-outer-name, invalid-name, unused-variable, unused-import
         self.log_info(message="Connecting to Device42...")
         client = Device42API(
             base_url=PLUGIN_CFG["device42_host"],

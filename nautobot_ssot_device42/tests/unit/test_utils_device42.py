@@ -1,7 +1,7 @@
 """Tests of Device42 utility methods."""
 
 import json
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.conf import settings
@@ -38,6 +38,7 @@ class TestUtilsDevice42(TestCase):
         result_dict = {"total_count": 10, "limit": 2, "offset": 4, "Objects": ["a", "b", "c", "d"]}
         self.assertEqual(device42.merge_offset_dicts(orig_dict=first_dict, offset_dict=second_dict), result_dict)
 
+    @patch.object(device42, "VERBOSE_DEBUG", True)
     def test_get_intf_type_eth_intf(self):
         # test physical Ethernet interfaces
         eth_intf = {
@@ -48,13 +49,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=eth_intf, diffsync=dsync), "1000base-t")
         dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(device42, "VERBOSE_DEBUG", True)
     def test_get_intf_type_fc_intf(self):
         # test physical FiberChannel interfaces
         fc_intf = {
@@ -66,13 +64,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=fc_intf, diffsync=dsync), "1gfc-sfp")
         dsync.log_debug.assert_called_once_with(message="Matched on FibreChannel. FC0/1 core-router.testexample.com")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(device42, "VERBOSE_DEBUG", True)
     def test_get_intf_type_unknown_phy_intf(self):
         # test physical interfaces that don't have a discovered_type of Ethernet or FiberChannel
         unknown_phy_intf_speed = {
@@ -83,13 +78,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=unknown_phy_intf_speed, diffsync=dsync), "1000base-t")
         dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(device42, "VERBOSE_DEBUG", True)
     def test_get_intf_name_mapping(self):
         # test name of Interface matching INTF_NAME_MAP
         ethernet_interface = {
@@ -100,12 +92,8 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=ethernet_interface, diffsync=dsync), "100base-tx")
         dsync.log_debug.assert_called_once_with(message="Matched on interface name FastEthernet")
-        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_gigabit_ethernet_intf(self):
         # test physical interface that's discovered as gigabitEthernet
@@ -127,6 +115,7 @@ class TestUtilsDevice42(TestCase):
         }
         self.assertEqual(device42.get_intf_type(intf_record=dot11_intf), "ieee802.11a")
 
+    @patch.object(device42, "VERBOSE_DEBUG", True)
     def test_get_intf_type_ad_lag_intf(self):
         # test 802.3ad lag logical interface
         ad_lag_intf = {
@@ -138,13 +127,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=ad_lag_intf, diffsync=dsync), "lag")
         dsync.log_debug.assert_called_once_with(message="LAG matched. port-channel100 core-router.testexample.com")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(device42, "VERBOSE_DEBUG", True)
     def test_get_intf_type_lacp_intf(self):
         # test lacp logical interface
         lacp_intf = {
@@ -156,13 +142,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=lacp_intf, diffsync=dsync), "lag")
         dsync.log_debug.assert_called_once_with(message="LAG matched. Internal_Trunk core-router.testexample.com")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(device42, "VERBOSE_DEBUG", True)
     def test_get_intf_type_virtual_intf(self):
         # test "virtual" logical interface
         virtual_intf = {
@@ -174,15 +157,12 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=virtual_intf, diffsync=dsync), "virtual")
         dsync.log_debug.assert_called_once_with(
             message="Virtual, loopback, or l2vlan interface matched. Vlan100 distro-switch.testexample.com."
         )
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(device42, "VERBOSE_DEBUG", True)
     def test_get_intf_type_port_channel_intf(self):
         # test Port-Channel logical interface
         port_channel_intf = {
@@ -194,14 +174,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf, diffsync=dsync), "lag")
         dsync.log_debug.assert_called_once_with(
             message="Virtual, loopback, or l2vlan interface matched. port-channel100 distro-switch.testexample.com."
         )
-        configs["verbose_debug"] = original_setting
 
     netmiko_platforms = [
         ("asa", "asa", "cisco_asa"),
