@@ -1,0 +1,54 @@
+[
+    {
+        "name": "AUS Patch 1",
+        "serial_no": "",
+        "customer_fk": null,
+        "building_fk": null,
+        "room_fk": null,
+        "size": 2.0,
+        "number_of_ports": 72,
+        "model_name": "Ortronics OR-PHAHJU72",
+        "port_type": "RJ45",
+        "vendor": "Ortronics",
+        "rack": "AUS Rack 1"
+    },
+    {
+        "name": "AUS Patch 2",
+        "serial_no": "",
+        "customer_fk": null,
+        "building_fk": null,
+        "room_fk": null,
+        "size": 2.0,
+        "number_of_ports": 72,
+        "model_name": "Corning CCH-03U",
+        "vendor": "Corning",
+        "port_type": "Fiber LC",
+        "rack": "AUS Rack 2"
+    },
+    {
+        "name": "DFW Patch 1",
+        "serial_no": "",
+        "customer_fk": null,
+        "building_fk": null,
+        "room_fk": null,
+        "size": 2.0,
+        "number_of_ports": 72,
+        "model_name": "Ortronics OR-PHAHJU72",
+        "vendor": "Ortronics",
+        "port_type": "RJ45",
+        "rack": "DFW Rack 1"
+    },
+    {
+        "name": "DFW Patch 2",
+        "serial_no": "",
+        "customer_fk": null,
+        "building_fk": null,
+        "room_fk": null,
+        "size": 2.0,
+        "number_of_ports": 72,
+        "model_name": "Corning CCH-03U",
+        "vendor": "Corning",
+        "port_type": "Fiber LC",
+        "rack": "DFW Rack 2"
+    }
+]

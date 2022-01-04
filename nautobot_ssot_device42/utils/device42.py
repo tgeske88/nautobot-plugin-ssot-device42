@@ -572,12 +572,11 @@ class Device42API:  # pylint: disable=too-many-public-methods
         results = self.doql_query(query=query)
         return {x["vendor_pk"]: x for x in results}
 
-    def get_patch_panel_pks(self) -> dict:
-        """Method to obtain all patch panel primary keys from Device42.
+    def get_patch_panels(self) -> List[dict]:
+        """Method to obtain all patch panels from Device42.
 
         Returns:
-            dict: Dictionary of Patch Panels with their PK as key.
+            dict: Dictionary of Patch Panels in Device42.
         """
-        query = "SELECT * from view_patchpanelmodel_v1"
-        results = self.doql_query(query=query)
-        return {x["patchpanelmodel_pk"]: x for x in results}
+        query = "SELECT a.name, a.serial_no, a.customer_fk, a.building_fk, a.room_fk, a.size, m.number_of_ports, m.name as model_name, m.port_type_name as port_type, v.name as vendor, r.name as rack FROM view_asset_v1 a LEFT JOIN view_patchpanelmodel_v1 m ON m.patchpanelmodel_pk = a.patchpanelmodel_fk JOIN view_vendor_v1 v ON v.vendor_pk = m.vendor_fk JOIN view_rack_v1 r ON a.rack_fk = r.rack_pk WHERE a.patchpanelmodel_fk is not null"
+        return self.doql_query(query=query)
