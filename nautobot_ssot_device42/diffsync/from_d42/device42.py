@@ -127,7 +127,7 @@ class Device42Adapter(DiffSync):
         self._device42_clusters = self._device42.get_cluster_members()
 
         # mapping of SiteCode (facility) to Building name
-        self.building_map = {}
+        self.building_sitecode_map = {}
         # mapping of VLAN PK to VLAN name and ID
         self.vlan_map = self._device42.get_vlan_info()
         # mapping of Device PK to Device name
@@ -162,9 +162,9 @@ class Device42Adapter(DiffSync):
             if (
                 PLUGIN_CFG.get("customer_is_facility")
                 and dev_record.get("customer")
-                and dev_record["customer"] in self.building_map
+                and dev_record["customer"] in self.building_sitecode_map
             ):
-                _building = self.building_map[dev_record["customer"].upper()]
+                _building = self.building_sitecode_map[dev_record["customer"].upper()]
             else:
                 _building = dev_record.get("building")
         if _building is not None:
@@ -192,7 +192,7 @@ class Device42Adapter(DiffSync):
             )
             _facility = get_facility(diffsync=self, tags=_tags)
             if _facility:
-                self.building_map[_facility.upper()] = record["name"]
+                self.building_sitecode_map[_facility.upper()] = record["name"]
             try:
                 self.add(building)
             except ObjectAlreadyExists as err:
@@ -588,7 +588,7 @@ class Device42Adapter(DiffSync):
                 elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
                     new_vlan = self.get(
                         self.vlan,
-                        {"name": _vlan_name, "vlan_id": _info["vid"], "building": self.building_map[_info["customer"]]},
+                        {"name": _vlan_name, "vlan_id": _info["vid"], "building": self.building_sitecode_map[_info["customer"]]},
                     )
                 else:
                     new_vlan = self.get(self.vlan, {"name": _vlan_name, "vlan_id": _info["vid"], "building": "Unknown"})
@@ -609,7 +609,7 @@ class Device42Adapter(DiffSync):
                 if _info.get("building"):
                     new_vlan.building = _info["building"]
                 elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
-                    new_vlan.building = self.building_map[_info["customer"]]
+                    new_vlan.building = self.building_sitecode_map[_info["customer"]]
                 else:
                     new_vlan.building = "Unknown"
                 self.add(new_vlan)
