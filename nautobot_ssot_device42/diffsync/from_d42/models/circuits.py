@@ -1,4 +1,4 @@
-"""DiffSyncModel DCIM subclasses for Nautobot Device42 data sync."""
+"""DiffSyncModel Circuit subclasses for Nautobot Device42 data sync."""
 
 from typing import List, Optional
 from uuid import UUID
