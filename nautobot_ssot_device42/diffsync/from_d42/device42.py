@@ -590,7 +590,11 @@ class Device42Adapter(DiffSync):
                 elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
                     new_vlan = self.get(
                         self.vlan,
-                        {"name": _vlan_name, "vlan_id": _info["vid"], "building": self.building_sitecode_map[_info["customer"]]},
+                        {
+                            "name": _vlan_name,
+                            "vlan_id": _info["vid"],
+                            "building": self.building_sitecode_map[_info["customer"]],
+                        },
                     )
                 else:
                     new_vlan = self.get(self.vlan, {"name": _vlan_name, "vlan_id": _info["vid"], "building": "Unknown"})
