@@ -10,7 +10,7 @@
         "address": "501 Dell Way, Round Rock, TX 78682",
         "latitude": null,
         "contact_name": "John Smith",
-        "building_id": 1,
+        "building_pk": 1,
         "contact_phone": "1-800-GET-HELP",
         "custom_fields": [
             {
@@ -31,7 +31,7 @@
         "address": "One Apple Park Way, Cupertino, CA 95014",
         "latitude": null,
         "contact_name": "Jon Gotti",
-        "building_id": 2,
+        "building_pk": 2,
         "contact_phone": "1-555-867-5309",
         "custom_fields": [
             {
@@ -52,7 +52,7 @@
         "address": "One Microsoft Way, Redmond, WA 98052",
         "latitude": null,
         "contact_name": "John Doe",
-        "building_id": 3,
+        "building_pk": 3,
         "contact_phone": "use the batsignal!",
         "custom_fields": [
             {
