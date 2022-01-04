@@ -122,30 +122,30 @@ class Device42Adapter(DiffSync):
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
-        self._device42_hardware_dict = {}
-        self._device42 = client
-        self._device42_clusters = self._device42.get_cluster_members()
+        self.device42_hardware_dict = {}
+        self.device42 = client
+        self.device42_clusters = self.device42.get_cluster_members()
 
         # mapping of SiteCode (facility) to Building name
         self.building_sitecode_map = {}
         # mapping of Building PK to Building info
-        self.building_map = self._device42.get_building_pks()
+        self.building_map = self.device42.get_building_pks()
         # mapping of VLAN PK to VLAN name and ID
-        self.vlan_map = self._device42.get_vlan_info()
+        self.vlan_map = self.device42.get_vlan_info()
         # mapping of Device PK to Device name
-        self.device_map = self._device42.get_device_pks()
+        self.device_map = self.device42.get_device_pks()
         # mapping of Port PK to Port name
-        self.port_map = self._device42.get_port_pks()
+        self.port_map = self.device42.get_port_pks()
         # mapping of Vendor PK to Vendor info
-        self.vendor_map = self._device42.get_vendor_pks()
+        self.vendor_map = self.device42.get_vendor_pks()
 
     @classproperty
     def _device42_hardwares(self):
-        if not self._device42_hardware_dict:
-            device42_hardware_list = self._device42.api_call(path="api/2.0/hardwares/")["models"]
+        if not self.device42_hardware_dict:
+            device42_hardware_list = self.device42.api_call(path="api/2.0/hardwares/")["models"]
             for hardware in device42_hardware_list["models"]:
-                self._device42_hardware_dict[hardware["hardware_id"]] = hardware
-        return self._device42_hardware_dict
+                self.device42_hardware_dict[hardware["hardware_id"]] = hardware
+        return self.device42_hardware_dict
 
     def get_building_for_device(self, dev_record: dict) -> str:
         """Method to determine the Building (Site) for a Device.
@@ -175,7 +175,7 @@ class Device42Adapter(DiffSync):
 
     def load_buildings(self):
         """Load Device42 buildings."""
-        for record in self._device42.get_buildings():
+        for record in self.device42.get_buildings():
             if VERBOSE_DEBUG:
                 self.job.log_info(message=f"Loading {record['name']} building from Device42.")
             _tags = record["tags"] if record.get("tags") else []
@@ -203,7 +203,7 @@ class Device42Adapter(DiffSync):
 
     def load_rooms(self):
         """Load Device42 rooms."""
-        for record in self._device42.get_rooms():
+        for record in self.device42.get_rooms():
             if VERBOSE_DEBUG:
                 self.job.log_info(message=f"Loading {record['name']} room from Device42.")
             _tags = record["tags"] if record.get("tags") else []
@@ -233,7 +233,7 @@ class Device42Adapter(DiffSync):
         """Load Device42 racks."""
         if VERBOSE_DEBUG:
             self.job.log_info("Loading racks from Device42.")
-        for record in self._device42.api_call(path="api/1.0/racks")["racks"]:
+        for record in self.device42.api_call(path="api/1.0/racks")["racks"]:
             _tags = record["tags"] if record.get("tags") else []
             if len(_tags) > 1:
                 _tags.sort()
@@ -265,7 +265,7 @@ class Device42Adapter(DiffSync):
 
     def load_vendors(self):
         """Load Device42 vendors."""
-        for _vendor in self._device42.api_call(path="api/1.0/vendors")["vendors"]:
+        for _vendor in self.device42.api_call(path="api/1.0/vendors")["vendors"]:
             if VERBOSE_DEBUG:
                 self.job.log_info(message=f"Loading vendor {_vendor['name']} from Device42.")
             vendor = self.vendor(
@@ -276,7 +276,7 @@ class Device42Adapter(DiffSync):
 
     def load_hardware_models(self):
         """Load Device42 hardware models."""
-        for _model in self._device42.api_call(path="api/1.0/hardwares/")["models"]:
+        for _model in self.device42.api_call(path="api/1.0/hardwares/")["models"]:
             if VERBOSE_DEBUG:
                 self.job.log_info(message=f"Loading hardware model {_model['name']} from Device42.")
             if _model.get("manufacturer"):
@@ -304,7 +304,7 @@ class Device42Adapter(DiffSync):
         Returns:
             Union[str, bool]: Name of cluster device is part of or returns False.
         """
-        for _cluster, _info in self._device42_clusters.items():
+        for _cluster, _info in self.device42_clusters.items():
             if device in _info["members"]:
                 return _cluster
         return False
@@ -326,7 +326,7 @@ class Device42Adapter(DiffSync):
         except ObjectNotFound:
             if VERBOSE_DEBUG:
                 self.job.log_info(message=f"Cluster {cluster_info['name']} being added.")
-            _clus = self._device42_clusters[cluster_info["name"]]
+            _clus = self.device42_clusters[cluster_info["name"]]
             _tags = cluster_info["tags"] if cluster_info.get("tags") else []
             if PLUGIN_CFG.get("ignore_tag") and PLUGIN_CFG["ignore_tag"] in _tags:
                 return
@@ -366,13 +366,13 @@ class Device42Adapter(DiffSync):
         # Get all Devices from Device42
         if VERBOSE_DEBUG:
             self.job.log_info("Retrieving devices from Device42.")
-        _devices = self._device42.api_call(path="api/1.0/devices/all/?is_it_switch=yes")["Devices"]
+        _devices = self.device42.api_call(path="api/1.0/devices/all/?is_it_switch=yes")["Devices"]
 
         # Add all Clusters first
         if VERBOSE_DEBUG:
             self.job.log_info("Loading clusters...")
         for _record in _devices:
-            if _record.get("type") == "cluster" and _record.get("name") in self._device42_clusters.keys():
+            if _record.get("type") == "cluster" and _record.get("name") in self.device42_clusters.keys():
                 if VERBOSE_DEBUG:
                     self.job.log_info(message=f"Attempting to load cluster {_record['name']}")
                 self.load_cluster(_record)
@@ -412,7 +412,7 @@ class Device42Adapter(DiffSync):
                 try:
                     cluster_host = self.get_cluster_host(_record["name"])
                     if cluster_host:
-                        if is_truthy(self._device42_clusters[cluster_host]["is_network"]) is False:
+                        if is_truthy(self.device42_clusters[cluster_host]["is_network"]) is False:
                             if VERBOSE_DEBUG:
                                 self.job.log_warning(
                                     f"{cluster_host} has network device members but isn't marked as network. This should be corrected in Device42."
@@ -430,11 +430,11 @@ class Device42Adapter(DiffSync):
 
     def load_ports(self):
         """Load Device42 ports."""
-        vlan_ports = self._device42.get_ports_with_vlans()
-        no_vlan_ports = self._device42.get_ports_wo_vlans()
+        vlan_ports = self.device42.get_ports_with_vlans()
+        no_vlan_ports = self.device42.get_ports_wo_vlans()
         _ports = vlan_ports + no_vlan_ports
-        default_cfs = self._device42.get_port_default_custom_fields()
-        _cfs = self._device42.get_port_custom_fields()
+        default_cfs = self.device42.get_port_default_custom_fields()
+        _cfs = self.device42.get_port_custom_fields()
         for _port in _ports:
             if _port.get("port_name") and _port.get("device_name"):
                 _tags = _port["tags"].split(",") if _port.get("tags") else []
@@ -488,7 +488,7 @@ class Device42Adapter(DiffSync):
 
     def load_vrfgroups(self):
         """Load Device42 VRFGroups."""
-        for _grp in self._device42.api_call(path="api/1.0/vrfgroup/")["vrfgroup"]:
+        for _grp in self.device42.api_call(path="api/1.0/vrfgroup/")["vrfgroup"]:
             if VERBOSE_DEBUG:
                 self.job.log_info(message="Retrieving VRF groups from Device42.")
             try:
@@ -511,9 +511,9 @@ class Device42Adapter(DiffSync):
         """Load Device42 Subnets."""
         if VERBOSE_DEBUG:
             self.job.log_info("Retrieving Subnets from Device42.")
-        default_cfs = self._device42.get_port_default_custom_fields()
-        _cfs = self._device42.get_subnet_custom_fields()
-        for _pf in self._device42.get_subnets():
+        default_cfs = self.device42.get_port_default_custom_fields()
+        _cfs = self.device42.get_subnet_custom_fields()
+        for _pf in self.device42.get_subnets():
             _tags = _pf["tags"].split(",") if _pf.get("tags") else []
             if len(_tags) > 1:
                 _tags.sort()
@@ -548,9 +548,9 @@ class Device42Adapter(DiffSync):
         """Load Device42 IP Addresses."""
         if VERBOSE_DEBUG:
             self.job.log_info("Retrieving IP Addresses from Device42.")
-        default_cfs = self._device42.get_ipaddr_default_custom_fields()
-        _cfs = self._device42.get_ipaddr_custom_fields()
-        for _ip in self._device42.get_ip_addrs():
+        default_cfs = self.device42.get_ipaddr_default_custom_fields()
+        _cfs = self.device42.get_ipaddr_custom_fields()
+        for _ip in self.device42.get_ip_addrs():
             _ipaddr = f"{_ip['ip_address']}/{str(_ip['netmask'])}"
             try:
                 _tags = _ip["tags"].split(",") if _ip.get("tags") else []
@@ -579,7 +579,7 @@ class Device42Adapter(DiffSync):
 
     def load_vlans(self):
         """Load Device42 VLANs."""
-        _vlans = self._device42.get_vlans_with_location()
+        _vlans = self.device42.get_vlans_with_location()
         for _info in _vlans:
             try:
                 _vlan_name = _info["vlan_name"].strip()
@@ -622,7 +622,7 @@ class Device42Adapter(DiffSync):
 
     def load_connections(self):
         """Load Device42 connections."""
-        _port_conns = self._device42.get_port_connections()
+        _port_conns = self.device42.get_port_connections()
         for _conn in _port_conns:
             try:
                 new_conn = self.conn(
@@ -671,7 +671,7 @@ class Device42Adapter(DiffSync):
 
     def load_providers_and_circuits(self):
         """Load Device42 Providrs and Telco Circuits."""
-        _circuits = self._device42.get_telcocircuits()
+        _circuits = self.device42.get_telcocircuits()
         origin_int, origin_dev, endpoint_int, endpoint_dev = False, False, False, False
         for _tc in _circuits:
             self.load_provider(_tc)
