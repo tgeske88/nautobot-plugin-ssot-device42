@@ -42,8 +42,6 @@ __*role_prepend*__ - This option tells the plugin which string is prepended in a
 
 __*ignore_tag*__ - This option will allow a user to specify a Tag that if found on a Device will exclude it from the import.
 
-__*verbose_debug*__ - This option will enable more verbose debug logging to be produced. This option should be use cautiously as it can produce a large amount of returned data. Value is expected to be a boolean.
-
 __*hostname_mapping*__ - This option enables the ability for a Device to be assigned to a Site based upon its hostname. The value is expected to be a list of dictionaries with the key being the regex used to match the hostname and the value is the slug of the Site to assign to the Device. This option takes precedence over the `customer_is_facility` determination of a Device's Site with the Building denoted in Device42 being the last resort.
 
 ## Usage
