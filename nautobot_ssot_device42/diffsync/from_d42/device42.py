@@ -431,10 +431,18 @@ class Device42Adapter(DiffSync):
         """Load Device42 ports."""
         vlan_ports = self.device42.get_ports_with_vlans()
         no_vlan_ports = self.device42.get_ports_wo_vlans()
-        _ports = vlan_ports + no_vlan_ports
+        for no_vlan_port in no_vlan_ports:
+            for vlan_port in vlan_ports:
+                if (
+                    no_vlan_port["port_name"] == vlan_port["port_name"]
+                    and no_vlan_port["device_name"] == vlan_port["device_name"]
+                ):
+                    print(f"Removing {no_vlan_port} from merged_ports dict.")
+                    no_vlan_ports.remove(no_vlan_port)
+        merged_ports = vlan_ports + no_vlan_ports
         default_cfs = self.device42.get_port_default_custom_fields()
         _cfs = self.device42.get_port_custom_fields()
-        for _port in _ports:
+        for _port in merged_ports:
             if _port.get("port_name") and _port.get("device_name"):
                 if self.diffsync.job.debug:
                     self.job.log_info(f"Loading Port {_port['port_name']} for Device {_port['device_name']}")
