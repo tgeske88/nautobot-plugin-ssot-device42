@@ -323,6 +323,16 @@ class Device42API:  # pylint: disable=too-many-public-methods
         """Method to get all Racks from Device42."""
         return self.api_call(path="api/1.0/racks")["racks"]
 
+    def get_rack_pks(self) -> dict:
+        """Method to obtain all Racks from Device42 mapped to their PK.
+
+        Returns:
+            dict: Dictionary of Racks with their PK as key.
+        """
+        query = "SELECT * FROM view_rack_v1"
+        results = self.doql_query(query=query)
+        return {x["rack_pk"]: x for x in results}
+
     def get_cluster_members(self) -> dict:
         """Method to get all member devices of a cluster from Device42.
 

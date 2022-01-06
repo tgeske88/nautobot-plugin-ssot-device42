@@ -133,6 +133,8 @@ class Device42Adapter(DiffSync):
         self.customer_map = self.device42.get_customer_pks()
         # mapping of Room PK to Room info
         self.room_map = self.device42.get_room_pks()
+        # mapping of Rack PK to Rack info
+        self.rack_map = self.device42.get_rack_pks()
         # mapping of VLAN PK to VLAN name and ID
         self.vlan_map = self.device42.get_vlan_info()
         # mapping of Device PK to Device name
