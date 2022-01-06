@@ -615,7 +615,7 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_patch_panels.json")
         responses.add(
             responses.GET,
-            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT+a.name%2C+a.serial_no%2C+a.customer_fk%2C+a.building_fk%2C+a.room_fk%2C+a.size%2C+m.number_of_ports%2C+m.name+as+model_name%2C+m.port_type_name+as+port_type%2C+v.name+as+vendor%2C+r.name+as+rack%2C+a.start_at+as+position+FROM+view_asset_v1+a+LEFT+JOIN+view_patchpanelmodel_v1+m+ON+m.patchpanelmodel_pk+%3D+a.patchpanelmodel_fk+JOIN+view_vendor_v1+v+ON+v.vendor_pk+%3D+m.vendor_fk+JOIN+view_rack_v1+r+ON+a.rack_fk+%3D+r.rack_pk+WHERE+a.patchpanelmodel_fk+is+not+null&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT+a.name%2C+a.serial_no%2C+a.customer_fk%2C+a.building_fk%2C+a.calculated_building_fk%2C+a.room_fk%2C+a.calculated_room_fk%2C+a.calculated_rack_fk%2C+a.size%2C+m.number_of_ports%2C+m.name+as+model_name%2C+m.port_type_name+as+port_type%2C+v.name+as+vendor%2C+a.rack_fk%2C+a.start_at+as+position+FROM+view_asset_v1+a+LEFT+JOIN+view_patchpanelmodel_v1+m+ON+m.patchpanelmodel_pk+%3D+a.patchpanelmodel_fk+JOIN+view_vendor_v1+v+ON+v.vendor_pk+%3D+m.vendor_fk+WHERE+a.patchpanelmodel_fk+is+not+null+AND+a.name+is+not+null+AND+m.name+is+not+null&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )
