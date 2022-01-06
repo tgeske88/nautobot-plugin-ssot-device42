@@ -236,7 +236,7 @@ class Device42Adapter(DiffSync):
         """Load Device42 racks."""
         if self.job.debug:
             self.job.log_info(message="Loading racks from Device42.")
-        for record in self.device42.api_call(path="api/1.0/racks")["racks"]:
+        for record in self.device42.get_racks():
             _tags = record["tags"] if record.get("tags") else []
             if len(_tags) > 1:
                 _tags.sort()

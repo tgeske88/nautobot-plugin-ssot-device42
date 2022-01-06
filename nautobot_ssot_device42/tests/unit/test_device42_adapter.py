@@ -19,6 +19,7 @@ def load_json(path):
 
 BUILDING_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_buildings_recv.json")
 ROOM_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_rooms_recv.json")
+RACK_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_racks_recv.json")
 
 
 @patch("nautobot.extras.models.models.JOB_LOGS", None)
@@ -32,6 +33,7 @@ class Device42AdapterTestCase(TestCase):
         d42_client = MagicMock()
         d42_client.get_buildings.return_value = BUILDING_FIXTURE
         d42_client.get_rooms.return_value = ROOM_FIXTURE
+        d42_client.get_racks.return_value = RACK_FIXTURE
 
         job = Device42DataSource()
         job.job_result = JobResult.objects.create(
@@ -47,4 +49,9 @@ class Device42AdapterTestCase(TestCase):
         self.assertEqual(
             {f"{room['name']}__{room['building']}" for room in ROOM_FIXTURE},
             {room.get_unique_id() for room in device42.get_all("room")},
+        )
+        device42.load_racks()
+        self.assertEqual(
+            {f"{rack['name']}__{rack['building']}__{rack['room']}" for rack in RACK_FIXTURE},
+            {rack.get_unique_id() for rack in device42.get_all("rack")},
         )
