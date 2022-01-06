@@ -157,7 +157,7 @@ class Circuit(DiffSyncModel):
         if attrs.get("type"):
             _circuit.type = nautobot.verify_circuit_type(attrs["type"])
         if attrs.get("status"):
-            _circuit.status = NautobotStatus.objects.get(name=self.get_circuit_status(attrs["status"]))
+            _circuit.status = NautobotStatus.objects.get(name=attrs["status"])
         if attrs.get("install_date"):
             _circuit.install_date = attrs["install_date"]
         if attrs.get("bandwidth"):
