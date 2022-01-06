@@ -309,6 +309,16 @@ class Device42API:  # pylint: disable=too-many-public-methods
         """Method to get all Rooms from Device42."""
         return self.api_call(path="api/1.0/rooms")["rooms"]
 
+    def get_room_pks(self) -> dict:
+        """Method to obtain all Rooms from Device42 mapped to their PK.
+
+        Returns:
+            dict: Dictionary of Rooms with their PK as key.
+        """
+        query = "SELECT * FROM view_room_v1"
+        results = self.doql_query(query=query)
+        return {x["room_pk"]: x for x in results}
+
     def get_cluster_members(self) -> dict:
         """Method to get all member devices of a cluster from Device42.
 
