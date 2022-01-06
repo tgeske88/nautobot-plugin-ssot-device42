@@ -124,7 +124,7 @@ class Building(DiffSyncModel):
         """Delete Site object from Nautobot.
 
         Because Site has a direct relationship with many other objects it can't be deleted before anything else.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
@@ -273,13 +273,14 @@ class Rack(DiffSyncModel):
         """Delete Rack object from Nautobot.
 
         Because Rack has a direct relationship with Devices it can't be deleted before they are.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
         rack = NautobotRack.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_warning(message=f"Rack {self.name} will be deleted.")
+        self.diffsync.objects_to_delete["rack"].append(rack)  # pylint: disable=protected-access
         return self
 
 
@@ -339,13 +340,14 @@ class Vendor(DiffSyncModel):
         """Delete Manufacturer object from Nautobot.
 
         Because Manufacturer has a direct relationship with DeviceTypes and other objects it can't be deleted before them.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
         _manu = NautobotManufacturer.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_warning(message=f"Manufacturer {self.name} will be deleted.")
+        self.diffsync.objects_to_delete["manufacturer"].append(_manu)  # pylint: disable=protected-access
         return self
 
 
@@ -421,13 +423,14 @@ class Hardware(DiffSyncModel):
         """Delete DeviceType object from Nautobot.
 
         Because DeviceType has a direct relationship with Devices it can't be deleted before all Devices are.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
         _dt = NautobotDeviceType.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_warning(message=f"DeviceType {self.name} will be deleted.")
+        self.diffsync.objects_to_delete["device_type"].append(_dt)  # pylint: disable=protected-access
         return self
 
 
@@ -516,13 +519,14 @@ class Cluster(DiffSyncModel):
         """Delete Virtual Chassis object from Nautobot.
 
         Because Virtual Chassis has a direct relationship with Devices it can't be deleted before they are.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
         _cluster = NautobotVC.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_warning(message=f"Virtual Chassis {self.name} will be deleted.")
+        self.diffsync.objects_to_delete["cluster"].append(_cluster)  # pylint: disable=protected-access
         return self
 
 
@@ -797,13 +801,14 @@ class Device(DiffSyncModel):
         """Delete Device object from Nautobot.
 
         Because Device has a direct relationship with Ports and IP Addresses it can't be deleted before they are.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
         _dev = NautobotDevice.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_warning(message=f"Device {self.name} will be deleted.")
+        self.diffsync.objects_to_delete["device"].append(_dev)  # pylint: disable=protected-access
         return self
 
     @staticmethod
@@ -988,6 +993,7 @@ class Port(DiffSyncModel):
         _intf = NautobotInterface.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_warning(message=f"Interface {self.name} for {self.device} will be deleted.")
+        self.diffsync.objects_to_delete["port"].append(_intf)  # pylint: disable=protected-access
         return self
 
 

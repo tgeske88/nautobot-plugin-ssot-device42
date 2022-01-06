@@ -1,5 +1,6 @@
 """DiffSync adapter class for Nautobot as source-of-truth."""
 
+from collections import defaultdict
 import ipaddress
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists
@@ -36,21 +37,7 @@ except ImportError:
 class NautobotAdapter(DiffSync):
     """Nautobot adapter for DiffSync."""
 
-    _objects_to_delete = {
-        "device": [],
-        "site": [],
-        "rack": [],
-        "manufacturer": [],
-        "device_type": [],
-        "ipaddr": [],
-        "vrf": [],
-        "cluster": [],
-        "port": [],
-        "subnet": [],
-        "vlan": [],
-        "provider": [],
-        "circuit": [],
-    }
+    objects_to_delete = defaultdict(list)
 
     building = dcim.Building
     room = dcim.Room
@@ -118,12 +105,12 @@ class NautobotAdapter(DiffSync):
             "rack",
             "site",
         ):
-            for nautobot_object in self._objects_to_delete[grouping]:
+            for nautobot_object in self.objects_to_delete[grouping]:
                 try:
                     nautobot_object.delete()
                 except ProtectedError:
                     self.job.log(f"Deletion failed protected object: {nautobot_object}")
-            self._objects_to_delete[grouping] = []
+            self.objects_to_delete[grouping] = []
 
         return super().sync_complete(source, *args, **kwargs)
 

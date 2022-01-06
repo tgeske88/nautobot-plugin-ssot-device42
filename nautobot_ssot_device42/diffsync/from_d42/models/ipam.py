@@ -79,12 +79,13 @@ class VRFGroup(DiffSyncModel):
         """Delete VRF object from Nautobot.
 
         Because VRF has a direct relationship with many other objects it can't be deleted before anything else.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
         if self.diffsync.job.debug:
             self.diffsync.job.log_warning(message=f"VRF {self.name} will be deleted.")
+        self.diffsync.objects_to_delete["vrf"].append(vrf)  # pylint: disable=protected-access
         return self
 
 
@@ -157,13 +158,14 @@ class Subnet(DiffSyncModel):
         """Delete Subnet object from Nautobot.
 
         Because Subnet has a direct relationship with many other objects it can't be deleted before anything else.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
         subnet = NautobotPrefix.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_debug(message=f"Subnet {self.network} will be deleted.")
+        self.diffsync.objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
         return self
 
 
@@ -363,13 +365,14 @@ class IPAddress(DiffSyncModel):
         """Delete IPAddress object from Nautobot.
 
         Because IPAddress has a direct relationship with many other objects it can't be deleted before anything else.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
         ipaddr = NautobotIPAddress.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_debug(message=f"IP Address {self.address} will be deleted. {self}")
+        self.diffsync.objects_to_delete["ipaddr"].append(ipaddr)  # pylint: disable=protected-access
         return self
 
 
@@ -452,11 +455,12 @@ class VLAN(DiffSyncModel):
         """Delete VLAN object from Nautobot.
 
         Because VLAN has a direct relationship with many other objects it can't be deleted before anything else.
-        The self.diffsync._objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
+        The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
         vlan = NautobotVLAN.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_debug(message=f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted.")
+        self.diffsync.objects_to_delete["vlan"].append(vlan)  # pylint: disable=protected-access
         return self
