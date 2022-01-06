@@ -1,7 +1,7 @@
 """Unit tests for the IPFabric DiffSync adapter class."""
 import json
 import uuid
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
@@ -21,6 +21,7 @@ BUILDING_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_buildi
 ROOM_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_rooms_recv.json")
 
 
+@patch("nautobot.extras.models.models.JOB_LOGS", None)
 class Device42AdapterTestCase(TestCase):
     """Test the Device42Adapter class."""
 

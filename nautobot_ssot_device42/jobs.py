@@ -9,7 +9,7 @@ from requests import HTTPError
 
 from diffsync import DiffSyncFlags
 from diffsync.exceptions import ObjectNotCreated
-from nautobot_ssot_device42.constant import PLUGIN_CFG, VERBOSE_DEBUG  # noqa: F401, pylint: disable=unused-import
+from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.from_d42.device42 import Device42Adapter
 from nautobot_ssot_device42.diffsync.from_d42.nautobot import NautobotAdapter
 from nautobot_ssot_device42.utils.device42 import Device42API
@@ -53,8 +53,7 @@ class Device42DataSource(DataSource, Job):
     def sync_data(self):
         """Device42 Sync."""
         if self.kwargs["debug"]:
-            VERBOSE_DEBUG = True  # noqa: F841, F811, pylint: disable=redefined-outer-name, invalid-name, unused-variable, unused-import
-        self.log_info(message="Connecting to Device42...")
+            self.log_info(message="Connecting to Device42...")
         client = Device42API(
             base_url=PLUGIN_CFG["device42_host"],
             username=PLUGIN_CFG["device42_username"],
@@ -62,17 +61,20 @@ class Device42DataSource(DataSource, Job):
             verify=PLUGIN_CFG["verify_ssl"],
         )
         d42_adapter = Device42Adapter(job=self, sync=self.sync, client=client)
-        self.log_info(message="Loading data from Device42...")
+        if self.kwargs["debug"]:
+            self.log_info(message="Loading data from Device42...")
         d42_adapter.load()
-        self.log_info(message="Connecting to Nautobot...")
         nb_adapter = NautobotAdapter(job=self, sync=self.sync)
-        self.log_info(message="Loading data from Nautobot...")
+        if self.kwargs["debug"]:
+            self.log_info(message="Loading data from Nautobot...")
         nb_adapter.load()
-        self.log_info(message="Performing diff of data between Device42 and Nautobot.")
+        if self.kwargs["debug"]:
+            self.log_info(message="Performing diff of data between Device42 and Nautobot.")
         diff = nb_adapter.diff_from(d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff)
         self.sync.diff = diff.dict()
         self.sync.save()
-        self.log_info(message=diff.summary())
+        if self.kwargs["debug"]:
+            self.log_info(message=diff.summary())
         if not self.kwargs["dry_run"]:
             self.log_info(message="Performing data synchronization from Device42.")
             try:
@@ -83,7 +85,8 @@ class Device42DataSource(DataSource, Job):
                 self.log_failure(message="Sync failed.")
                 raise err
             except ObjectNotCreated as err:
-                self.log_debug(message=f"Unable to create object. {err}")
+                if self.kwargs["debug"]:
+                    self.log_debug(message=f"Unable to create object. {err}")
             self.log_success(message="Sync complete.")
 
 

@@ -12,7 +12,6 @@ from nautobot_ssot_device42.constant import (
     INTF_NAME_MAP,
     PHY_INTF_MAP,
     PLUGIN_CFG,
-    VERBOSE_DEBUG,
 )
 
 
@@ -80,7 +79,7 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             and intf_record.get("port_speed")
             and intf_record["port_speed"] in PHY_INTF_MAP
         ):
-            if VERBOSE_DEBUG:
+            if diffsync.debug:
                 diffsync.log_debug(message=f"Matched on intf mapping. {intf_record['port_speed']}")
             _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
         elif (
@@ -88,17 +87,17 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             and intf_record.get("port_speed")
             and intf_record["port_speed"] in FC_INTF_MAP
         ):
-            if VERBOSE_DEBUG:
+            if diffsync.debug:
                 diffsync.log_debug(
                     message=f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}"
                 )
             _port_type = FC_INTF_MAP[intf_record["port_speed"]]
         elif intf_record["port_speed"] in PHY_INTF_MAP:
-            if VERBOSE_DEBUG:
+            if diffsync.debug:
                 diffsync.log_debug(message=f"Matched on intf mapping. {intf_record['port_speed']}")
             _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
         elif _port_name and _port_name in INTF_NAME_MAP:
-            if VERBOSE_DEBUG:
+            if diffsync.debug:
                 diffsync.log_debug(message=f"Matched on interface name {_port_name}")
             _port_type = INTF_NAME_MAP[_port_name]["itype"]
         elif "gigabitEthernet" in intf_record["discovered_type"]:
@@ -107,7 +106,7 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             _port_type = "ieee802.11a"
     if intf_record["port_type"] == "logical" and intf_record.get("discovered_type"):
         if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
-            if VERBOSE_DEBUG:
+            if diffsync.debug:
                 diffsync.log_debug(message=f"LAG matched. {intf_record['port_name']} {intf_record['device_name']}")
             _port_type = "lag"
         elif (
@@ -115,7 +114,7 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             or intf_record["discovered_type"] == "l2vlan"
             or intf_record["discovered_type"] == "propVirtual"
         ):
-            if VERBOSE_DEBUG:
+            if diffsync.debug:
                 diffsync.log_debug(
                     message=f"Virtual, loopback, or l2vlan interface matched. {intf_record['port_name']} {intf_record['device_name']}."
                 )

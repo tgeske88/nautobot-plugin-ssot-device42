@@ -18,7 +18,6 @@ from nautobot.ipam.models import VLAN as NautobotVLAN
 from nautobot.ipam.models import VRF as NautobotVRF
 from nautobot.ipam.models import IPAddress as NautobotIPAddress
 from nautobot.ipam.models import Prefix as NautobotPrefix
-from nautobot_ssot_device42.constant import VERBOSE_DEBUG
 from nautobot_ssot_device42.utils import nautobot
 
 
@@ -84,10 +83,7 @@ class VRFGroup(DiffSyncModel):
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
-        vrf = NautobotVRF.objects.get(**self.get_identifiers())
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_warning(object=vrf, message=f"VRF {self.name} will be deleted.")
-        self.diffsync._objects_to_delete["vrf"].append(vrf)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self
 
 
@@ -165,9 +161,7 @@ class Subnet(DiffSyncModel):
         """
         super().delete()
         subnet = NautobotPrefix.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_debug(object=subnet, message=f"Subnet {self.network} will be deleted.")
-        self.diffsync._objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self
 
 
@@ -219,7 +213,7 @@ class IPAddress(DiffSyncModel):
                 _ip.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ip.assigned_object_id = intf.id
             except NautobotInterface.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if diffsync.job.debug:
                     diffsync.job.log_debug(
                         object=_ip,
                         message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}",
@@ -265,13 +259,10 @@ class IPAddress(DiffSyncModel):
                         _ip.validated_save()
                         nautobot.set_primary_ip_and_mgmt(_ip, _dev, _intf)
             except NautobotDevice.DoesNotExist:
-                if VERBOSE_DEBUG:
-                    diffsync.job.log_debug(
-                        object=_ip, message=f"Unable to find Device {attrs['device']} for {_ip.address}."
-                    )
+                if diffsync.job.debug:
                 pass
             except NautobotInterface.DoesNotExist:
-                if VERBOSE_DEBUG:
+                if diffsync.job.debug:
                     diffsync.job.log_debug(
                         object=_ip,
                         message=f"Unable to find Interface {attrs['interface']} for device {attrs['device']} for {_ip.address}.",
@@ -284,7 +275,7 @@ class IPAddress(DiffSyncModel):
         try:
             _ipaddr = NautobotIPAddress.objects.get(id=self.uuid)
         except NautobotIPAddress.DoesNotExist:
-            if VERBOSE_DEBUG:
+            if self.diffsync.job.debug:
                 self.diffsync.job.log_debug(
                     object=self,
                     message="IP Address passed to update but can't be found. This shouldn't happen. Why is this happening?!?!",
@@ -305,7 +296,7 @@ class IPAddress(DiffSyncModel):
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
             except NautobotInterface.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     self.diffsync.job.log_debug(
                         object=_ipaddr,
                         message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}",
@@ -323,7 +314,7 @@ class IPAddress(DiffSyncModel):
                     _dev.primary_ip6 = None
                 _dev.validated_save()
             except NautobotInterface.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     self.diffsync.job.log_debug(
                         object=_ipaddr,
                         message=f"Unable to find Interface {attrs['interface']} for {str(_ipaddr.assigned_object.device)} {err}",
@@ -334,7 +325,7 @@ class IPAddress(DiffSyncModel):
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
             except NautobotInterface.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     self.diffsync.job.log_debug(
                         object=_ipaddr,
                         message=f"Unable to find Interface {self.interface} for {attrs['device']}. {err}",
@@ -380,9 +371,7 @@ class IPAddress(DiffSyncModel):
         """
         super().delete()
         ipaddr = NautobotIPAddress.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_debug(object=ipaddr, message=f"IP Address {self.address} will be deleted. {self}")
-        self.diffsync._objects_to_delete["ipaddr"].append(ipaddr)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self
 
 
@@ -413,8 +402,7 @@ class VLAN(DiffSyncModel):
             try:
                 _site = NautobotSite.objects.get(name=ids["building"])
             except NautobotSite.DoesNotExist as err:
-                if VERBOSE_DEBUG:
-                    diffsync.job.log_debug(object=ids, message=f"Unable to find Site {ids['building']}. {err}")
+                if diffsync.job.debug:
         try:
             _vlan = NautobotVLAN.objects.get(name=ids["name"], vid=ids["vlan_id"], site=_site)
         except NautobotVLAN.DoesNotExist:
@@ -439,8 +427,7 @@ class VLAN(DiffSyncModel):
         try:
             _vlan.validated_save()
         except ObjectAlreadyExists as err:
-            if VERBOSE_DEBUG:
-                diffsync.job.log_debug(object=_vlan, message=f"{ids['name']} already exists. {err}")
+            if diffsync.job.debug:
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
@@ -470,9 +457,5 @@ class VLAN(DiffSyncModel):
         """
         super().delete()
         vlan = NautobotVLAN.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_debug(
-                object=vlan, message=f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted."
-            )
-        self.diffsync._objects_to_delete["vlan"].append(vlan)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self

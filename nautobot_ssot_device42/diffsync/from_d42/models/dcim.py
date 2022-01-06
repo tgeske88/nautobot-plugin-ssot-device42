@@ -25,7 +25,7 @@ from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Relationship, RelationshipAssociation
 from nautobot.extras.models import Status as NautobotStatus
 from nautobot.ipam.models import VLAN as NautobotVLAN
-from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP, VERBOSE_DEBUG
+from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP
 from nautobot_ssot_device42.utils import device42, nautobot
 
 try:
@@ -129,9 +129,9 @@ class Building(DiffSyncModel):
         """
         super().delete()
         site = NautobotSite.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_warning(object=site, message=f"Site {self.name} will be deleted.")
-        self.diffsync._objects_to_delete["site"].append(site)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
+            self.diffsync.job.log_warning(message=f"Site {self.name} will be deleted.")
+        self.diffsync.objects_to_delete["site"].append(site)  # pylint: disable=protected-access
         return self
 
 
@@ -194,8 +194,7 @@ class Room(DiffSyncModel):
         """Delete RackGroup object from Nautobot."""
         super().delete()
         rackgroup = NautobotRackGroup.objects.get(self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_warning(object=rackgroup, message=f"RackGroup {self.name} will be deleted.")
+        if self.diffsync.job.debug:
         rackgroup.delete()
         return self
 
@@ -278,9 +277,7 @@ class Rack(DiffSyncModel):
         """
         super().delete()
         rack = NautobotRack.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_warning(object=rack, message=f"Rack {self.name} will be deleted.")
-        self.diffsync._objects_to_delete["rack"].append(rack)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self
 
 
@@ -298,7 +295,7 @@ class Vendor(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Manufacturer object in Nautobot."""
-        if VERBOSE_DEBUG:
+        if diffsync.job.debug:
             diffsync.job.log_debug(message=f"Creating Manufacturer {ids['name']}")
         try:
             NautobotManufacturer.objects.get(slug=slugify(ids["name"]))
@@ -345,9 +342,7 @@ class Vendor(DiffSyncModel):
         """
         super().delete()
         _manu = NautobotManufacturer.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_warning(object=_manu, message=f"Manufacturer {self.name} will be deleted.")
-        self.diffsync._objects_to_delete["manufacturer"].append(_manu)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self
 
 
@@ -369,7 +364,7 @@ class Hardware(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create DeviceType object in Nautobot."""
-        if VERBOSE_DEBUG:
+        if diffsync.job.debug:
             diffsync.job.log_debug(message=f"Creating DeviceType {ids['name']}")
         try:
             NautobotDeviceType.objects.get(slug=slugify(ids["name"]))
@@ -428,9 +423,7 @@ class Hardware(DiffSyncModel):
         """
         super().delete()
         _dt = NautobotDeviceType.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_warning(object=_dt, message=f"DeviceType {self.name} will be deleted.")
-        self.diffsync._objects_to_delete["device_type"].append(_dt)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self
 
 
@@ -454,7 +447,7 @@ class Cluster(DiffSyncModel):
         As the master node of the VC needs to be a regular Device, we'll create that and then the VC.
         Member devices will be added to VC at Device creation.
         """
-        if VERBOSE_DEBUG:
+        if diffsync.job.debug:
             diffsync.job.log_debug(message=f"Creating VC Master Device {ids['name']}.")
         new_vc = NautobotVC(
             name=ids["name"],
@@ -494,7 +487,7 @@ class Cluster(DiffSyncModel):
                         position = len(NautobotDevice.objects.filter(virtual_chassis__name=self.name))
                     device.vc_position = position + 1
                 except NautobotDevice.DoesNotExist as err:
-                    if VERBOSE_DEBUG:
+                    if self.diffsync.job.debug:
                         self.diffsync.job.log_warning(
                             object=_vc, message=f"Unable to find {_member} to add to VC {self.name} {err}"
                         )
@@ -524,9 +517,7 @@ class Cluster(DiffSyncModel):
         """
         super().delete()
         _cluster = NautobotVC.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_warning(object=_cluster, message=f"Virtual Chassis {self.name} will be deleted.")
-        self.diffsync._objects_to_delete["cluster"].append(_cluster)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self
 
 
@@ -577,7 +568,7 @@ class Device(DiffSyncModel):
                 _site = NautobotRack.objects.get(name=attrs["rack"], group__name=attrs["room"]).site
                 return _site
             except NautobotRack.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if diffsync.job.debug:
                     diffsync.job.log_debug(
                         message=f"Unable to find Site by Rack/Room. {attrs['rack']} {attrs['room']} {err}"
                     )
@@ -586,10 +577,10 @@ class Device(DiffSyncModel):
                 _site = NautobotSite.objects.get(slug=attrs["building"])
                 return _site
             except NautobotSite.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if diffsync.job.debug:
                     diffsync.job.log_debug(message=f"Unable to find Site {attrs['building']}. {err}")
         else:
-            if VERBOSE_DEBUG:
+            if diffsync.job.debug:
                 diffsync.job.log_debug(
                     message=f"Device {ids['name']} is missing Building or Customer so can't determine Site."
                 )
@@ -602,7 +593,7 @@ class Device(DiffSyncModel):
             _status = NautobotStatus.objects.get(name="Active")
         else:
             _status = NautobotStatus.objects.get(name="Offline")
-        if VERBOSE_DEBUG:
+        if diffsync.job.debug:
             diffsync.job.log_debug(message=f"Creating device {ids['name']}.")
         if attrs.get("tags") and len(attrs["tags"]) > 0:
             _role = nautobot.verify_device_role(device42.find_device_role_from_tags(tag_list=attrs["tags"]))
@@ -664,10 +655,7 @@ class Device(DiffSyncModel):
                             )
                         new_device.vc_position = position + 1
                 except NautobotVC.DoesNotExist as err:
-                    if VERBOSE_DEBUG:
-                        diffsync.job.log_warning(
-                            object=new_device, message=f"Unable to find VC {attrs['cluster_host']} {err}"
-                        )
+                    if diffsync.job.debug:
             if attrs.get("tags"):
                 for _tag in nautobot.get_tags(attrs["tags"]):
                     new_device.tags.add(_tag)
@@ -684,12 +672,9 @@ class Device(DiffSyncModel):
             new_device.validated_save()
             return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
         except NautobotRack.DoesNotExist:
-            if VERBOSE_DEBUG:
-                diffsync.job.log_debug(
-                    object=new_device, message=f"Unable to find matching Rack {attrs.get('rack')} for {_site.name}"
-                )
+            if diffsync.job.debug:
         except NautobotDeviceType.DoesNotExist:
-            if VERBOSE_DEBUG:
+            if diffsync.job.debug:
                 diffsync.job.log_debug(
                     object=new_device,
                     message=f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}.",
@@ -715,7 +700,7 @@ class Device(DiffSyncModel):
                     else:
                         _dev.face = "rear"
             except NautobotRack.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     self.diffsync.job.log_warning(
                         object=_dev, message=f"Unable to find rack {attrs['rack']} in {attrs['room']} {err}"
                     )
@@ -796,8 +781,7 @@ class Device(DiffSyncModel):
                         position = len(NautobotDevice.objects.filter(virtual_chassis__name=_clus_host))
                     _dev.vc_position = position + 1
             except NautobotVC.DoesNotExist as err:
-                if VERBOSE_DEBUG:
-                    self.diffsync.job.log_warning(object=_dev, message=f"Unable to find VC {_clus_host} {err}")
+                if self.diffsync.job.debug:
         print(f"Saving Device {self.name} in {_dev.site} {_dev.rack}")
         _dev.validated_save()
         return super().update(attrs)
@@ -811,9 +795,7 @@ class Device(DiffSyncModel):
         """
         super().delete()
         _dev = NautobotDevice.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_warning(object=_dev, message=f"Device {self.name} will be deleted.")
-        self.diffsync._objects_to_delete["device"].append(_dev)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self
 
     @staticmethod
@@ -873,7 +855,7 @@ class Port(DiffSyncModel):
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
         """Create Interface object in Nautobot."""
-        if VERBOSE_DEBUG:
+        if diffsync.job.debug:
             diffsync.job.log_debug(message=f"Creating Interface {ids['name']} for {ids['device']}.")
         try:
             if ids.get("device"):
@@ -925,14 +907,11 @@ class Port(DiffSyncModel):
                                     tagged_vlans.append(tagged_vlan[0])
                             new_intf.tagged_vlans.set(tagged_vlans)
                 except NautobotVLAN.DoesNotExist as err:
-                    if VERBOSE_DEBUG:
-                        diffsync.job.log_debug(
-                            object=new_intf, message=f"{err}: {_vlan['vlan_name']} {_vlan['vlan_id']} "
-                        )
+                    if diffsync.job.debug:
                 new_intf.validated_save()
                 return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
         except NautobotDevice.DoesNotExist as err:
-            if VERBOSE_DEBUG:
+            if diffsync.job.debug:
                 diffsync.job.log_warning(message=f"{ids['name']} doesn't exist. {err}")
                 return False
 
@@ -998,11 +977,7 @@ class Port(DiffSyncModel):
         """Delete Interface object from Nautobot."""
         super().delete()
         _intf = NautobotInterface.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_warning(
-                object=_intf, message=f"Interface {self.name} for {self.device} will be deleted."
-            )
-        self.diffsync._objects_to_delete["port"].append(_intf)  # pylint: disable=protected-access
+        if self.diffsync.job.debug:
         return self
 
 
@@ -1056,13 +1031,13 @@ class Connection(DiffSyncModel):
                 _intf = NautobotInterface.objects.get(device__name=ids["src_device"], name=ids["src_port"])
                 circuit = NautobotCircuit.objects.get(cid=ids["dst_device"])
             except NautobotInterface.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     diffsync.job.log_error(
                         message=f"Unable to find source port for {ids['src_device']}: {ids['src_port']} to connect to Circuit {ids['dst_device']} {err}"
                     )
                 return None
             except NautobotCircuit.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     diffsync.job.log_error(message=f"Unable to find Circuit {ids['dst_device']} {err}")
                 return None
         if attrs["dst_type"] == "interface":
@@ -1070,13 +1045,13 @@ class Connection(DiffSyncModel):
                 circuit = NautobotCircuit.objects.get(cid=ids["src_device"])
                 _intf = NautobotInterface.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
             except NautobotInterface.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     diffsync.job.log_error(
                         message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} to connect to Circuit {ids['src_device']} {err}"
                     )
                 return None
             except NautobotCircuit.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     diffsync.job.log_error(message=f"Unable to find Circuit {ids['dst_device']} {err}")
                 return None
         _ct = {
@@ -1123,7 +1098,7 @@ class Connection(DiffSyncModel):
             try:
                 _src_port = NautobotInterface.objects.get(device__name=ids["src_device"], name=ids["src_port"])
             except NautobotInterface.DoesNotExist as err:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     diffsync.job.log_warning(
                         message=f"Unable to find source port for {ids['src_device']}: {ids['src_port']} {ids['src_port_mac']} {err}"
                     )
@@ -1135,7 +1110,7 @@ class Connection(DiffSyncModel):
             try:
                 _dst_port = NautobotInterface.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
             except NautobotInterface.DoesNotExist:
-                if VERBOSE_DEBUG:
+                if self.diffsync.job.debug:
                     diffsync.job.log_warning(
                         message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} {ids['dst_port_mac']}"
                     )
@@ -1156,10 +1131,7 @@ class Connection(DiffSyncModel):
         """Delete Cable object from Nautobot."""
         super().delete()
         _conn = NautobotCable.objects.get(id=self.uuid)
-        if VERBOSE_DEBUG:
-            self.diffsync.job.log_info(
-                object=_conn, message=f"Deleting Cable {self.get_identifiers()} UUID: {self.uuid}"
-            )
+        if self.diffsync.job.debug:
         _conn.delete()
         return self
 
