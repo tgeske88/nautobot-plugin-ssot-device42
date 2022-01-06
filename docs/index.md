@@ -73,6 +73,7 @@ This plugin currently supports importing the following models from Device42:
 - IP Addresses
 - VLANs
 - Telco Circuits
+- Patch Panels
 
 Due to requirements for model creation in Nautobot, the following requirements on the data in Device42 must be followed for data to be imported into Nautobot:
 
@@ -121,3 +122,12 @@ Due to requirements for model creation in Nautobot, the following requirements o
 - If duplicate VLANs are found when attaching to an Interface for trunking, the first found will be used.
 - VLAN 0 is invalid VID in Nautobot and will not be imported.
 - If unable to determine site for a VLAN, it will attempt to search for a VLAN with matching name and VLAN ID that doesn't have a Site attached. This is caused by Devices that don't have a Building or Customer specified in Device42.
+
+### Subnets
+
+- Must not have a /0 subnet mask
+
+### Telco Circuits
+
+- Must have a Provider associated
+- Connections must terminate on a Device Interface or a Patch Panel
