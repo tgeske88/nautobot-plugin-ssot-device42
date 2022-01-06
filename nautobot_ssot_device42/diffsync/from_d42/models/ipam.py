@@ -84,6 +84,7 @@ class VRFGroup(DiffSyncModel):
         """
         super().delete()
         if self.diffsync.job.debug:
+            self.diffsync.job.log_warning(message=f"VRF {self.name} will be deleted.")
         return self
 
 
@@ -162,6 +163,7 @@ class Subnet(DiffSyncModel):
         super().delete()
         subnet = NautobotPrefix.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
+            self.diffsync.job.log_debug(message=f"Subnet {self.network} will be deleted.")
         return self
 
 
@@ -215,7 +217,6 @@ class IPAddress(DiffSyncModel):
             except NautobotInterface.DoesNotExist as err:
                 if diffsync.job.debug:
                     diffsync.job.log_debug(
-                        object=_ip,
                         message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}",
                     )
         if attrs.get("interface"):
@@ -260,12 +261,12 @@ class IPAddress(DiffSyncModel):
                         nautobot.set_primary_ip_and_mgmt(_ip, _dev, _intf)
             except NautobotDevice.DoesNotExist:
                 if diffsync.job.debug:
+                    diffsync.job.log_debug(message=f"Unable to find Device {attrs['device']} for {_ip.address}.")
                 pass
             except NautobotInterface.DoesNotExist:
                 if diffsync.job.debug:
                     diffsync.job.log_debug(
-                        object=_ip,
-                        message=f"Unable to find Interface {attrs['interface']} for device {attrs['device']} for {_ip.address}.",
+                        message=f"Unable to find Interface {attrs['interface']} for device {attrs['device']} for {_ip.address}."
                     )
                 pass
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -277,8 +278,7 @@ class IPAddress(DiffSyncModel):
         except NautobotIPAddress.DoesNotExist:
             if self.diffsync.job.debug:
                 self.diffsync.job.log_debug(
-                    object=self,
-                    message="IP Address passed to update but can't be found. This shouldn't happen. Why is this happening?!?!",
+                    message="IP Address passed to update but can't be found. This shouldn't happen. Why is this happening?!?!"
                 )
             return
         if attrs.get("available"):
@@ -298,8 +298,7 @@ class IPAddress(DiffSyncModel):
             except NautobotInterface.DoesNotExist as err:
                 if self.diffsync.job.debug:
                     self.diffsync.job.log_debug(
-                        object=_ipaddr,
-                        message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}",
+                        message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
                     )
         elif attrs.get("device") and attrs["device"] == "":
             try:
@@ -316,8 +315,7 @@ class IPAddress(DiffSyncModel):
             except NautobotInterface.DoesNotExist as err:
                 if self.diffsync.job.debug:
                     self.diffsync.job.log_debug(
-                        object=_ipaddr,
-                        message=f"Unable to find Interface {attrs['interface']} for {str(_ipaddr.assigned_object.device)} {err}",
+                        message=f"Unable to find Interface {attrs['interface']} for {str(_ipaddr.assigned_object.device)} {err}"
                     )
         elif attrs.get("interface") and attrs["interface"] == "":
             try:
@@ -327,8 +325,7 @@ class IPAddress(DiffSyncModel):
             except NautobotInterface.DoesNotExist as err:
                 if self.diffsync.job.debug:
                     self.diffsync.job.log_debug(
-                        object=_ipaddr,
-                        message=f"Unable to find Interface {self.interface} for {attrs['device']}. {err}",
+                        message=f"Unable to find Interface {self.interface} for {attrs['device']}. {err}"
                     )
         if attrs.get("primary") and attrs["primary"] is not None:
             _device, _intf = False, False
@@ -372,6 +369,7 @@ class IPAddress(DiffSyncModel):
         super().delete()
         ipaddr = NautobotIPAddress.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
+            self.diffsync.job.log_debug(message=f"IP Address {self.address} will be deleted. {self}")
         return self
 
 
@@ -403,6 +401,7 @@ class VLAN(DiffSyncModel):
                 _site = NautobotSite.objects.get(name=ids["building"])
             except NautobotSite.DoesNotExist as err:
                 if diffsync.job.debug:
+                    diffsync.job.log_debug(message=f"Unable to find Site {ids['building']}. {err}")
         try:
             _vlan = NautobotVLAN.objects.get(name=ids["name"], vid=ids["vlan_id"], site=_site)
         except NautobotVLAN.DoesNotExist:
@@ -428,6 +427,7 @@ class VLAN(DiffSyncModel):
             _vlan.validated_save()
         except ObjectAlreadyExists as err:
             if diffsync.job.debug:
+                diffsync.job.log_debug(message=f"{ids['name']} already exists. {err}")
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
@@ -458,4 +458,5 @@ class VLAN(DiffSyncModel):
         super().delete()
         vlan = NautobotVLAN.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
+            self.diffsync.job.log_debug(message=f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted.")
         return self

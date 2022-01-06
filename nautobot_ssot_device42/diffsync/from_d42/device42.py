@@ -198,7 +198,7 @@ class Device42Adapter(DiffSync):
                 self.add(building)
             except ObjectAlreadyExists as err:
                 if self.job.debug:
-                    self.job.log_warning(object=building, message=f"{record['name']} is already loaded. {err}")
+                    self.job.log_warning(message=f"{record['name']} is already loaded. {err}")
 
     def load_rooms(self):
         """Load Device42 rooms."""
@@ -231,7 +231,7 @@ class Device42Adapter(DiffSync):
     def load_racks(self):
         """Load Device42 racks."""
         if self.job.debug:
-            self.job.log_info("Loading racks from Device42.")
+            self.job.log_info(message="Loading racks from Device42.")
         for record in self.device42.api_call(path="api/1.0/racks")["racks"]:
             _tags = record["tags"] if record.get("tags") else []
             if len(_tags) > 1:
@@ -364,12 +364,12 @@ class Device42Adapter(DiffSync):
         """Load Device42 devices."""
         # Get all Devices from Device42
         if self.job.debug:
-            self.job.log_info("Retrieving devices from Device42.")
+            self.job.log_info(message="Retrieving devices from Device42.")
         _devices = self.device42.api_call(path="api/1.0/devices/all/?is_it_switch=yes")["Devices"]
 
         # Add all Clusters first
         if self.job.debug:
-            self.job.log_info("Loading clusters...")
+            self.job.log_info(message="Loading clusters...")
         for _record in _devices:
             if _record.get("type") == "cluster" and _record.get("name") in self.device42_clusters.keys():
                 if self.job.debug:
@@ -509,7 +509,7 @@ class Device42Adapter(DiffSync):
     def load_subnets(self):
         """Load Device42 Subnets."""
         if self.job.debug:
-            self.job.log_info("Retrieving Subnets from Device42.")
+            self.job.log_info(message="Retrieving Subnets from Device42.")
         default_cfs = self.device42.get_port_default_custom_fields()
         _cfs = self.device42.get_subnet_custom_fields()
         for _pf in self.device42.get_subnets():
@@ -546,7 +546,7 @@ class Device42Adapter(DiffSync):
     def load_ip_addresses(self):
         """Load Device42 IP Addresses."""
         if self.job.debug:
-            self.job.log_info("Retrieving IP Addresses from Device42.")
+            self.job.log_info(message="Retrieving IP Addresses from Device42.")
         default_cfs = self.device42.get_ipaddr_default_custom_fields()
         _cfs = self.device42.get_ipaddr_custom_fields()
         for _ip in self.device42.get_ip_addrs():
