@@ -83,6 +83,7 @@ class VRFGroup(DiffSyncModel):
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         super().delete()
+        vrf = NautobotVRF.objects.get(id=self.uuid)
         if self.diffsync.job.debug:
             self.diffsync.job.log_warning(message=f"VRF {self.name} will be deleted.")
         self.diffsync.objects_to_delete["vrf"].append(vrf)  # pylint: disable=protected-access
