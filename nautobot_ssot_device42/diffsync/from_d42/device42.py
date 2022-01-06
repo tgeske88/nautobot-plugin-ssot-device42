@@ -129,6 +129,8 @@ class Device42Adapter(DiffSync):
         self.building_sitecode_map = {}
         # mapping of Building PK to Building info
         self.building_map = self.device42.get_building_pks()
+        # mapping of Customer PK to Customer info
+        self.customer_map = self.device42.get_customer_pks()
         # mapping of Room PK to Room info
         self.room_map = self.device42.get_room_pks()
         # mapping of VLAN PK to VLAN name and ID
