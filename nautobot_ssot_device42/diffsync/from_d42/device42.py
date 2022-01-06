@@ -461,7 +461,7 @@ class Device42Adapter(DiffSync):
         _cfs = self.device42.get_port_custom_fields()
         for _port in merged_ports:
             if _port.get("port_name") and _port.get("device_name"):
-                if self.diffsync.job.debug:
+                if self.job.debug:
                     self.job.log_info(f"Loading Port {_port['port_name']} for Device {_port['device_name']}")
                 _tags = _port["tags"].split(",") if _port.get("tags") else []
                 if len(_tags) > 1:
