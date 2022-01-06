@@ -196,6 +196,7 @@ class Device42Adapter(DiffSync):
                 rooms=record["rooms"] if record.get("rooms") else [],
                 custom_fields=sorted(record["custom_fields"], key=lambda d: d["key"]),
                 tags=_tags,
+                uuid=None,
             )
             _facility = get_facility(diffsync=self, tags=_tags)
             if _facility:
@@ -221,6 +222,7 @@ class Device42Adapter(DiffSync):
                     notes=record["notes"] if record.get("notes") else "",
                     custom_fields=sorted(record["custom_fields"], key=lambda d: d["key"]),
                     tags=_tags,
+                    uuid=None,
                 )
                 try:
                     self.add(room)
@@ -251,6 +253,7 @@ class Device42Adapter(DiffSync):
                     numbering_start_from_bottom=record["numbering_start_from_bottom"],
                     custom_fields=sorted(record["custom_fields"], key=lambda d: d["key"]),
                     tags=_tags,
+                    uuid=None,
                 )
                 try:
                     self.add(rack)
@@ -276,6 +279,7 @@ class Device42Adapter(DiffSync):
             vendor = self.vendor(
                 name=_vendor["name"],
                 custom_fields=_vendor["custom_fields"],
+                uuid=None,
             )
             self.add(vendor)
 
@@ -292,6 +296,7 @@ class Device42Adapter(DiffSync):
                     depth=_model["depth"] if _model.get("depth") else "Half Depth",
                     part_number=_model["part_no"],
                     custom_fields=sorted(_model["custom_fields"], key=lambda d: d["key"]),
+                    uuid=None,
                 )
                 try:
                     self.add(model)
@@ -345,6 +350,7 @@ class Device42Adapter(DiffSync):
                 members=_members,
                 tags=_tags,
                 custom_fields=sorted(cluster_info["custom_fields"], key=lambda d: d["key"]),
+                uuid=None,
             )
             self.add(_cluster)
             # Add master device to hold stack info like intfs and IPs
@@ -363,6 +369,9 @@ class Device42Adapter(DiffSync):
                 master_device=True,
                 serial_no="",
                 custom_fields=sorted(cluster_info["custom_fields"], key=lambda d: d["key"]),
+                rack_position=None,
+                os_version=None,
+                uuid=None,
             )
             self.add(_device)
 
@@ -413,6 +422,8 @@ class Device42Adapter(DiffSync):
                     master_device=False,
                     tags=_tags,
                     custom_fields=sorted(_record["custom_fields"], key=lambda d: d["key"]),
+                    cluster_host=None,
+                    uuid=None,
                 )
                 try:
                     cluster_host = self.get_cluster_host(_record["name"])
@@ -466,6 +477,8 @@ class Device42Adapter(DiffSync):
                         type=get_intf_type(intf_record=_port, diffsync=self.job),
                         tags=_tags,
                         mode="access",
+                        custom_fields=None,
+                        uuid=None,
                     )
                     if _port.get("vlan_pks"):
                         _tags = []
@@ -515,6 +528,7 @@ class Device42Adapter(DiffSync):
                     description=_grp["description"],
                     tags=_tags,
                     custom_fields=sorted(_grp["custom_fields"], key=lambda d: d["key"]),
+                    uuid=None,
                 )
                 self.add(new_vrf)
             except ObjectAlreadyExists as err:
@@ -540,6 +554,8 @@ class Device42Adapter(DiffSync):
                         description=_pf["name"],
                         vrf=_pf["vrf"],
                         tags=_tags,
+                        custom_fields=None,
+                        uuid=None,
                     )
                     if f"{_pf['network']}/{_pf['mask_bits']}" in _cfs:
                         new_pf.custom_fields = sorted(
@@ -580,6 +596,8 @@ class Device42Adapter(DiffSync):
                     primary=False,
                     vrf=_ip["vrf"],
                     tags=_tags,
+                    custom_fields=None,
+                    uuid=None,
                 )
                 if _ipaddr in _cfs:
                     print(f"{_ipaddr} found in _cfs. CustomFields being added.")
@@ -626,6 +644,8 @@ class Device42Adapter(DiffSync):
                     vlan_id=int(_info["vid"]),
                     description=_info["description"] if _info.get("description") else "",
                     custom_fields=_cfs if _cfs else [],
+                    building=None,
+                    uuid=None,
                 )
                 if _info.get("building"):
                     new_vlan.building = _info["building"]
@@ -649,6 +669,8 @@ class Device42Adapter(DiffSync):
                     dst_port=self.port_map[_conn["dst_port"]]["port"],
                     dst_port_mac=self.port_map[_conn["dst_port"]]["hwaddress"],
                     dst_type="interface",
+                    tags=None,
+                    uuid=None,
                 )
                 self.add(new_conn)
                 # in order to have cables match up to Nautobot, we need to add from both sides
@@ -661,6 +683,8 @@ class Device42Adapter(DiffSync):
                     dst_port=self.port_map[_conn["src_port"]]["port"],
                     dst_port_mac=self.port_map[_conn["src_port"]]["hwaddress"],
                     dst_type="interface",
+                    tags=None,
+                    uuid=None,
                 )
                 self.add(rev_conn)
             except ObjectAlreadyExists as err:
@@ -681,6 +705,8 @@ class Device42Adapter(DiffSync):
                 vendor_acct=_prov["account_no"][:30],
                 vendor_contact1=_prov["escalation_1"],
                 vendor_contact2=_prov["escalation_2"],
+                tags=None,
+                uuid=None,
             )
             self.add(new_provider)
 
@@ -710,6 +736,7 @@ class Device42Adapter(DiffSync):
                     endpoint_dev=endpoint_dev,
                     bandwidth=name_to_bits(f"{_tc['bandwidth']}{_tc['unit'].capitalize()}") / 1000,
                     tags=_tc["tags"].split(",") if _tc.get("tags") else [],
+                    uuid=None,
                 )
                 self.add(new_circuit)
             # Add Connection from A side connection Device to Circuit
@@ -722,6 +749,9 @@ class Device42Adapter(DiffSync):
                     dst_device=_tc["circuit_id"],
                     dst_port=_tc["circuit_id"],
                     dst_type="circuit",
+                    dst_port_mac=None,
+                    tags=None,
+                    uuid=None,
                 )
                 self.add(a_side_conn)
             # Add Connection from Z side connection Circuit to Device
@@ -734,6 +764,9 @@ class Device42Adapter(DiffSync):
                     dst_port=endpoint_int,
                     dst_port_mac=self.port_map[_tc["end_point_netport_fk"]]["hwaddress"],
                     dst_type="interface",
+                    src_port_mac=None,
+                    tags=None,
+                    uuid=None,
                 )
                 self.add(z_side_conn)
 
@@ -788,6 +821,11 @@ class Device42Adapter(DiffSync):
             enabled=True,
             description="Interface added by script for Management of device using DNS A record.",
             mode="access",
+            mtu=None,
+            mac_addr=None,
+            custom_fields=None,
+            tags=None,
+            uuid=None,
         )
         try:
             self.add(_intf)
@@ -860,6 +898,11 @@ class Device42Adapter(DiffSync):
             device=dev_name,
             interface=interface,
             primary=True,
+            label=None,
+            vrf=None,
+            tags=None,
+            custom_fields=None,
+            uuid=None,
         )
         self.add(_ip)
 

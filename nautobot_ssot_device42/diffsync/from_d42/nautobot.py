@@ -238,6 +238,7 @@ class NautobotAdapter(DiffSync):
                 master_device=False,
                 custom_fields=nautobot.get_custom_field_dicts(dev.get_custom_fields()),
                 uuid=dev.id,
+                cluster_host=None,
             )
             if dev.virtual_chassis:
                 _dev.cluster_host = str(dev.virtual_chassis)
@@ -341,6 +342,7 @@ class NautobotAdapter(DiffSync):
                 device="",
                 custom_fields=nautobot.get_custom_field_dicts(_ip.get_custom_fields()),
                 uuid=_ip.id,
+                primary=None,
             )
             if _ip.assigned_object_id:
                 _intf = Interface.objects.get(id=_ip.assigned_object_id)
@@ -384,6 +386,8 @@ class NautobotAdapter(DiffSync):
                 dst_type="interface",
                 tags=nautobot.get_tag_strings(_cable.tags),
                 uuid=_cable.id,
+                src_port_mac=None,
+                dst_port_mac=None,
             )
             new_conn = self.add_src_connection(
                 cable_term_type=_cable.termination_a_type, cable_term_id=_cable.termination_a_id, connection=new_conn
@@ -489,6 +493,10 @@ class NautobotAdapter(DiffSync):
                 bandwidth=_circuit.commit_rate,
                 tags=nautobot.get_tag_strings(_circuit.tags),
                 uuid=_circuit.id,
+                origin_int=None,
+                origin_dev=None,
+                endpoint_int=None,
+                endpoint_dev=None,
             )
             if hasattr(_circuit.termination_a, "connected_endpoint") and hasattr(
                 _circuit.termination_a.connected_endpoint, "name"
