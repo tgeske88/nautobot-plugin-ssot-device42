@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## [v0.14.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.13.1) -  (2021-12-20)
+### Feature
+* :zap: Add UUID attribute to all models for the Nautobot Data Target. ([`07c8a40`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/07c8a408efc1615536077f66680cd5a5b0dec267))
+
+### Fix
+* :bug: Tweak device import to ignore those where a Building can't be found. ([`a59fd82`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/a59fd82d18ed25a678455492e7134a9d8eac9cc4))
+* :bug: Include VRF when trying to find IP Address for update ([`a164592`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/a164592a8dd959e5dc54027a887d84c026482338))
+* :bug: Fix infinite loop ([`6c5d2e5`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/6c5d2e525b6d8a19ab38d1c9f8ba40739303d917))
+* :bug: Tweak find_ipaddr and set_primary_from_dns methods to have IP Address returned once found. ([`b3f62db`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/b3f62db91262236fb4df18a656f103c52cfaa43a))
+* :bug: Fix infinite loop when looking for IP in VRF ([`4d792eb`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/4d792eb573dfc65bbc3bad9054e3c0d675792cfe))
+* :bug: Update IP Address delete to handle multiple results ([`e8478be`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/e8478bec62155ddc24b74c5e831df0a5a15d181d))
+* :bug: Rewrite find_ipaddr to check VRFs ([`a6592b8`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/a6592b8613b6fce58090692364cd1720592d41b1))
+* :bug: Subnet/IPAddress delete methods updated to look for vrf__name ([`d53badf`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/d53badf904cd4f4cf82d8e3f0fcc971507fed314))
+* :bug: Add VRF as identifier to IP Address ([`20a1fa0`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/20a1fa0a0e247882688445c88afd12991e5fe3d5))
+* :bug: Ensure all logging sends to message. ([`874db65`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/874db650278d278f0b84fa933169dec40cc25658))
+
 ## [v0.13.1](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.13.1) -  (2021-12-15)
 
 <small>[Compare with v0.13.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.13.0...v0.13.1)</small>
