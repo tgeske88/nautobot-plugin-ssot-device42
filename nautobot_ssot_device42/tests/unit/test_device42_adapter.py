@@ -26,34 +26,37 @@ RACK_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_racks_recv
 class Device42AdapterTestCase(TestCase):
     """Test the Device42Adapter class."""
 
+    def setUp(self):
+        """Method to initialize test case."""
+        # Create a mock client
+        self.d42_client = MagicMock()
+        self.d42_client.get_buildings.return_value = BUILDING_FIXTURE
+        self.d42_client.get_rooms.return_value = ROOM_FIXTURE
+        self.d42_client.get_racks.return_value = RACK_FIXTURE
+
+        self.job = Device42DataSource()
+        self.job.job_result = JobResult.objects.create(
+            name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
+        )
+        self.device42 = Device42Adapter(job=self.job, sync=None, client=self.d42_client)
+
     def test_data_loading(self):
         """Test the load() function."""
 
-        # Create a mock client
-        d42_client = MagicMock()
-        d42_client.get_buildings.return_value = BUILDING_FIXTURE
-        d42_client.get_rooms.return_value = ROOM_FIXTURE
-        d42_client.get_racks.return_value = RACK_FIXTURE
-
-        job = Device42DataSource()
-        job.job_result = JobResult.objects.create(
-            name=job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
-        )
-        device42 = Device42Adapter(job=job, sync=None, client=d42_client)
-        device42.load_buildings()
+        self.device42.load_buildings()
         self.assertEqual(
             {site["name"] for site in BUILDING_FIXTURE},
-            {site.get_unique_id() for site in device42.get_all("building")},
+            {site.get_unique_id() for site in self.device42.get_all("building")},
         )
-        device42.load_rooms()
+        self.device42.load_rooms()
         self.assertEqual(
             {f"{room['name']}__{room['building']}" for room in ROOM_FIXTURE},
-            {room.get_unique_id() for room in device42.get_all("room")},
+            {room.get_unique_id() for room in self.device42.get_all("room")},
         )
-        device42.load_racks()
+        self.device42.load_racks()
         self.assertEqual(
             {f"{rack['name']}__{rack['building']}__{rack['room']}" for rack in RACK_FIXTURE},
-            {rack.get_unique_id() for rack in device42.get_all("rack")},
+            {rack.get_unique_id() for rack in self.device42.get_all("rack")},
         )
 
     def test_filter_ports(self):
