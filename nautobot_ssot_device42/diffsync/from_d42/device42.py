@@ -2,7 +2,7 @@
 
 import re
 from decimal import Decimal
-from typing import Union
+from typing import Union, List
 
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
@@ -448,15 +448,7 @@ class Device42Adapter(DiffSync):
         """Load Device42 ports."""
         vlan_ports = self.device42.get_ports_with_vlans()
         no_vlan_ports = self.device42.get_ports_wo_vlans()
-        for no_vlan_port in no_vlan_ports:
-            for vlan_port in vlan_ports:
-                if (
-                    no_vlan_port["port_name"] == vlan_port["port_name"]
-                    and no_vlan_port["device_name"] == vlan_port["device_name"]
-                ):
-                    print(f"Removing {no_vlan_port} from merged_ports dict.")
-                    no_vlan_ports.remove(no_vlan_port)
-        merged_ports = vlan_ports + no_vlan_ports
+        merged_ports = self.filter_ports(vlan_ports, no_vlan_ports)
         default_cfs = self.device42.get_port_default_custom_fields()
         _cfs = self.device42.get_port_custom_fields()
         for _port in merged_ports:
@@ -513,6 +505,30 @@ class Device42Adapter(DiffSync):
                     if self.job.debug:
                         self.job.log_warning(message=f"Port already exists. {err}")
                     continue
+
+    def filter_ports(self, vlan_ports: List[dict], no_vlan_ports: List[dict]) -> List[dict]:
+        """Method to combine lists of ports while removing duplicates.
+
+        Args:
+            vlan_ports (List[dict]): List of Ports with tagged VLANs.
+            no_vlan_ports (List[dict]): List of Ports without VLANs.
+
+        Returns:
+            List[dict]: Merged list of Ports with duplicates removed.
+        """
+        no_vlan_ports_only = []
+        for no_vlan_port in no_vlan_ports:
+            for vlan_port in vlan_ports:
+                if no_vlan_port["hwaddress"] == vlan_port["hwaddress"] or (
+                    no_vlan_port["port_name"] == vlan_port["port_name"]
+                    and no_vlan_port["device_name"] == vlan_port["device_name"]
+                ):
+                    if self.job.debug:
+                        self.job.log_debug(f"Duplicate port {no_vlan_port} found and won't be added.")
+                    break
+            else:
+                no_vlan_ports_only.append(no_vlan_port)
+        return vlan_ports + no_vlan_ports_only
 
     def load_vrfgroups(self):
         """Load Device42 VRFGroups."""

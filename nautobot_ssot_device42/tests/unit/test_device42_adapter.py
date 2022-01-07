@@ -55,3 +55,11 @@ class Device42AdapterTestCase(TestCase):
             {f"{rack['name']}__{rack['building']}__{rack['room']}" for rack in RACK_FIXTURE},
             {rack.get_unique_id() for rack in device42.get_all("rack")},
         )
+
+    def test_filter_ports(self):
+        """Method to test filter_ports success."""
+        vlan_ports = load_json("./nautobot_ssot_device42/tests/fixtures/ports_with_vlans.json")
+        no_vlan_ports = load_json("./nautobot_ssot_device42/tests/fixtures/ports_wo_vlans.json")
+        merged_ports = load_json("./nautobot_ssot_device42/tests/fixtures/merged_ports.json")
+        result = self.device42.filter_ports(vlan_ports, no_vlan_ports)
+        self.assertEqual(merged_ports, result)
