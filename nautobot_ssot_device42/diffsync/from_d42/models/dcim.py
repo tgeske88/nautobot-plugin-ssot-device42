@@ -630,9 +630,21 @@ class Device(DiffSyncModel):
                 serial=attrs["serial_no"] if attrs.get("serial_no") else "",
             )
             if attrs.get("rack"):
-                new_device.rack = NautobotRack.objects.get(name=attrs["rack"], group__name=attrs["room"])
-                new_device.position = int(attrs["rack_position"]) if attrs["rack_position"] else None
-                new_device.face = attrs["rack_orientation"] if attrs["rack_orientation"] else "front"
+                # check that the rack position is available for the Device to be assigned. Unassigns Device if found.
+                devs = NautobotDevice.objects.filter(
+                    rack__name=attrs["rack"],
+                    rack__group__name=attrs["room"],
+                    position=attrs["rack_position"],
+                    face=attrs["rack_orientation"],
+                )
+                if len(devs) == 1:
+                    old_dev = devs[0]
+                    old_dev.position = None
+                    old_dev.validated_save()
+                else:
+                    new_device.rack = NautobotRack.objects.get(name=attrs["rack"], group__name=attrs["room"])
+                    new_device.position = int(attrs["rack_position"]) if attrs["rack_position"] else None
+                    new_device.face = attrs["rack_orientation"] if attrs["rack_orientation"] else "front"
             if attrs.get("os"):
                 new_device.platform = nautobot.verify_platform(
                     platform_name=attrs["os"],
