@@ -1141,7 +1141,7 @@ class Connection(DiffSyncModel):
             circuit_term = NautobotCT.objects.get(**_ct)
         except NautobotCT.DoesNotExist:
             circuit_term = NautobotCT(**_ct)
-            circuit_term.port_speed = INTF_SPEED_MAP[_intf.type]
+            circuit_term.port_speed = INTF_SPEED_MAP[_intf.type] if isinstance(_intf, NautobotInterface) else None
             circuit_term.validated_save()
         if _intf and not _intf.cable and not circuit_term.cable:
             new_cable = NautobotCable(
