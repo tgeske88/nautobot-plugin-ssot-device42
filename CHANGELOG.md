@@ -6,6 +6,39 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v0.15.0 (2022-01-13)
+### Feature
+* :sparkles: Add method for get_hardware_models along with tests for importing into adapter and loading data from D42 ([`03df0fa`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/03df0fad5fa692255fa458905fb549ad68c76961))
+* :sparkles: Add plugin setting to prevent deletion of objects during sync. ([`12256eb`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/12256eb1929a0c4e8893d96299850c871ecfe355))
+* :sparkles: Add method get_vendors along with tests to validate functionality ([`23de09d`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/23de09d1eb9556aac973079dd5b5142725bca9ae))
+* :sparkles: Add support for importing Patch Panels from Assets along with the Front/Rear ports. ([`b831cea`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/b831cea1f266c044deccbbf65125cb3196441913))
+* :sparkles: Add method to get Racks mapped to their primary key and test validating it ([`b3552fe`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/b3552fe55ee7f7f59d531876eaa5ca8e61ac18aa))
+* :sparkles: Add method to make mapping of Customer to their primary key ([`3cbc90e`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/3cbc90e2568c437634c6d5093d61d03b414e1344))
+* :sparkles: Add method to get Rooms mapped to their primary keys for reference ([`bdad3cb`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/bdad3cb07cc23994960c8e3286a2df45a943e841))
+* :sparkles: Add a method and tests to get Buildings mapped to their primary key ([`427580a`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/427580a5b9ef7ceefea14e4171d6bef1e0a761e6))
+* :sparkles: Add method to obtain patch panels and create dict with PK as key ([`e8d5440`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/e8d544071998addbbcc39df4227188c8f158b943))
+
+### Fix
+* :bug: Handle duplicate IP Addresses being imported from Device42 ([`7e00d6f`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/7e00d6f49a3e5b2531e0bb5bf989cd0658b8661a))
+* :bug: Add handling for ValidationErrors in case they occur ([`332de8b`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/332de8b4bc2a5c0fbd1fb0bb31e76dab28e02994))
+* :bug: Fix issue where multiple devices are assigned to same U position in a Rack. ([`c70d8c3`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/c70d8c3e2b3ee7b77c18b6ef839ff91fdec53610))
+* :bug: Fix the get_patch_panels DOQL query ([`27319d6`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/27319d6290a0b2f12ad4abce422fced094a7580c))
+* :bug: Fix check for debug logging ([`982dc12`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/982dc12f4db8d773ab185222f3e2ca20519f05fc))
+* :rotating_light: Add null attributes to object creations to address pydantic warning ([`dd37942`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/dd379428209f6061e5a1c1140ffa8ea784d02f93))
+* :bug: Prevent duplicate ports from being loaded. ([`1e56f23`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/1e56f23e1508a695efbb4102a392543e7a9712a6))
+* :bug: Use UUID to find VRF to delete ([`188d7e5`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/188d7e518d9d6cb86be87ac9ec6355361308caf7))
+* :bug: Remove get_circuit_status call when setting Circuit status in update ([`46e1c2c`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/46e1c2c3a128b240c36863c4842544041e5e6a33))
+* :bug: Make objects_to_delete a public variable and make it a defaultdict ([`024bc1b`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/024bc1bce3a8fd7c0e0f24d887172a4361597a68))
+* :bug: Remove object from logging statements ([`db4b1b4`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/db4b1b4ec470813be9b7e06754fd20366b3213a7))
+* :bug: Fix verbose debug logging ([`e7c541c`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/e7c541c5c6e437b698b8059db6511961913be66a))
+* :bug: Add rack position for patch panel model and update test to include it ([`4878d5c`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/4878d5ced79626f86c5e91c8e9caf274bfb62cfd))
+
+### Documentation
+* :memo: Fix link for 0.13.1 documentation in CHANGELOG ([`8ab1f96`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/8ab1f96789690effeeeb0ddcef8a7c8816cd1864))
+* :memo: Add documentation on requirements for Subnets and Telco Circuit imports ([`67b6b30`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/67b6b304a5a5c32fbfb426ce969f6d3e80d61edc))
+* :memo: Remove mention of verbose_debug setting in docs ([`a03dcb3`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/a03dcb332fcaf45a08e2991a9e81030c373357a1))
+* :memo: Correct docstring for circuit models ([`aac72ac`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/aac72aca88f8225e1bfebad6f853e05682ca9da2))
+
 ## [v0.14.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.13.1) -  (2021-12-20)
 ### Feature
 * :zap: Add UUID attribute to all models for the Nautobot Data Target. ([`07c8a40`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/07c8a408efc1615536077f66680cd5a5b0dec267))
