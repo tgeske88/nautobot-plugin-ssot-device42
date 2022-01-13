@@ -6,7 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
-## v0.15.0 (2022-01-13)
+## [v1.0.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v1.0.0) -  (2022-01-13)
+
+Plugin is officially in a stable, production ready state!
+
+## [v0.15.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.15.0) -  (2022-01-13)
 ### Feature
 * :sparkles: Add method for get_hardware_models along with tests for importing into adapter and loading data from D42 ([`03df0fa`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/03df0fad5fa692255fa458905fb549ad68c76961))
 * :sparkles: Add plugin setting to prevent deletion of objects during sync. ([`12256eb`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/12256eb1929a0c4e8893d96299850c871ecfe355))
@@ -39,7 +43,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * :memo: Remove mention of verbose_debug setting in docs ([`a03dcb3`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/a03dcb332fcaf45a08e2991a9e81030c373357a1))
 * :memo: Correct docstring for circuit models ([`aac72ac`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/aac72aca88f8225e1bfebad6f853e05682ca9da2))
 
-## [v0.14.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.13.1) -  (2021-12-20)
+## [v0.14.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.14.0) -  (2021-12-20)
 ### Feature
 * :zap: Add UUID attribute to all models for the Nautobot Data Target. ([`07c8a40`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/07c8a408efc1615536077f66680cd5a5b0dec267))
 
