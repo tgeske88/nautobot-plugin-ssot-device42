@@ -689,6 +689,25 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         self.assertTrue(len(responses.calls) == 1)
 
     @responses.activate
+    def test_get_patch_panel_port_pks(self):
+        """Test get_patch_panel_port_pks success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_patch_panel_port_pks_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT p.*, a.name FROM view_patchpanelport_v1 p JOIN view_asset_v1 a ON a.asset_pk = p.patchpanel_asset_fk&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        with open(
+            "./nautobot_ssot_device42/tests/fixtures/get_patch_panel_port_pks_recv.json", "r", encoding="utf-8"
+        ) as file:
+            json_data = file.read()
+        expected = json.loads(json_data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
+        response = self.dev42.get_patch_panel_port_pks()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
     def test_get_customer_pks(self):
         """Test get_customer_pks success."""
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_customer_pks_sent.json")
