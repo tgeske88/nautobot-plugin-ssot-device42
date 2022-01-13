@@ -698,8 +698,12 @@ class Device(DiffSyncModel):
                     field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
                     field.content_types.add(ContentType.objects.get_for_model(NautobotDevice).id)
                     new_device.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
-            new_device.validated_save()
-            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+            try:
+                new_device.validated_save()
+                return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+            except ValidationError as err:
+                if diffsync.job.debug:
+                    diffsync.job.log_debug(message=f"Validation error when creating Device {ids['name']}. {err}")
         except NautobotRack.DoesNotExist:
             if diffsync.job.debug:
                 diffsync.job.log_debug(message=f"Unable to find matching Rack {attrs.get('rack')} for {_site.name}")
@@ -708,7 +712,7 @@ class Device(DiffSyncModel):
                 diffsync.job.log_debug(
                     message=f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}.",
                 )
-            return None
+        return None
 
     def update(self, attrs):
         """Update Device object in Nautobot."""
