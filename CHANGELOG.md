@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
-## v0.14.0 (2021-12-20)
+## [v0.14.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.13.1) -  (2021-12-20)
 ### Feature
 * :zap: Add UUID attribute to all models for the Nautobot Data Target. ([`07c8a40`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/07c8a408efc1615536077f66680cd5a5b0dec267))
 
@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * :bug: Add VRF as identifier to IP Address ([`20a1fa0`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/20a1fa0a0e247882688445c88afd12991e5fe3d5))
 * :bug: Ensure all logging sends to message. ([`874db65`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/874db650278d278f0b84fa933169dec40cc25658))
 
-## v0.13.1 (2021-12-15)
+## [v0.13.1](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.13.1) -  (2021-12-15)
 
 <small>[Compare with v0.13.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.13.0...v0.13.1)</small>
 

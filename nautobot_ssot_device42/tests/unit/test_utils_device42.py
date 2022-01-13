@@ -1,12 +1,13 @@
 """Tests of Device42 utility methods."""
 
 import json
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import responses
 from django.conf import settings
 from nautobot.utilities.testing import TestCase
 from parameterized import parameterized
+from nautobot_ssot_device42.jobs import Device42DataSource
 from nautobot_ssot_device42.utils import device42
 
 
@@ -38,6 +39,7 @@ class TestUtilsDevice42(TestCase):
         result_dict = {"total_count": 10, "limit": 2, "offset": 4, "Objects": ["a", "b", "c", "d"]}
         self.assertEqual(device42.merge_offset_dicts(orig_dict=first_dict, offset_dict=second_dict), result_dict)
 
+    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_eth_intf(self):
         # test physical Ethernet interfaces
         eth_intf = {
@@ -48,13 +50,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=eth_intf, diffsync=dsync), "1000base-t")
         dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_fc_intf(self):
         # test physical FiberChannel interfaces
         fc_intf = {
@@ -66,13 +65,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=fc_intf, diffsync=dsync), "1gfc-sfp")
         dsync.log_debug.assert_called_once_with(message="Matched on FibreChannel. FC0/1 core-router.testexample.com")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_unknown_phy_intf(self):
         # test physical interfaces that don't have a discovered_type of Ethernet or FiberChannel
         unknown_phy_intf_speed = {
@@ -83,13 +79,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=unknown_phy_intf_speed, diffsync=dsync), "1000base-t")
         dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_name_mapping(self):
         # test name of Interface matching INTF_NAME_MAP
         ethernet_interface = {
@@ -100,12 +93,8 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=ethernet_interface, diffsync=dsync), "100base-tx")
         dsync.log_debug.assert_called_once_with(message="Matched on interface name FastEthernet")
-        configs["verbose_debug"] = original_setting
 
     def test_get_intf_type_gigabit_ethernet_intf(self):
         # test physical interface that's discovered as gigabitEthernet
@@ -127,6 +116,7 @@ class TestUtilsDevice42(TestCase):
         }
         self.assertEqual(device42.get_intf_type(intf_record=dot11_intf), "ieee802.11a")
 
+    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_ad_lag_intf(self):
         # test 802.3ad lag logical interface
         ad_lag_intf = {
@@ -138,13 +128,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=ad_lag_intf, diffsync=dsync), "lag")
         dsync.log_debug.assert_called_once_with(message="LAG matched. port-channel100 core-router.testexample.com")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_lacp_intf(self):
         # test lacp logical interface
         lacp_intf = {
@@ -156,13 +143,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=lacp_intf, diffsync=dsync), "lag")
         dsync.log_debug.assert_called_once_with(message="LAG matched. Internal_Trunk core-router.testexample.com")
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_virtual_intf(self):
         # test "virtual" logical interface
         virtual_intf = {
@@ -174,15 +158,12 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=virtual_intf, diffsync=dsync), "virtual")
         dsync.log_debug.assert_called_once_with(
             message="Virtual, loopback, or l2vlan interface matched. Vlan100 distro-switch.testexample.com."
         )
-        configs["verbose_debug"] = original_setting
 
+    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_port_channel_intf(self):
         # test Port-Channel logical interface
         port_channel_intf = {
@@ -194,14 +175,10 @@ class TestUtilsDevice42(TestCase):
         }
         dsync = MagicMock()
         dsync.log_debug = MagicMock()
-        configs = settings.PLUGINS_CONFIG.get("nautobot_ssot_device42", {})
-        original_setting = configs["verbose_debug"]
-        configs["verbose_debug"] = True
         self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf, diffsync=dsync), "lag")
         dsync.log_debug.assert_called_once_with(
             message="Virtual, loopback, or l2vlan interface matched. port-channel100 distro-switch.testexample.com."
         )
-        configs["verbose_debug"] = original_setting
 
     netmiko_platforms = [
         ("asa", "asa", "cisco_asa"),
@@ -301,6 +278,23 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         self.assertTrue(len(responses.calls) == 1)
 
     @responses.activate
+    def test_get_building_pks(self):
+        """Test get_building_pks success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_building_pks_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT * FROM view_building_v1&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        with open("./nautobot_ssot_device42/tests/fixtures/get_building_pks_recv.json", "r", encoding="utf-8") as file:
+            json_data = file.read()
+        expected = json.loads(json_data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
+        response = self.dev42.get_building_pks()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
     def test_get_rooms(self):
         """Test get_rooms success."""
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_rooms.json")
@@ -312,6 +306,85 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         )
         expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_rooms_recv.json")
         response = self.dev42.get_rooms()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_room_pks(self):
+        """Test get_room_pks success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_room_pks_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT * FROM view_room_v1&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        with open("./nautobot_ssot_device42/tests/fixtures/get_room_pks_recv.json", "r", encoding="utf-8") as file:
+            json_data = file.read()
+        expected = json.loads(json_data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
+        response = self.dev42.get_room_pks()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_racks(self):
+        """Test get_racks success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_racks.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/api/1.0/racks",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_racks_recv.json")
+        response = self.dev42.get_racks()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_rack_pks(self):
+        """Test get_room_pks success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_rack_pks_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT * FROM view_rack_v1&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        with open("./nautobot_ssot_device42/tests/fixtures/get_rack_pks_recv.json", "r", encoding="utf-8") as file:
+            json_data = file.read()
+        expected = json.loads(json_data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
+        response = self.dev42.get_rack_pks()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_vendors(self):
+        """Test get_vendors success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_vendors_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/api/1.0/vendors",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_vendors_recv.json")
+        response = self.dev42.get_vendors()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_hardware_models(self):
+        """Test get_hardware_models success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_hardware_models_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/api/1.0/hardwares",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_hardware_models_recv.json")
+        response = self.dev42.get_hardware_models()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
 
@@ -612,5 +685,56 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
             json_data = file.read()
         expected = json.loads(json_data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
         response = self.dev42.get_vendor_pks()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_patch_panels(self):
+        """Test get_patch_panels success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_patch_panels.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT+a.name%2C+a.in_service%2C+a.serial_no%2C+a.customer_fk%2C+a.building_fk%2C+a.calculated_building_fk%2C+a.room_fk%2C+a.calculated_room_fk%2C+a.calculated_rack_fk%2C+a.size%2C+a.depth%2C+m.number_of_ports%2C+m.name+as+model_name%2C+m.port_type_name+as+port_type%2C+v.name+as+vendor%2C+a.rack_fk%2C+a.start_at+as+position%2C+a.orientation+FROM+view_asset_v1+a+LEFT+JOIN+view_patchpanelmodel_v1+m+ON+m.patchpanelmodel_pk+%3D+a.patchpanelmodel_fk+JOIN+view_vendor_v1+v+ON+v.vendor_pk+%3D+m.vendor_fk+WHERE+a.patchpanelmodel_fk+is+not+null+AND+a.name+is+not+null&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_patch_panels.json")
+        response = self.dev42.get_patch_panels()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_patch_panel_port_pks(self):
+        """Test get_patch_panel_port_pks success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_patch_panel_port_pks_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT p.*, a.name FROM view_patchpanelport_v1 p JOIN view_asset_v1 a ON a.asset_pk = p.patchpanel_asset_fk&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        with open(
+            "./nautobot_ssot_device42/tests/fixtures/get_patch_panel_port_pks_recv.json", "r", encoding="utf-8"
+        ) as file:
+            json_data = file.read()
+        expected = json.loads(json_data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
+        response = self.dev42.get_patch_panel_port_pks()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_customer_pks(self):
+        """Test get_customer_pks success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_customer_pks_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT * FROM view_customer_v1&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        with open("./nautobot_ssot_device42/tests/fixtures/get_customer_pks_recv.json", "r", encoding="utf-8") as file:
+            json_data = file.read()
+        expected = json.loads(json_data, object_hook=lambda d: {int(k) if k.isdigit() else k: v for k, v in d.items()})
+        response = self.dev42.get_customer_pks()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)

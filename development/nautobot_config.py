@@ -277,12 +277,12 @@ PLUGINS_CONFIG = {
             "rack_status": "Active",
             "device_role": "Unknown",
         },
+        "delete_on_sync": False,
         "use_dns": True,
         "customer_is_facility": True,
         "facility_prepend": "sitecode-",
         "role_prepend": "nautobot-",
         "ignore_tag": "",
-        "verbose_debug": False,
         "hostname_mapping": [],
     },
 }

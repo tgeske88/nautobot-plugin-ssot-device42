@@ -6,7 +6,13 @@ from typing import List
 import requests
 import urllib3
 from netutils.lib_mapper import PYATS_LIB_MAPPER
-from nautobot_ssot_device42.constant import DEFAULTS, FC_INTF_MAP, INTF_NAME_MAP, PHY_INTF_MAP, PLUGIN_CFG
+from nautobot_ssot_device42.constant import (
+    DEFAULTS,
+    FC_INTF_MAP,
+    INTF_NAME_MAP,
+    PHY_INTF_MAP,
+    PLUGIN_CFG,
+)
 
 
 class MissingConfigSetting(Exception):
@@ -73,7 +79,7 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             and intf_record.get("port_speed")
             and intf_record["port_speed"] in PHY_INTF_MAP
         ):
-            if PLUGIN_CFG.get("verbose_debug"):
+            if diffsync.debug:
                 diffsync.log_debug(message=f"Matched on intf mapping. {intf_record['port_speed']}")
             _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
         elif (
@@ -81,17 +87,17 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             and intf_record.get("port_speed")
             and intf_record["port_speed"] in FC_INTF_MAP
         ):
-            if PLUGIN_CFG.get("verbose_debug"):
+            if diffsync.debug:
                 diffsync.log_debug(
                     message=f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}"
                 )
             _port_type = FC_INTF_MAP[intf_record["port_speed"]]
         elif intf_record["port_speed"] in PHY_INTF_MAP:
-            if PLUGIN_CFG.get("verbose_debug"):
+            if diffsync.debug:
                 diffsync.log_debug(message=f"Matched on intf mapping. {intf_record['port_speed']}")
             _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
         elif _port_name and _port_name in INTF_NAME_MAP:
-            if PLUGIN_CFG.get("verbose_debug"):
+            if diffsync.debug:
                 diffsync.log_debug(message=f"Matched on interface name {_port_name}")
             _port_type = INTF_NAME_MAP[_port_name]["itype"]
         elif "gigabitEthernet" in intf_record["discovered_type"]:
@@ -100,7 +106,7 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             _port_type = "ieee802.11a"
     if intf_record["port_type"] == "logical" and intf_record.get("discovered_type"):
         if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
-            if PLUGIN_CFG.get("verbose_debug"):
+            if diffsync.debug:
                 diffsync.log_debug(message=f"LAG matched. {intf_record['port_name']} {intf_record['device_name']}")
             _port_type = "lag"
         elif (
@@ -108,7 +114,7 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             or intf_record["discovered_type"] == "l2vlan"
             or intf_record["discovered_type"] == "propVirtual"
         ):
-            if PLUGIN_CFG.get("verbose_debug"):
+            if diffsync.debug:
                 diffsync.log_debug(
                     message=f"Virtual, loopback, or l2vlan interface matched. {intf_record['port_name']} {intf_record['device_name']}."
                 )
@@ -289,9 +295,51 @@ class Device42API:  # pylint: disable=too-many-public-methods
         """Method to get all Buildings from Device42."""
         return self.api_call(path="api/1.0/buildings")["buildings"]
 
+    def get_building_pks(self) -> dict:
+        """Method to obtain all Buildings from Device42 mapped to their PK.
+
+        Returns:
+            dict: Dictionary of Buildings with their PK as key.
+        """
+        query = "SELECT * FROM view_building_v1"
+        results = self.doql_query(query=query)
+        return {x["building_pk"]: x for x in results}
+
     def get_rooms(self) -> List:
         """Method to get all Rooms from Device42."""
         return self.api_call(path="api/1.0/rooms")["rooms"]
+
+    def get_room_pks(self) -> dict:
+        """Method to obtain all Rooms from Device42 mapped to their PK.
+
+        Returns:
+            dict: Dictionary of Rooms with their PK as key.
+        """
+        query = "SELECT * FROM view_room_v1"
+        results = self.doql_query(query=query)
+        return {x["room_pk"]: x for x in results}
+
+    def get_racks(self) -> List:
+        """Method to get all Racks from Device42."""
+        return self.api_call(path="api/1.0/racks")["racks"]
+
+    def get_rack_pks(self) -> dict:
+        """Method to obtain all Racks from Device42 mapped to their PK.
+
+        Returns:
+            dict: Dictionary of Racks with their PK as key.
+        """
+        query = "SELECT * FROM view_rack_v1"
+        results = self.doql_query(query=query)
+        return {x["rack_pk"]: x for x in results}
+
+    def get_vendors(self) -> List:
+        """Method to get all Vendors from Device42."""
+        return self.api_call(path="api/1.0/vendors")["vendors"]
+
+    def get_hardware_models(self) -> List:
+        """Method to get all Hardware Models from Device42."""
+        return self.api_call(path="api/1.0/hardwares")["models"]
 
     def get_cluster_members(self) -> dict:
         """Method to get all member devices of a cluster from Device42.
@@ -564,3 +612,32 @@ class Device42API:  # pylint: disable=too-many-public-methods
         query = "SELECT * FROM view_vendor_v1"
         results = self.doql_query(query=query)
         return {x["vendor_pk"]: x for x in results}
+
+    def get_patch_panels(self) -> List[dict]:
+        """Method to obtain all patch panels from Device42.
+
+        Returns:
+            dict: Dictionary of Patch Panels in Device42.
+        """
+        query = "SELECT a.name, a.in_service, a.serial_no, a.customer_fk, a.building_fk, a.calculated_building_fk, a.room_fk, a.calculated_room_fk, a.calculated_rack_fk, a.size, a.depth, m.number_of_ports, m.name as model_name, m.port_type_name as port_type, v.name as vendor, a.rack_fk, a.start_at as position, a.orientation FROM view_asset_v1 a LEFT JOIN view_patchpanelmodel_v1 m ON m.patchpanelmodel_pk = a.patchpanelmodel_fk JOIN view_vendor_v1 v ON v.vendor_pk = m.vendor_fk WHERE a.patchpanelmodel_fk is not null AND a.name is not null"
+        return self.doql_query(query=query)
+
+    def get_patch_panel_port_pks(self) -> dict:
+        """Method to obtain all Patch Panel Ports from Device42 mapped to their PK.
+
+        Returns:
+            dict: Dictionary of Patch Panel Ports with their PK as key.
+        """
+        query = "SELECT p.*, a.name FROM view_patchpanelport_v1 p JOIN view_asset_v1 a ON a.asset_pk = p.patchpanel_asset_fk"
+        results = self.doql_query(query=query)
+        return {x["patchpanelport_pk"]: x for x in results}
+
+    def get_customer_pks(self) -> dict:
+        """Method to obtain all Customers from Device42 mapped to their PK.
+
+        Returns:
+            dict: Dictionary of Customers with their PK as key.
+        """
+        query = "SELECT * FROM view_customer_v1"
+        results = self.doql_query(query=query)
+        return {x["customer_pk"]: x for x in results}

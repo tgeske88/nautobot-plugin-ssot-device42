@@ -1,11 +1,12 @@
 """DiffSync adapter class for Nautobot as source-of-truth."""
 
+from collections import defaultdict
 import ipaddress
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists
 from django.db.models import ProtectedError
 from nautobot_ssot_device42.constant import PLUGIN_CFG
-from nautobot_ssot_device42.diffsync.from_d42.models import circuits, dcim, ipam
+from nautobot_ssot_device42.diffsync.from_d42.models import assets, circuits, dcim, ipam
 from nautobot_ssot_device42.utils import nautobot
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
 
@@ -14,11 +15,14 @@ from nautobot.circuits.models import Circuit, CircuitTermination, Provider
 from nautobot.dcim.models import (
     Cable,
     Device,
+    DeviceRole,
     DeviceType,
+    FrontPort,
     Interface,
     Manufacturer,
     Rack,
     RackGroup,
+    RearPort,
     Site,
     VirtualChassis,
 )
@@ -36,21 +40,7 @@ except ImportError:
 class NautobotAdapter(DiffSync):
     """Nautobot adapter for DiffSync."""
 
-    _objects_to_delete = {
-        "device": [],
-        "site": [],
-        "rack": [],
-        "manufacturer": [],
-        "device_type": [],
-        "ipaddr": [],
-        "vrf": [],
-        "cluster": [],
-        "port": [],
-        "subnet": [],
-        "vlan": [],
-        "provider": [],
-        "circuit": [],
-    }
+    objects_to_delete = defaultdict(list)
 
     building = dcim.Building
     room = dcim.Room
@@ -67,6 +57,9 @@ class NautobotAdapter(DiffSync):
     conn = dcim.Connection
     provider = circuits.Provider
     circuit = circuits.Circuit
+    patchpanel = assets.PatchPanel
+    patchpanelrearport = assets.PatchPanelRearPort
+    patchpanelfrontport = assets.PatchPanelFrontPort
 
     top_level = [
         "building",
@@ -77,6 +70,9 @@ class NautobotAdapter(DiffSync):
         "vlan",
         "cluster",
         "device",
+        "patchpanel",
+        "patchpanelrearport",
+        "patchpanelfrontport",
         "ipaddr",
         "provider",
         "circuit",
@@ -103,27 +99,29 @@ class NautobotAdapter(DiffSync):
         Args:
             source (DiffSync): DiffSync
         """
-        for grouping in (
-            "ipaddr",
-            "subnet",
-            "vrf",
-            "vlan",
-            "circuit",
-            "provider",
-            "cluster",
-            "port",
-            "device",
-            "device_type",
-            "manufacturer",
-            "rack",
-            "site",
-        ):
-            for nautobot_object in self._objects_to_delete[grouping]:
-                try:
-                    nautobot_object.delete()
-                except ProtectedError:
-                    self.job.log(f"Deletion failed protected object: {nautobot_object}")
-            self._objects_to_delete[grouping] = []
+        if PLUGIN_CFG.get("delete_on_sync"):
+            for grouping in (
+                "ipaddr",
+                "subnet",
+                "vrf",
+                "vlan",
+                "circuit",
+                "provider",
+                "cluster",
+                "port",
+                "device",
+                "patchpanel",
+                "device_type",
+                "manufacturer",
+                "rack",
+                "site",
+            ):
+                for nautobot_object in self.objects_to_delete[grouping]:
+                    try:
+                        nautobot_object.delete()
+                    except ProtectedError:
+                        self.job.log(f"Deletion failed protected object: {nautobot_object}")
+                self.objects_to_delete[grouping] = []
 
         return super().sync_complete(source, *args, **kwargs)
 
@@ -179,7 +177,7 @@ class NautobotAdapter(DiffSync):
                 _room = self.get(self.room, {"name": rack.group, "building": _building_name})
                 _room.add_child(child=new_rack)
             except ObjectAlreadyExists as err:
-                if PLUGIN_CFG.get("verbose_debug"):
+                if self.job.debug:
                     self.job.log_warning(err)
 
     def load_manufacturers(self):
@@ -225,6 +223,26 @@ class NautobotAdapter(DiffSync):
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
         for dev in Device.objects.all():
+            # As patch panels are added as Devices, we need to filter them out for their own load method.
+            if DeviceRole.objects.get(id=dev.device_role.id).name == "patch panel":
+                patch_panel = self.patchpanel(
+                    name=dev.name,
+                    in_service=bool(str(dev.status.name) == "Active"),
+                    vendor=dev.device_type.manufacturer.name,
+                    model=dev.device_type.model,
+                    size=dev.device_type.u_height,
+                    depth="Full Depth" if dev.device_type.is_full_depth else "Half Depth",
+                    position=dev.position,
+                    orientation=dev.face if dev.face else "rear",
+                    num_ports=len(FrontPort.objects.filter(device__name=dev.name)),
+                    building=dev.site.name,
+                    room=dev.rack.group.name if dev.rack else "",
+                    rack=dev.rack.name if dev.rack else "",
+                    serial_no=dev.serial if dev.serial else "",
+                    uuid=dev.id,
+                )
+                self.add(patch_panel)
+                continue
             if dev.platform and dev.platform.name in ANSIBLE_LIB_MAPPER:
                 _platform = ANSIBLE_LIB_MAPPER[dev.platform.name]
             elif dev.platform:
@@ -251,6 +269,7 @@ class NautobotAdapter(DiffSync):
                 master_device=False,
                 custom_fields=nautobot.get_custom_field_dicts(dev.get_custom_fields()),
                 uuid=dev.id,
+                cluster_host=None,
             )
             if dev.virtual_chassis:
                 _dev.cluster_host = str(dev.virtual_chassis)
@@ -262,7 +281,8 @@ class NautobotAdapter(DiffSync):
     def load_interfaces(self):
         """Add Nautobot Interface objects as DiffSync Port models."""
         for port in Interface.objects.all():
-            # self.job.log_debug(message=f"Loading Interface: {port.name} for {port.device}.")
+            if self.job.debug:
+                self.job.log_debug(message=f"Loading Interface: {port.name} for {port.device}.")
             if port.mac_address:
                 _mac_addr = str(port.mac_address).replace(":", "").lower()
             else:
@@ -303,14 +323,15 @@ class NautobotAdapter(DiffSync):
                 _dev = self.get(self.device, port.device.name)
                 _dev.add_child(_port)
             except ObjectAlreadyExists as err:
-                if PLUGIN_CFG.get("verbose_debug"):
+                if self.job.debug:
                     self.job.log_warning(message=f"Port already exists for {port.device_name}. {err}")
                 continue
 
     def load_vrfs(self):
         """Add Nautobot VRF objects as DiffSync VRFGroup models."""
-        # self.job.log_debug(message=f"Loading VRF: {self.name}.")
         for vrf in VRF.objects.all():
+            if self.job.debug:
+                self.job.log_debug(message=f"Loading VRF: {vrf.name}.")
             _vrf = self.vrf(
                 name=vrf.name,
                 description=vrf.description,
@@ -323,7 +344,8 @@ class NautobotAdapter(DiffSync):
     def load_prefixes(self):
         """Add Nautobot Prefix objects as DiffSync Subnet models."""
         for _pf in Prefix.objects.all():
-            # self.job.log_debug(message=f"Loading Prefix: {_pf.prefix}.")
+            if self.job.debug:
+                self.job.log_debug(message=f"Loading Prefix: {_pf.prefix}.")
             ip_net = ipaddress.ip_network(_pf.prefix)
             new_pf = self.subnet(
                 network=str(ip_net.network_address),
@@ -339,7 +361,8 @@ class NautobotAdapter(DiffSync):
     def load_ip_addresses(self):
         """Add Nautobot IPAddress objects as DiffSync IPAddress models."""
         for _ip in IPAddress.objects.all():
-            # self.job.log_debug(message=f"Loading IPAddress: {_ip.address}.")
+            if self.job.debug:
+                self.job.log_debug(message=f"Loading IPAddress: {_ip.address}.")
             new_ip = self.ipaddr(
                 address=str(_ip.address),
                 available=bool(_ip.status.name != "Active"),
@@ -350,6 +373,7 @@ class NautobotAdapter(DiffSync):
                 device="",
                 custom_fields=nautobot.get_custom_field_dicts(_ip.get_custom_fields()),
                 uuid=_ip.id,
+                primary=None,
             )
             if _ip.assigned_object_id:
                 _intf = Interface.objects.get(id=_ip.assigned_object_id)
@@ -359,12 +383,18 @@ class NautobotAdapter(DiffSync):
                 new_ip.primary = True
             else:
                 new_ip.primary = False
-            self.add(new_ip)
+            try:
+                self.add(new_ip)
+            except ObjectAlreadyExists as err:
+                if self.job.debug:
+                    self.job.log_debug(
+                        message=f"Duplicate IP Address {_ip.address} found and won't be imported. Validate the duplicate address is accurate. {err}"
+                    )
 
     def load_vlans(self):
         """Add Nautobot VLAN objects as DiffSync VLAN models."""
         for vlan in VLAN.objects.all():
-            if PLUGIN_CFG.get("verbose_debug"):
+            if self.job.debug:
                 self.job.log_debug(message=f"Loading VLAN: {vlan.name}.")
             try:
                 _vlan = self.vlan(
@@ -378,7 +408,7 @@ class NautobotAdapter(DiffSync):
                 )
                 self.add(_vlan)
             except ObjectAlreadyExists as err:
-                if PLUGIN_CFG.get("verbose_debug"):
+                if self.job.debug:
                     self.job.log_warning(err)
 
     def load_cables(self):
@@ -393,6 +423,8 @@ class NautobotAdapter(DiffSync):
                 dst_type="interface",
                 tags=nautobot.get_tag_strings(_cable.tags),
                 uuid=_cable.id,
+                src_port_mac=None,
+                dst_port_mac=None,
             )
             new_conn = self.add_src_connection(
                 cable_term_type=_cable.termination_a_type, cable_term_id=_cable.termination_a_id, connection=new_conn
@@ -498,6 +530,10 @@ class NautobotAdapter(DiffSync):
                 bandwidth=_circuit.commit_rate,
                 tags=nautobot.get_tag_strings(_circuit.tags),
                 uuid=_circuit.id,
+                origin_int=None,
+                origin_dev=None,
+                endpoint_int=None,
+                endpoint_dev=None,
             )
             if hasattr(_circuit.termination_a, "connected_endpoint") and hasattr(
                 _circuit.termination_a.connected_endpoint, "name"
@@ -510,6 +546,30 @@ class NautobotAdapter(DiffSync):
                 new_circuit.endpoint_int = _circuit.termination_z.connected_endpoint.name
                 new_circuit.endpoint_dev = _circuit.termination_z.connected_endpoint.device.name
             self.add(new_circuit)
+
+    def load_front_ports(self):
+        """Add Nautobot FrontPort objects as DiffSync PatchPanelFrontPort models."""
+        for port in FrontPort.objects.all():
+            if port.device.device_role.name == "patch panel":
+                front_port = self.patchpanelfrontport(
+                    name=port.name,
+                    patchpanel=port.device.name,
+                    port_type=port.type,
+                    uuid=port.id,
+                )
+                self.add(front_port)
+
+    def load_rear_ports(self):
+        """Add Nautobot RearPort objects as DiffSync PatchPanelRearPort models."""
+        for port in RearPort.objects.all():
+            if port.device.device_role.name == "patch panel":
+                rear_port = self.patchpanelrearport(
+                    name=port.name,
+                    patchpanel=port.device.name,
+                    port_type=port.type,
+                    uuid=port.id,
+                )
+                self.add(rear_port)
 
     def load(self):
         """Load data from Nautobot."""
@@ -529,3 +589,5 @@ class NautobotAdapter(DiffSync):
         self.load_cables()
         self.load_providers()
         self.load_circuits()
+        self.load_front_ports()
+        self.load_rear_ports()
