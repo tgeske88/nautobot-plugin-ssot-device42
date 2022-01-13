@@ -337,6 +337,10 @@ class Device42API:  # pylint: disable=too-many-public-methods
         """Method to get all Vendors from Device42."""
         return self.api_call(path="api/1.0/vendors")["vendors"]
 
+    def get_hardware_models(self) -> List:
+        """Method to get all Hardware Models from Device42."""
+        return self.api_call(path="api/1.0/hardwares")["models"]
+
     def get_cluster_members(self) -> dict:
         """Method to get all member devices of a cluster from Device42.
 

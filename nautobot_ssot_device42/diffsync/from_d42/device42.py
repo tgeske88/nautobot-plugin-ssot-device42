@@ -292,7 +292,7 @@ class Device42Adapter(DiffSync):
 
     def load_hardware_models(self):
         """Load Device42 hardware models."""
-        for _model in self.device42.api_call(path="api/1.0/hardwares/")["models"]:
+        for _model in self.device42.get_hardware_models():
             if self.job.debug:
                 self.job.log_info(message=f"Loading hardware model {_model['name']} from Device42.")
             if _model.get("manufacturer"):
