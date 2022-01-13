@@ -860,8 +860,8 @@ class Device(DiffSyncModel):
         )
         try:
             new_assoc.validated_save()
-        except ValidationError as err:
-            print(f"Validation Error for _add_softwarelcm_device method: {err}")
+        except ValidationError:
+            return None
 
 
 class Port(DiffSyncModel):
@@ -1004,8 +1004,13 @@ class Port(DiffSyncModel):
                     if tagged_vlan:
                         tagged_vlans.append(tagged_vlan[0])
                 _port.tagged_vlans.set(tagged_vlans)
-        _port.validated_save()
-        return super().update(attrs)
+        try:
+            _port.validated_save()
+            return super().update(attrs)
+        except ValidationError as err:
+            if self.diffsync.job.debug:
+                self.diffsync.job.log_debug(message=f"Validation error for updating Port: {err}")
+            return None
 
     def delete(self):
         """Delete Interface object from Nautobot."""

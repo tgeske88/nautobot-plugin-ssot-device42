@@ -5,6 +5,7 @@ from uuid import UUID
 
 from diffsync import DiffSyncModel
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from nautobot.circuits.models import Circuit as NautobotCircuit
 from nautobot.circuits.models import CircuitTermination as NautobotCT
@@ -52,8 +53,13 @@ class Provider(DiffSyncModel):
             if attrs.get("tags"):
                 for _tag in nautobot.get_tags(attrs["tags"]):
                     _provider.tags.add(_tag)
-            _provider.validated_save()
-            return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+            try:
+                _provider.validated_save()
+                return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+            except ValidationError as err:
+                if diffsync.job.debug:
+                        diffsync.job.log_warning(message=f"Unable to create {self.name} provider. {err}")
+                return None
 
     def update(self, attrs):
         """Update Provider object in Nautobot."""
