@@ -9,6 +9,7 @@ from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from django.utils.functional import classproperty
 from django.utils.text import slugify
 from nautobot_ssot_device42.constant import PLUGIN_CFG
+from nautobot_ssot_device42.diffsync.from_d42.models import assets, circuits, dcim, ipam
 from nautobot_ssot_device42.utils.device42 import get_facility, get_intf_type, get_netmiko_platform
 from netutils.bandwidth import name_to_bits
 from netutils.dns import is_fqdn_resolvable, fqdn_to_ip
@@ -94,6 +95,9 @@ class Device42Adapter(DiffSync):
     conn = dcim.Connection
     provider = circuits.Provider
     circuit = circuits.Circuit
+    patchpanel = assets.PatchPanel
+    patchpanelfrontport = assets.PatchPanelFrontPort
+    patchpanelrearport = assets.PatchPanelRearPort
 
     top_level = [
         "building",
@@ -104,6 +108,9 @@ class Device42Adapter(DiffSync):
         "vlan",
         "cluster",
         "device",
+        "patchpanel",
+        "patchpanelrearport",
+        "patchpanelfrontport",
         "ipaddr",
         "provider",
         "circuit",
@@ -730,38 +737,46 @@ class Device42Adapter(DiffSync):
         """Load Device42 Providrs and Telco Circuits."""
         _circuits = self.device42.get_telcocircuits()
         origin_int, origin_dev, endpoint_int, endpoint_dev = False, False, False, False
+        ppanel_ports = self.device42.get_patch_panel_port_pks()
         for _tc in _circuits:
             self.load_provider(_tc)
-            if _tc["origin_type"] == "Device Port":
+            if _tc["origin_type"] == "Device Port" and _tc["origin_netport_fk"] is not None:
                 origin_int = self.port_map[_tc["origin_netport_fk"]]["port"]
                 origin_dev = self.port_map[_tc["origin_netport_fk"]]["device"]
-            if _tc["end_point_type"] == "Device Port":
+            if _tc["end_point_type"] == "Device Port" and _tc["end_point_netport_fk"] is not None:
                 endpoint_int = self.port_map[_tc["end_point_netport_fk"]]["port"]
                 endpoint_dev = self.port_map[_tc["end_point_netport_fk"]]["device"]
-            if origin_int and origin_dev and endpoint_int and endpoint_dev:
-                new_circuit = self.circuit(
-                    circuit_id=_tc["circuit_id"],
-                    provider=self.vendor_map[_tc["vendor_fk"]]["name"],
-                    notes=_tc["notes"],
-                    type=_tc["type_name"],
-                    status=get_circuit_status(_tc["status"]),
-                    install_date=_tc["turn_on_date"] if _tc.get("turn_on_date") else _tc["provision_date"],
-                    origin_int=origin_int,
-                    origin_dev=origin_dev,
-                    endpoint_int=endpoint_int,
-                    endpoint_dev=endpoint_dev,
-                    bandwidth=name_to_bits(f"{_tc['bandwidth']}{_tc['unit'].capitalize()}") / 1000,
-                    tags=_tc["tags"].split(",") if _tc.get("tags") else [],
-                    uuid=None,
-                )
-                self.add(new_circuit)
+            if _tc["origin_type"] == "Patch panel port" and _tc["origin_patchpanelport_fk"] is not None:
+                origin_int = ppanel_ports[_tc["origin_patchpanelport_fk"]]["number"]
+                origin_dev = ppanel_ports[_tc["origin_patchpanelport_fk"]]["name"]
+            if _tc["end_point_type"] == "Patch panel port" and _tc["end_point_patchpanelport_fk"] is not None:
+                origin_int = ppanel_ports[_tc["end_point_patchpanelport_fk"]]["number"]
+                origin_dev = ppanel_ports[_tc["end_point_patchpanelport_fk"]]["name"]
+            new_circuit = self.circuit(
+                circuit_id=_tc["circuit_id"],
+                provider=self.vendor_map[_tc["vendor_fk"]]["name"],
+                notes=_tc["notes"],
+                type=_tc["type_name"],
+                status=get_circuit_status(_tc["status"]),
+                install_date=_tc["turn_on_date"] if _tc.get("turn_on_date") else _tc["provision_date"],
+                origin_int=origin_int if origin_int else None,
+                origin_dev=origin_dev if origin_dev else None,
+                endpoint_int=endpoint_int if endpoint_int else None,
+                endpoint_dev=endpoint_dev if endpoint_dev else None,
+                bandwidth=name_to_bits(f"{_tc['bandwidth']}{_tc['unit'].capitalize()}") / 1000,
+                tags=_tc["tags"].split(",") if _tc.get("tags") else [],
+                uuid=None,
+            )
+            self.add(new_circuit)
             # Add Connection from A side connection Device to Circuit
-            if _tc["origin_type"] == "Device Port":
+            if origin_dev and origin_int:
                 a_side_conn = self.conn(
                     src_device=origin_dev,
                     src_port=origin_int,
-                    src_port_mac=self.port_map[_tc["origin_netport_fk"]]["hwaddress"],
-                    src_type="interface",
+                    src_port_mac=self.port_map[_tc["origin_netport_fk"]]["hwaddress"]
+                    if _tc["origin_type"] == "Device"
+                    else None,
+                    src_type="interface" if _tc["origin_type"] == "Device Port" else "patch panel",
                     dst_device=_tc["circuit_id"],
                     dst_port=_tc["circuit_id"],
                     dst_type="circuit",
@@ -771,15 +786,17 @@ class Device42Adapter(DiffSync):
                 )
                 self.add(a_side_conn)
             # Add Connection from Z side connection Circuit to Device
-            if _tc["end_point_type"] == "Device Port":
+            if endpoint_dev and endpoint_int:
                 z_side_conn = self.conn(
                     src_device=_tc["circuit_id"],
                     src_port=_tc["circuit_id"],
                     src_type="circuit",
                     dst_device=endpoint_dev,
                     dst_port=endpoint_int,
-                    dst_port_mac=self.port_map[_tc["end_point_netport_fk"]]["hwaddress"],
-                    dst_type="interface",
+                    dst_port_mac=self.port_map[_tc["end_point_netport_fk"]]["hwaddress"]
+                    if _tc["end_point_type"] == "Device"
+                    else None,
+                    dst_type="interface" if _tc["end_point_type"] == "Device Port" else "patch panel",
                     src_port_mac=None,
                     tags=None,
                     uuid=None,
@@ -922,6 +939,94 @@ class Device42Adapter(DiffSync):
         )
         self.add(_ip)
 
+    def load_patch_panels_and_ports(self):
+        """Load Device42 Patch Panels and Patch Panel Ports."""
+        panels = self.device42.get_patch_panels()
+        for panel in panels:
+            _building, _room, _rack = None, None, None
+            if PLUGIN_CFG.get("customer_is_facility") and panel["customer_fk"] is not None:
+                _building = self.customer_map[panel["customer_fk"]]["name"]
+            if panel["building_fk"] is not None:
+                _building = self.building_map[panel["building_fk"]]["name"]
+            elif panel["calculated_building_fk"] is not None:
+                _building = self.building_map[panel["calculated_building_fk"]]["name"]
+            if panel["room_fk"] is not None:
+                _room = self.room_map[panel["room_fk"]]["name"]
+            elif panel["calculated_room_fk"] is not None:
+                _room = self.room_map[panel["calculated_room_fk"]]["name"]
+            if panel["rack_fk"] is not None:
+                _rack = self.rack_map[panel["rack_fk"]]["name"]
+            elif panel["calculated_rack_fk"] is not None:
+                _rack = self.rack_map[panel["rack_fk"]]["name"]
+            if _building is None and _room is None and _rack is None:
+                if self.job.debug:
+                    self.job.log_debug(
+                        f"Unable to determine Site, Room, or Rack for patch panel {panel['name']} so it will NOT be imported."
+                    )
+                continue
+            try:
+                new_hw = self.get(self.hardware, panel["model_name"])
+            except ObjectNotFound:
+                new_hw = self.hardware(
+                    name=panel["model_name"],
+                    manufacturer=panel["vendor"],
+                    size=panel["size"] if panel.get("size") else 1.0,
+                    depth="Half Depth" if panel["depth"] == 2 else "Full Depth",
+                    part_number=None,
+                    custom_fields=None,
+                    uuid=None,
+                )
+                self.add(new_hw)
+            try:
+                new_pp = self.get(self.patchpanel, panel["name"])
+            except ObjectNotFound:
+                new_pp = self.patchpanel(
+                    name=panel["name"],
+                    in_service=panel["in_service"],
+                    vendor=panel["vendor"],
+                    model=panel["model_name"],
+                    size=panel["size"] if panel.get("size") else 1.0,
+                    depth="Half Depth" if panel["depth"] == 2 else "Full Depth",
+                    position=panel["position"],
+                    orientation="front" if panel.get("orientation") == "Front" else "rear",
+                    num_ports=panel["number_of_ports"],
+                    rack=_rack,
+                    serial_no=panel["serial_no"],
+                    building=_building,
+                    room=_room,
+                    uuid=None,
+                )
+                self.add(new_pp)
+                ind = 1
+                while ind <= panel["number_of_ports"]:
+                    if "LC" in panel["port_type"]:
+                        port_type = "lc"
+                    elif "FC" in panel["port_type"]:
+                        port_type = "fc"
+                    else:
+                        port_type = "8p8c"
+                    front_intf = self.patchpanelfrontport(
+                        name=f"{ind}",
+                        patchpanel=panel["name"],
+                        port_type=port_type,
+                        uuid=None,
+                    )
+                    rear_intf = self.patchpanelrearport(
+                        name=f"{ind}",
+                        patchpanel=panel["name"],
+                        port_type=port_type,
+                        uuid=None,
+                    )
+                    try:
+                        self.add(front_intf)
+                        self.add(rear_intf)
+                    except ObjectAlreadyExists as err:
+                        if self.job.debug:
+                            self.job.log_warning(
+                                message=f"Patch panel port {ind} for {panel['name']} is already loaded. {err}"
+                            )
+                    ind = ind + 1
+
     def load(self):
         """Load data from Device42."""
         self.load_buildings()
@@ -939,3 +1044,4 @@ class Device42Adapter(DiffSync):
             self.check_dns()
         self.load_connections()
         self.load_providers_and_circuits()
+        self.load_patch_panels_and_ports()

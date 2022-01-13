@@ -15,6 +15,7 @@ from nautobot.core.settings_funcs import is_truthy
 from nautobot.dcim.models import Cable as NautobotCable
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import DeviceType as NautobotDeviceType
+from nautobot.dcim.models import FrontPort as NautobotFrontPort
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.dcim.models import Manufacturer as NautobotManufacturer
 from nautobot.dcim.models import Rack as NautobotRack
@@ -1041,43 +1042,76 @@ class Connection(DiffSyncModel):
         Returns:
             Optional[NautobotCable]: If the Interfaces are found and a cable is created, returns Cable else None.
         """
-        _intf = None
+        _intf, circuit = None, None
         if attrs["src_type"] == "interface":
             try:
                 _intf = NautobotInterface.objects.get(device__name=ids["src_device"], name=ids["src_port"])
                 circuit = NautobotCircuit.objects.get(cid=ids["dst_device"])
             except NautobotInterface.DoesNotExist as err:
-                if self.diffsync.job.debug:
-                    diffsync.job.log_error(
+                if diffsync.job.debug:
+                    diffsync.job.log_warning(
                         message=f"Unable to find source port for {ids['src_device']}: {ids['src_port']} to connect to Circuit {ids['dst_device']} {err}"
                     )
                 return None
             except NautobotCircuit.DoesNotExist as err:
-                if self.diffsync.job.debug:
-                    diffsync.job.log_error(message=f"Unable to find Circuit {ids['dst_device']} {err}")
+                if diffsync.job.debug:
+                    diffsync.job.log_warning(message=f"Unable to find Circuit {ids['dst_device']} {err}")
+                return None
+        elif attrs["src_type"] == "patch panel":
+            try:
+                _intf = NautobotFrontPort.objects.get(device__name=ids["src_device"], name=ids["src_port"])
+                circuit = NautobotCircuit.objects.get(cid=ids["dst_device"])
+            except NautobotFrontPort.DoesNotExist as err:
+                if diffsync.job.debug:
+                    diffsync.job.log_warning(
+                        message=f"Unable to find patch panel port for {ids['src_device']}: {ids['src_port']} to connect to Circuit {ids['dst_device']} {err}"
+                    )
+                return None
+            except NautobotCircuit.DoesNotExist as err:
+                if diffsync.job.debug:
+                    diffsync.job.log_warning(message=f"Unable to find Circuit {ids['dst_device']} {err}")
                 return None
         if attrs["dst_type"] == "interface":
             try:
                 circuit = NautobotCircuit.objects.get(cid=ids["src_device"])
                 _intf = NautobotInterface.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
             except NautobotInterface.DoesNotExist as err:
-                if self.diffsync.job.debug:
-                    diffsync.job.log_error(
+                if diffsync.job.debug:
+                    diffsync.job.log_warning(
                         message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} to connect to Circuit {ids['src_device']} {err}"
                     )
                 return None
             except NautobotCircuit.DoesNotExist as err:
-                if self.diffsync.job.debug:
-                    diffsync.job.log_error(message=f"Unable to find Circuit {ids['dst_device']} {err}")
+                if diffsync.job.debug:
+                    diffsync.job.log_warning(message=f"Unable to find Circuit {ids['dst_device']} {err}")
                 return None
-        _ct = {
-            "circuit": circuit,
-            "site": _intf.device.site,
-        }
-        if attrs["src_type"] == "interface":
-            _ct["term_side"] = "A"
-        if attrs["dst_type"] == "interface":
+        elif attrs["dst_type"] == "patch panel":
+            try:
+                circuit = NautobotCircuit.objects.get(cid=ids["src_device"])
+                _intf = NautobotFrontPort.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
+            except NautobotFrontPort.DoesNotExist as err:
+                if diffsync.job.debug:
+                    diffsync.job.log_warning(
+                        message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} to connect to Circuit {ids['src_device']} {err}"
+                    )
+                return None
+            except NautobotCircuit.DoesNotExist as err:
+                if diffsync.job.debug:
+                    diffsync.job.log_warning(message=f"Unable to find Circuit {ids['dst_device']} {err}")
+                return None
+        if circuit and _intf:
+            _ct = {
+                "circuit": circuit,
+                "site": _intf.device.site,
+            }
+        else:
+            if diffsync.job.debug:
+                diffsync.job.log_warning(message=f"Unable to find Circuit and Interface {ids}")
+            return None
+        if attrs["src_type"] == "circuit":
             _ct["term_side"] = "Z"
+        if attrs["dst_type"] == "circuit":
+            _ct["term_side"] = "A"
         try:
             circuit_term = NautobotCT.objects.get(**_ct)
         except NautobotCT.DoesNotExist:
@@ -1086,7 +1120,9 @@ class Connection(DiffSyncModel):
             circuit_term.validated_save()
         if _intf and not _intf.cable and not circuit_term.cable:
             new_cable = NautobotCable(
-                termination_a_type=ContentType.objects.get(app_label="dcim", model="interface"),
+                termination_a_type=ContentType.objects.get(app_label="dcim", model="interface")
+                if attrs["src_type"] == "interface"
+                else ContentType.objects.get(app_label="dcim", model="frontport"),
                 termination_a_id=_intf.id,
                 termination_b_type=ContentType.objects.get(app_label="circuits", model="circuittermination"),
                 termination_b_id=circuit_term.id,
@@ -1114,7 +1150,7 @@ class Connection(DiffSyncModel):
             try:
                 _src_port = NautobotInterface.objects.get(device__name=ids["src_device"], name=ids["src_port"])
             except NautobotInterface.DoesNotExist as err:
-                if self.diffsync.job.debug:
+                if diffsync.job.debug:
                     diffsync.job.log_warning(
                         message=f"Unable to find source port for {ids['src_device']}: {ids['src_port']} {ids['src_port_mac']} {err}"
                     )
@@ -1126,7 +1162,7 @@ class Connection(DiffSyncModel):
             try:
                 _dst_port = NautobotInterface.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
             except NautobotInterface.DoesNotExist:
-                if self.diffsync.job.debug:
+                if diffsync.job.debug:
                     diffsync.job.log_warning(
                         message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} {ids['dst_port_mac']}"
                     )

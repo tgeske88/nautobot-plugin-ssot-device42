@@ -5,7 +5,7 @@ import ipaddress
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists
 from django.db.models import ProtectedError
-from nautobot_ssot_device42.diffsync.from_d42.models import circuits, dcim, ipam
+from nautobot_ssot_device42.diffsync.from_d42.models import assets, circuits, dcim, ipam
 
 from nautobot_ssot_device42.utils import nautobot
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
@@ -15,11 +15,14 @@ from nautobot.circuits.models import Circuit, CircuitTermination, Provider
 from nautobot.dcim.models import (
     Cable,
     Device,
+    DeviceRole,
     DeviceType,
+    FrontPort,
     Interface,
     Manufacturer,
     Rack,
     RackGroup,
+    RearPort,
     Site,
     VirtualChassis,
 )
@@ -54,6 +57,9 @@ class NautobotAdapter(DiffSync):
     conn = dcim.Connection
     provider = circuits.Provider
     circuit = circuits.Circuit
+    patchpanel = assets.PatchPanel
+    patchpanelrearport = assets.PatchPanelRearPort
+    patchpanelfrontport = assets.PatchPanelFrontPort
 
     top_level = [
         "building",
@@ -64,6 +70,9 @@ class NautobotAdapter(DiffSync):
         "vlan",
         "cluster",
         "device",
+        "patchpanel",
+        "patchpanelrearport",
+        "patchpanelfrontport",
         "ipaddr",
         "provider",
         "circuit",
@@ -100,6 +109,7 @@ class NautobotAdapter(DiffSync):
             "cluster",
             "port",
             "device",
+            "patchpanel",
             "device_type",
             "manufacturer",
             "rack",
@@ -212,6 +222,26 @@ class NautobotAdapter(DiffSync):
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
         for dev in Device.objects.all():
+            # As patch panels are added as Devices, we need to filter them out for their own load method.
+            if DeviceRole.objects.get(id=dev.device_role.id).name == "patch panel":
+                patch_panel = self.patchpanel(
+                    name=dev.name,
+                    in_service=bool(str(dev.status.name) == "Active"),
+                    vendor=dev.device_type.manufacturer.name,
+                    model=dev.device_type.model,
+                    size=dev.device_type.u_height,
+                    depth="Full Depth" if dev.device_type.is_full_depth else "Half Depth",
+                    position=dev.position,
+                    orientation=dev.face if dev.face else "rear",
+                    num_ports=len(FrontPort.objects.filter(device__name=dev.name)),
+                    building=dev.site.name,
+                    room=dev.rack.group.name if dev.rack else "",
+                    rack=dev.rack.name if dev.rack else "",
+                    serial_no=dev.serial if dev.serial else "",
+                    uuid=dev.id,
+                )
+                self.add(patch_panel)
+                continue
             if dev.platform and dev.platform.name in ANSIBLE_LIB_MAPPER:
                 _platform = ANSIBLE_LIB_MAPPER[dev.platform.name]
             elif dev.platform:
@@ -510,6 +540,30 @@ class NautobotAdapter(DiffSync):
                 new_circuit.endpoint_dev = _circuit.termination_z.connected_endpoint.device.name
             self.add(new_circuit)
 
+    def load_front_ports(self):
+        """Add Nautobot FrontPort objects as DiffSync PatchPanelFrontPort models."""
+        for port in FrontPort.objects.all():
+            if port.device.device_role.name == "patch panel":
+                front_port = self.patchpanelfrontport(
+                    name=port.name,
+                    patchpanel=port.device.name,
+                    port_type=port.type,
+                    uuid=port.id,
+                )
+                self.add(front_port)
+
+    def load_rear_ports(self):
+        """Add Nautobot RearPort objects as DiffSync PatchPanelRearPort models."""
+        for port in RearPort.objects.all():
+            if port.device.device_role.name == "patch panel":
+                rear_port = self.patchpanelrearport(
+                    name=port.name,
+                    patchpanel=port.device.name,
+                    port_type=port.type,
+                    uuid=port.id,
+                )
+                self.add(rear_port)
+
     def load(self):
         """Load data from Nautobot."""
         # Import all Nautobot Site records as Buildings
@@ -528,3 +582,5 @@ class NautobotAdapter(DiffSync):
         self.load_cables()
         self.load_providers()
         self.load_circuits()
+        self.load_front_ports()
+        self.load_rear_ports()

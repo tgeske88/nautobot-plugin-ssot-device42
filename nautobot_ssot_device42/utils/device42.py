@@ -611,7 +611,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             dict: Dictionary of Patch Panels in Device42.
         """
-        query = "SELECT a.name, a.in_service, a.serial_no, a.customer_fk, a.building_fk, a.calculated_building_fk, a.room_fk, a.calculated_room_fk, a.calculated_rack_fk, a.size, m.number_of_ports, m.name as model_name, m.port_type_name as port_type, v.name as vendor, a.rack_fk, a.start_at as position FROM view_asset_v1 a LEFT JOIN view_patchpanelmodel_v1 m ON m.patchpanelmodel_pk = a.patchpanelmodel_fk JOIN view_vendor_v1 v ON v.vendor_pk = m.vendor_fk WHERE a.patchpanelmodel_fk is not null"
+        query = "SELECT a.name, a.in_service, a.serial_no, a.customer_fk, a.building_fk, a.calculated_building_fk, a.room_fk, a.calculated_room_fk, a.calculated_rack_fk, a.size, a.depth, m.number_of_ports, m.name as model_name, m.port_type_name as port_type, v.name as vendor, a.rack_fk, a.start_at as position, a.orientation FROM view_asset_v1 a LEFT JOIN view_patchpanelmodel_v1 m ON m.patchpanelmodel_pk = a.patchpanelmodel_fk JOIN view_vendor_v1 v ON v.vendor_pk = m.vendor_fk WHERE a.patchpanelmodel_fk is not null AND a.name is not null"
         return self.doql_query(query=query)
 
     def get_customer_pks(self) -> dict:
