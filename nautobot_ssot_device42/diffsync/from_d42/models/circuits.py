@@ -58,7 +58,7 @@ class Provider(DiffSyncModel):
                 return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
             except ValidationError as err:
                 if diffsync.job.debug:
-                        diffsync.job.log_warning(message=f"Unable to create {self.name} provider. {err}")
+                    diffsync.job.log_warning(message=f"Unable to create {ids['name']} provider. {err}")
                 return None
 
     def update(self, attrs):
