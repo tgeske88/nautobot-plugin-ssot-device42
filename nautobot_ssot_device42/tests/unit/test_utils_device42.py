@@ -359,6 +359,21 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         self.assertTrue(len(responses.calls) == 1)
 
     @responses.activate
+    def test_get_vendors(self):
+        """Test get_vendors success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_vendors_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/api/1.0/vendors",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_vendors_recv.json")
+        response = self.dev42.get_vendors()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
     def test_get_cluster_members(self):
         """Test get_cluster_members success."""
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_cluster_members_sent.json")

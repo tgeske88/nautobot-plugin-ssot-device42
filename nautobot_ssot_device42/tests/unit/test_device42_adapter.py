@@ -20,6 +20,7 @@ def load_json(path):
 BUILDING_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_buildings_recv.json")
 ROOM_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_rooms_recv.json")
 RACK_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_racks_recv.json")
+VENDOR_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vendors_recv.json")
 
 
 @patch("nautobot.extras.models.models.JOB_LOGS", None)
@@ -33,6 +34,7 @@ class Device42AdapterTestCase(TestCase):
         self.d42_client.get_buildings.return_value = BUILDING_FIXTURE
         self.d42_client.get_rooms.return_value = ROOM_FIXTURE
         self.d42_client.get_racks.return_value = RACK_FIXTURE
+        self.d42_client.get_vendors.return_value = VENDOR_FIXTURE
 
         self.job = Device42DataSource()
         self.job.job_result = JobResult.objects.create(
@@ -57,6 +59,11 @@ class Device42AdapterTestCase(TestCase):
         self.assertEqual(
             {f"{rack['name']}__{rack['building']}__{rack['room']}" for rack in RACK_FIXTURE},
             {rack.get_unique_id() for rack in self.device42.get_all("rack")},
+        )
+        self.device42.load_vendors()
+        self.assertEqual(
+            {vendor["name"] for vendor in VENDOR_FIXTURE},
+            {vendor.get_unique_id() for vendor in self.device42.get_all("vendor")},
         )
 
     def test_filter_ports(self):

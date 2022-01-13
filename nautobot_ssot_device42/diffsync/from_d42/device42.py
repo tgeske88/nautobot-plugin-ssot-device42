@@ -280,7 +280,7 @@ class Device42Adapter(DiffSync):
 
     def load_vendors(self):
         """Load Device42 vendors."""
-        for _vendor in self.device42.api_call(path="api/1.0/vendors")["vendors"]:
+        for _vendor in self.device42.get_vendors():
             if self.job.debug:
                 self.job.log_info(message=f"Loading vendor {_vendor['name']} from Device42.")
             vendor = self.vendor(
