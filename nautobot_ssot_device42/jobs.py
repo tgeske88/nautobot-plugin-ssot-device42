@@ -20,7 +20,7 @@ from .diff import CustomOrderingDiff
 class Device42DataSource(DataSource, Job):
     """Device42 SSoT Data Source."""
 
-    debug = BooleanVar(description="Enable for more verbose debug logging")
+    debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
 
     class Meta:
         """Meta data for Device42."""
