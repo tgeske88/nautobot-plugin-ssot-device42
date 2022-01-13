@@ -5,8 +5,8 @@ import ipaddress
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists
 from django.db.models import ProtectedError
+from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.from_d42.models import assets, circuits, dcim, ipam
-
 from nautobot_ssot_device42.utils import nautobot
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
 
@@ -99,28 +99,29 @@ class NautobotAdapter(DiffSync):
         Args:
             source (DiffSync): DiffSync
         """
-        for grouping in (
-            "ipaddr",
-            "subnet",
-            "vrf",
-            "vlan",
-            "circuit",
-            "provider",
-            "cluster",
-            "port",
-            "device",
-            "patchpanel",
-            "device_type",
-            "manufacturer",
-            "rack",
-            "site",
-        ):
-            for nautobot_object in self.objects_to_delete[grouping]:
-                try:
-                    nautobot_object.delete()
-                except ProtectedError:
-                    self.job.log(f"Deletion failed protected object: {nautobot_object}")
-            self.objects_to_delete[grouping] = []
+        if PLUGIN_CFG.get("delete_on_sync"):
+            for grouping in (
+                "ipaddr",
+                "subnet",
+                "vrf",
+                "vlan",
+                "circuit",
+                "provider",
+                "cluster",
+                "port",
+                "device",
+                "patchpanel",
+                "device_type",
+                "manufacturer",
+                "rack",
+                "site",
+            ):
+                for nautobot_object in self.objects_to_delete[grouping]:
+                    try:
+                        nautobot_object.delete()
+                    except ProtectedError:
+                        self.job.log(f"Deletion failed protected object: {nautobot_object}")
+                self.objects_to_delete[grouping] = []
 
         return super().sync_complete(source, *args, **kwargs)
 

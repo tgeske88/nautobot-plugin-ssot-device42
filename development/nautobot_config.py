@@ -277,6 +277,7 @@ PLUGINS_CONFIG = {
             "rack_status": "Active",
             "device_role": "Unknown",
         },
+        "delete_on_sync": False,
         "use_dns": True,
         "customer_is_facility": True,
         "facility_prepend": "sitecode-",

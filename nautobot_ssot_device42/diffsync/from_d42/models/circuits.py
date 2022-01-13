@@ -13,7 +13,7 @@ from nautobot.dcim.models import Cable as NautobotCable
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
 from nautobot.extras.models import Status as NautobotStatus
-from nautobot_ssot_device42.constant import INTF_SPEED_MAP
+from nautobot_ssot_device42.constant import INTF_SPEED_MAP, PLUGIN_CFG
 from nautobot_ssot_device42.utils import nautobot
 
 
@@ -78,10 +78,11 @@ class Provider(DiffSyncModel):
         The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        self.diffsync.job.log_warning(message=f"Provider {self.name} will be deleted.")
-        super().delete()
-        provider = NautobotProvider.objects.get(id=self.uuid)
-        self.diffsync.objects_to_delete["provider"].append(provider)  # pylint: disable=protected-access
+        if PLUGIN_CFG.get("delete_on_sync"):
+            self.diffsync.job.log_warning(message=f"Provider {self.name} will be deleted.")
+            super().delete()
+            provider = NautobotProvider.objects.get(id=self.uuid)
+            self.diffsync.objects_to_delete["provider"].append(provider)  # pylint: disable=protected-access
         return self
 
 
@@ -217,8 +218,9 @@ class Circuit(DiffSyncModel):
         The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        self.diffsync.job.log_warning(message=f"Circuit {self.circuit_id} will be deleted.")
-        super().delete()
-        circuit = NautobotCircuit.objects.get(id=self.uuid)
-        self.diffsync.objects_to_delete["circuit"].append(circuit)  # pylint: disable=protected-access
+        if PLUGIN_CFG.get("delete_on_sync"):
+            self.diffsync.job.log_warning(message=f"Circuit {self.circuit_id} will be deleted.")
+            super().delete()
+            circuit = NautobotCircuit.objects.get(id=self.uuid)
+            self.diffsync.objects_to_delete["circuit"].append(circuit)  # pylint: disable=protected-access
         return self

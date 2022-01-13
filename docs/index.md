@@ -32,6 +32,8 @@ __*defaults["device_role"]*__ - This setting defines the default Role for a Devi
 
 Finally, there are some optional settings that enable the plugin to handle the Device42 import data in a more specific way:
 
+__*delete_on_sync*__ - This option allows you to prevent data from being deleted when its missing from a sync. This is useful in situations where the data is inaccurate in Device42 and you want to control what is removed automatically.
+
 __*use_dns*__ - This option will have the plugin perform a DNS query of the Device's hostname to see if there is an A record. If there is, it will assign that as the Device's primary IP address. If it is unable to determine the interface to assign that IP address to, it will create a Management interface on the Device. Value is expected to be a boolean.
 
 __*customer_is_facility*__ - This option is for the use case where the Device42 Customer field is used to denote a Site's facility instead of a Customer (department, division, tenant). Value is expected to be a string.
@@ -46,11 +48,11 @@ __*hostname_mapping*__ - This option enables the ability for a Device to be assi
 
 ## Usage
 
-This plugin has been validated to work with Nautobot v1.1.0-1.1.4 and has been validated against Device42 v17.02.00.1622225288. It currently supports importing data from Device42 into Nautobot but not the reverse.
+This plugin has been validated to work with Nautobot v1.1.0-1.2.2 and has been validated against Device42 v17.02.00.1622225288. It currently supports importing data from Device42 into Nautobot but not the reverse.
 
-## API
+## Caveats
 
-*TBD*
+Nautobot does not currently have a mechanism to document multiple Devices in the same Rack U position. Only one device in that U location wil be assigned in Nautobot and the rest will be assigned to the Rack itself but not racked.
 
 ## Views
 
@@ -98,6 +100,7 @@ Due to requirements for model creation in Nautobot, the following requirements o
 ### Devices
 
 - must have at least Building or Customer specified
+- only one Device can be racked in a specific Rack and position
 - must have the Hardware model specified
 
   __NOTE__: Device Platform has a different use for each section as follows:
@@ -131,3 +134,8 @@ Due to requirements for model creation in Nautobot, the following requirements o
 
 - Must have a Provider associated
 - Connections must terminate on a Device Interface or a Patch Panel
+
+### Patch Panels
+
+- Must be installed in a Rack to have location information.
+- If "customer_is_facility" option is enabled the Customer field may be used to determine location.

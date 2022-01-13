@@ -7,7 +7,7 @@ from diffsync import DiffSyncModel
 from django.core.exceptions import ValidationError
 from nautobot.dcim.models import Site, RackGroup, Rack, Device, DeviceType, FrontPort, RearPort
 from nautobot.extras.models import Status
-
+from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.utils import nautobot
 
 
@@ -184,11 +184,12 @@ class PatchPanel(DiffSyncModel):
         The self.diffsync.objects_to_delete dictionary stores all objects for deletion and removes them from Nautobot
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
-        super().delete()
-        _pp = Device.objects.get(id=self.uuid)
-        if self.diffsync.job.debug:
-            self.diffsync.job.log_warning(message=f"Patch panel {self.name} will be deleted.")
-        self.diffsync.objects_to_delete["patchpanel"].append(_pp)  # pylint: disable=protected-access
+        if PLUGIN_CFG.get("delete_on_sync"):
+            super().delete()
+            _pp = Device.objects.get(id=self.uuid)
+            if self.diffsync.job.debug:
+                self.diffsync.job.log_warning(message=f"Patch panel {self.name} will be deleted.")
+            self.diffsync.objects_to_delete["patchpanel"].append(_pp)  # pylint: disable=protected-access
         return self
 
 
@@ -242,11 +243,12 @@ class PatchPanelRearPort(DiffSyncModel):
 
     def delete(self):
         """Delete RearPort object from Nautobot."""
-        super().delete()
-        port = RearPort.objects.get(id=self.uuid)
-        if self.diffsync.job.debug:
-            self.diffsync.job.log_warning(message=f"RearPort {self.name} for {self.patchpanel} will be deleted.")
-        port.delete()
+        if PLUGIN_CFG.get("delete_on_sync"):
+            super().delete()
+            port = RearPort.objects.get(id=self.uuid)
+            if self.diffsync.job.debug:
+                self.diffsync.job.log_warning(message=f"RearPort {self.name} for {self.patchpanel} will be deleted.")
+            port.delete()
         return self
 
 
@@ -301,9 +303,10 @@ class PatchPanelFrontPort(DiffSyncModel):
 
     def delete(self):
         """Delete FrontPort object from Nautobot."""
-        super().delete()
-        port = FrontPort.objects.get(id=self.uuid)
-        if self.diffsync.job.debug:
-            self.diffsync.job.log_warning(message=f"FrontPort {self.name} for {self.patchpanel} will be deleted.")
-        port.delete()
+        if PLUGIN_CFG.get("delete_on_sync"):
+            super().delete()
+            port = FrontPort.objects.get(id=self.uuid)
+            if self.diffsync.job.debug:
+                self.diffsync.job.log_warning(message=f"FrontPort {self.name} for {self.patchpanel} will be deleted.")
+            port.delete()
         return self
