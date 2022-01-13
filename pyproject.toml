@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nautobot-ssot-device42"
-version = "0.15.0"
+version = "1.0.0"
 description = "Nautobot plugin for syncing to Device42"
 authors = ["Justin Drew <justin.drew@networktocode.com>"]
 readme = "README.md"
@@ -113,4 +113,3 @@ upload_to_PyPI = false
 upload_to_release = false
 changelog_file = "CHANGELOG.md"
 hvcs = "Gitlab"
-hvcs_domain = "gitlab.corp.zmi.global"
