@@ -383,7 +383,13 @@ class NautobotAdapter(DiffSync):
                 new_ip.primary = True
             else:
                 new_ip.primary = False
-            self.add(new_ip)
+            try:
+                self.add(new_ip)
+            except ObjectAlreadyExists as err:
+                if self.job.debug:
+                    self.job.log_debug(
+                        message=f"Duplicate IP Address {_ip.address} found and won't be imported. Validate the duplicate address is accurate. {err}"
+                    )
 
     def load_vlans(self):
         """Add Nautobot VLAN objects as DiffSync VLAN models."""
