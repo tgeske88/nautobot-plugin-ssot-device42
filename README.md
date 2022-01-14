@@ -22,7 +22,7 @@ Once installed, the plugin needs to be enabled in your `nautobot_configuration.p
 
 ```python
 # In your configuration.py
-PLUGINS = ["nautobot_ssot_device42"]
+PLUGINS = ["nautobot_ssot", "nautobot_ssot_device42"]
 
 PLUGINS_CONFIG = {
   "nautobot_ssot_device42": {
@@ -35,6 +35,7 @@ PLUGINS_CONFIG = {
         "rack_status": "Active",
         "device_role": "Unknown",
     },
+    "delete_on_sync": False,
     "use_dns": False,
     "customer_is_facility": False,
     "facility_prepend": "sitecode-",
@@ -47,7 +48,18 @@ PLUGINS_CONFIG = {
 
 The plugin behavior can be controlled with the following list of settings
 
-- TODO
+- *device42_host* - This defines the FQDN of the Device42 instance you wish to connect to, including the protocol, ie `https://device42.example.com`.
+- *device42_username* - This defines the username of the account used to connect to the Device42 API endpoint.
+- *device42_password* - This defines the password of the account used to connect to the Device42 API endpoint.
+- *verify_ssl* - This denotes whether SSL validation of the Device42 endpoint should be enabled or not. This is helpful in cases where you have a self-signed certificate in use for a test instance.
+*defaults* - These are intended to be options to customize what a particular object attribute will be set to if the information is unable to be obtained from Device42. These allow you to specify a default Site or Rack status along with the default Device role.
+- *delete_on_sync* - This option prevents objects from being deleted from Nautobot during a synchronization. This is handy if your Device42 data fluctuates a lot and you wish to control what is removed from Nautobot. This means objects will only be added, never deleted when set to False.
+- *use_dns* - This option enables the DNS resolution of Device's for assigning primary IP addresses. When True, there will be an additional process of performing DNS queries for each Device in the sync and if an A record is found, will be assigned as primary IP for the Device. It will attempt to use the interface for the IP based upon data from Device42 but will create a Management interface and assign the IP to it if an interface can't be determined.
+- *customer_is_facility* - This option is for when you are utilizing the Customer field in Device42 to denote the site code, or facility, for the Site that the particular object resides in.
+- *facility_prepend* - This defines the string that is expected on a Tag when determining a Building's site code. If a Building has a Tag that starts with `sitecode-` it will assume the remaining Tag is the facility code.
+- *role_prepend* - Like the `facility_prepend` option, this defines the string on a Tag that defines a Device's role. If a Device has a Tag that starts with `nautobot-` it will assume the remaining string is the name of the Device's role, such as `access-switch` for example.
+- *ignore_tag* - This option allows you to define a Tag string that when found on a Device will exempt it from the sync. This is helpful for cases where you want to ensure certain Devices aren't imported.
+- *hostname_mapping* - This option allows you to define a mapping of a regex pattern that defines a Device's hostname and which Site the Device should be assigned. This is helpful if the location information for Devices in Device42 is inaccurate and your Device's are named with the Site name or code in it. For example, if you have Device's called `DFW-access-switch`, you could map that as `^DFW.+: dallas` where `dallas` is the slug form for your Site name.
 
 ## Usage
 
