@@ -1159,7 +1159,8 @@ class Connection(DiffSyncModel):
                 color=nautobot.get_random_color(),
             )
             return new_cable
-        return None
+        else:
+            return None
 
     def get_device_connections(self, diffsync, ids) -> Optional[NautobotCable]:
         """Method to create a Cable between two Devices.
@@ -1175,7 +1176,7 @@ class Connection(DiffSyncModel):
         try:
             if ids.get("src_port_mac") and ids["src_port_mac"] != ids.get("dst_port_mac"):
                 _src_port = NautobotInterface.objects.get(mac_address=ids["src_port_mac"])
-        except NautobotInterface.DoesNotExist:
+        except (NautobotInterface.DoesNotExist, NautobotInterface.MultipleObjectsReturned):
             try:
                 _src_port = NautobotInterface.objects.get(device__name=ids["src_device"], name=ids["src_port"])
             except NautobotInterface.DoesNotExist as err:
@@ -1187,7 +1188,7 @@ class Connection(DiffSyncModel):
         try:
             if ids.get("dst_port_mac") and ids["dst_port_mac"] != ids.get("src_port_mac"):
                 _dst_port = NautobotInterface.objects.get(mac_address=ids["dst_port_mac"])
-        except NautobotInterface.DoesNotExist:
+        except (NautobotInterface.DoesNotExist, NautobotInterface.MultipleObjectsReturned):
             try:
                 _dst_port = NautobotInterface.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
             except NautobotInterface.DoesNotExist:
@@ -1206,7 +1207,8 @@ class Connection(DiffSyncModel):
                 color=nautobot.get_random_color(),
             )
             return new_cable
-        return None
+        else:
+            return None
 
     def delete(self):
         """Delete Cable object from Nautobot."""
