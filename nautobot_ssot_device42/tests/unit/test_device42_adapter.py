@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from nautobot.extras.models import Job, JobResult
-
-from nautobot_ssot_device42.diffsync.from_d42.device42 import Device42Adapter
+from parameterized import parameterized
+from nautobot_ssot_device42.diffsync.from_d42.device42 import Device42Adapter, get_circuit_status
 from nautobot_ssot_device42.jobs import Device42DataSource
 
 
@@ -72,6 +72,19 @@ class Device42AdapterTestCase(TestCase):
             {model["name"] for model in HARDWARE_FIXTURE},
             {model.get_unique_id() for model in self.device42.get_all("hardware")},
         )
+
+    statuses = [
+        ("Production", "Production", "Active"),
+        ("Provisioning", "Provisioning", "Provisioning"),
+        ("Canceled", "Canceled", "Deprovisioning"),
+        ("Decommissioned", "Decommissioned", "Decommissioned"),
+        ("Ordered", "Ordered", "Offline"),
+    ]
+
+    @parameterized.expand(statuses, skip_on_empty=True)
+    def test_get_circuit_status(self, name, sent, received):  # pylint: disable=unused-argument
+        """Test get_circuit_status success."""
+        self.assertEqual(get_circuit_status(sent), received)
 
     def test_filter_ports(self):
         """Method to test filter_ports success."""

@@ -297,7 +297,7 @@ class Device42Adapter(DiffSync):
                 self.job.log_info(message=f"Loading hardware model {_model['name']} from Device42.")
             if _model.get("manufacturer"):
                 model = self.hardware(
-                    name=_model["name"],
+                    name=sanitize_string(_model["name"]),
                     manufacturer=_model["manufacturer"] if _model.get("manufacturer") else "Unknown",
                     size=float(round(_model["size"])) if _model.get("size") else 1.0,
                     depth=_model["depth"] if _model.get("depth") else "Half Depth",
@@ -960,7 +960,8 @@ class Device42Adapter(DiffSync):
                 _rack = self.rack_map[panel["rack_fk"]]["name"]
             if _building is None and _room is None and _rack is None:
                 if self.job.debug:
-                    self.job.log_debug(message=f"Unable to determine Site, Room, or Rack for patch panel {panel['name']} so it will NOT be imported."
+                    self.job.log_debug(
+                        message=f"Unable to determine Site, Room, or Rack for patch panel {panel['name']} so it will NOT be imported."
                     )
                 continue
             try:
