@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.1.0 (2022-01-14)
+### Feature
+* :sparkles: Correct data mappings for plugin to reflect all objects that are imported ([`4a701a4`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4a701a452bd2f64fa428fb8605d2a8a03dcb97c5))
+
+### Fix
+* :bug: Ensure all logging uses message attr ([`81976b6`](https://github.com/networking/nautobot-plugin-device42-sync/commit/81976b6c1e1516536455d494ac01b1a83ddc43fa))
+* :bug: Add handling for duplicate MAC addresses ([`8c886c6`](https://github.com/networking/nautobot-plugin-device42-sync/commit/8c886c67204795452c5bbbfe9e91a213f72a9cc7))
+* :bug: Ensure debug defaults to False. ([`2497cc1`](https://github.com/networking/nautobot-plugin-device42-sync/commit/2497cc166dcfcbb49c8a45e885e59316bf510d1a))
+* :bug: Catch ValidationErrors when creating a new Device. ([`e9a608a`](https://github.com/networking/nautobot-plugin-device42-sync/commit/e9a608a9d14ef6cd1965c376c0fed5e5f76bab82))
+* :bug: Fix port_speed trying to be set with FrontPort type ([`92985ea`](https://github.com/networking/nautobot-plugin-device42-sync/commit/92985eadcbb22bb3d1fe935aa5c6f907e871d488))
+
 ## [v1.0.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v1.0.0) -  (2022-01-13)
 
 Plugin is officially in a stable, production ready state!
