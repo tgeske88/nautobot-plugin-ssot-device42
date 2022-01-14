@@ -63,6 +63,10 @@ The plugin behavior can be controlled with the following list of settings
 
 ## Usage
 
+Once the plugin is installed and configured, you will be able to perform a data import from Device42. From the Nautobot SSoT dashboard view (`/plugins/ssot/`), Device42 will show as a Data Source. Simply click the `Sync Now` button to start the Job to synchronize data from Device42 to Nautobot. Running this Job will redirect you to a `Nautobot Job Result` view, from which you can access the `SSoT Sync Details` view to see detailed information about the data that was synchronized and the outcome of the sync Job.
+
+![Detail View](./docs/images/detail-view.png)
+
 ### API
 
 TODO
