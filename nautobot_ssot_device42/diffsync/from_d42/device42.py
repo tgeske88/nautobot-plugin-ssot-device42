@@ -960,7 +960,8 @@ class Device42Adapter(DiffSync):
                 _rack = self.rack_map[panel["rack_fk"]]["name"]
             if _building is None and _room is None and _rack is None:
                 if self.job.debug:
-                    self.job.log_debug(message=f"Unable to determine Site, Room, or Rack for patch panel {panel['name']} so it will NOT be imported."
+                    self.job.log_debug(
+                        message=f"Unable to determine Site, Room, or Rack for patch panel {panel['name']} so it will NOT be imported."
                     )
                 continue
             try:
