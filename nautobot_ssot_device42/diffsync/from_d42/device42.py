@@ -438,7 +438,7 @@ class Device42Adapter(DiffSync):
                         if is_truthy(self.device42_clusters[cluster_host]["is_network"]) is False:
                             if self.job.debug:
                                 self.job.log_warning(
-                                    f"{cluster_host} has network device members but isn't marked as network. This should be corrected in Device42."
+                                    message=f"{cluster_host} has network device members but isn't marked as network. This should be corrected in Device42."
                                 )
                         _device.cluster_host = cluster_host
                         if _device.name == cluster_host:
@@ -461,7 +461,7 @@ class Device42Adapter(DiffSync):
         for _port in merged_ports:
             if _port.get("port_name") and _port.get("device_name"):
                 if self.job.debug:
-                    self.job.log_info(f"Loading Port {_port['port_name']} for Device {_port['device_name']}")
+                    self.job.log_info(message=f"Loading Port {_port['port_name']} for Device {_port['device_name']}")
                 _tags = _port["tags"].split(",") if _port.get("tags") else []
                 if len(_tags) > 1:
                     _tags.sort()
@@ -712,7 +712,7 @@ class Device42Adapter(DiffSync):
                 self.add(rev_conn)
             except ObjectAlreadyExists as err:
                 if self.job.debug:
-                    self.job.log_warning(err)
+                    self.job.log_warning(message=err)
                 continue
 
     def load_provider(self, provider_info: dict):
@@ -960,8 +960,7 @@ class Device42Adapter(DiffSync):
                 _rack = self.rack_map[panel["rack_fk"]]["name"]
             if _building is None and _room is None and _rack is None:
                 if self.job.debug:
-                    self.job.log_debug(
-                        f"Unable to determine Site, Room, or Rack for patch panel {panel['name']} so it will NOT be imported."
+                    self.job.log_debug(message=f"Unable to determine Site, Room, or Rack for patch panel {panel['name']} so it will NOT be imported."
                     )
                 continue
             try:

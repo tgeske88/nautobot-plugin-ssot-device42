@@ -20,7 +20,7 @@ from .diff import CustomOrderingDiff
 class Device42DataSource(DataSource, Job):
     """Device42 SSoT Data Source."""
 
-    debug = BooleanVar(description="Enable for more verbose debug logging")
+    debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
 
     class Meta:
         """Meta data for Device42."""
@@ -43,11 +43,20 @@ class Device42DataSource(DataSource, Job):
     def data_mappings(cls):
         """List describing the data mappings involved in this DataSource."""
         return (
-            DataMapping("building", None, "Sites", reverse("dcim:site_list")),
-            DataMapping("room", None, "Rack-Groups", reverse("dcim:rackgroup_list")),
-            DataMapping("vendor", None, "Manufacturers", reverse("dcim:manufacturer_list")),
-            DataMapping("hardware", None, "Device Types", reverse("dcim:devicetype_list")),
-            DataMapping("device", None, "Devices", reverse("dcim:device_list")),
+            DataMapping("Buildings", None, "Sites", reverse("dcim:site_list")),
+            DataMapping("Rooms", None, "Rack Groups", reverse("dcim:rackgroup_list")),
+            DataMapping("Racks", None, "Racks", reverse("dcim:rack_list")),
+            DataMapping("Vendors", None, "Manufacturers", reverse("dcim:manufacturer_list")),
+            DataMapping("Hardware Models", None, "Device Types", reverse("dcim:devicetype_list")),
+            DataMapping("Devices", None, "Devices", reverse("dcim:device_list")),
+            DataMapping("Ports", None, "Interfaces", reverse("dcim:interface_list")),
+            DataMapping("Cables", None, "Cables", reverse("dcim:cable_list")),
+            DataMapping("VPC (VRF Groups)", None, "VRFs", reverse("ipam:vrf_list")),
+            DataMapping("Subnets", None, "Prefixes", reverse("ipam:prefix_list")),
+            DataMapping("IP Addresses", None, "IP Addresses", reverse("ipam:ipaddress_list")),
+            DataMapping("VLANs", None, "VLANs", reverse("ipam:vlan_list")),
+            DataMapping("Providers", None, "Providers", reverse("circuits:provider_list")),
+            DataMapping("Telco Circuits", None, "Circuits", reverse("circuits:circuit_list")),
         )
 
     def sync_data(self):

@@ -178,7 +178,7 @@ class NautobotAdapter(DiffSync):
                 _room.add_child(child=new_rack)
             except ObjectAlreadyExists as err:
                 if self.job.debug:
-                    self.job.log_warning(err)
+                    self.job.log_warning(message=err)
 
     def load_manufacturers(self):
         """Add Nautobot Manufacturer objects as DiffSync Vendor models."""
@@ -409,7 +409,7 @@ class NautobotAdapter(DiffSync):
                 self.add(_vlan)
             except ObjectAlreadyExists as err:
                 if self.job.debug:
-                    self.job.log_warning(err)
+                    self.job.log_warning(message=err)
 
     def load_cables(self):
         """Add Nautobot Cable objects as DiffSync Connection models."""

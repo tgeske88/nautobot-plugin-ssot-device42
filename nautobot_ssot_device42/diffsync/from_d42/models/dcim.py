@@ -698,8 +698,12 @@ class Device(DiffSyncModel):
                     field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
                     field.content_types.add(ContentType.objects.get_for_model(NautobotDevice).id)
                     new_device.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
-            new_device.validated_save()
-            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+            try:
+                new_device.validated_save()
+                return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+            except ValidationError as err:
+                if diffsync.job.debug:
+                    diffsync.job.log_debug(message=f"Validation error when creating Device {ids['name']}. {err}")
         except NautobotRack.DoesNotExist:
             if diffsync.job.debug:
                 diffsync.job.log_debug(message=f"Unable to find matching Rack {attrs.get('rack')} for {_site.name}")
@@ -708,7 +712,7 @@ class Device(DiffSyncModel):
                 diffsync.job.log_debug(
                     message=f"Unable to find matching DeviceType {attrs['hardware']} for {ids['name']}.",
                 )
-            return None
+        return None
 
     def update(self, attrs):
         """Update Device object in Nautobot."""
@@ -1141,7 +1145,7 @@ class Connection(DiffSyncModel):
             circuit_term = NautobotCT.objects.get(**_ct)
         except NautobotCT.DoesNotExist:
             circuit_term = NautobotCT(**_ct)
-            circuit_term.port_speed = INTF_SPEED_MAP[_intf.type]
+            circuit_term.port_speed = INTF_SPEED_MAP[_intf.type] if isinstance(_intf, NautobotInterface) else None
             circuit_term.validated_save()
         if _intf and not _intf.cable and not circuit_term.cable:
             new_cable = NautobotCable(
@@ -1155,7 +1159,8 @@ class Connection(DiffSyncModel):
                 color=nautobot.get_random_color(),
             )
             return new_cable
-        return None
+        else:
+            return None
 
     def get_device_connections(self, diffsync, ids) -> Optional[NautobotCable]:
         """Method to create a Cable between two Devices.
@@ -1171,7 +1176,7 @@ class Connection(DiffSyncModel):
         try:
             if ids.get("src_port_mac") and ids["src_port_mac"] != ids.get("dst_port_mac"):
                 _src_port = NautobotInterface.objects.get(mac_address=ids["src_port_mac"])
-        except NautobotInterface.DoesNotExist:
+        except (NautobotInterface.DoesNotExist, NautobotInterface.MultipleObjectsReturned):
             try:
                 _src_port = NautobotInterface.objects.get(device__name=ids["src_device"], name=ids["src_port"])
             except NautobotInterface.DoesNotExist as err:
@@ -1183,7 +1188,7 @@ class Connection(DiffSyncModel):
         try:
             if ids.get("dst_port_mac") and ids["dst_port_mac"] != ids.get("src_port_mac"):
                 _dst_port = NautobotInterface.objects.get(mac_address=ids["dst_port_mac"])
-        except NautobotInterface.DoesNotExist:
+        except (NautobotInterface.DoesNotExist, NautobotInterface.MultipleObjectsReturned):
             try:
                 _dst_port = NautobotInterface.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
             except NautobotInterface.DoesNotExist:
@@ -1202,7 +1207,8 @@ class Connection(DiffSyncModel):
                 color=nautobot.get_random_color(),
             )
             return new_cable
-        return None
+        else:
+            return None
 
     def delete(self):
         """Delete Cable object from Nautobot."""
