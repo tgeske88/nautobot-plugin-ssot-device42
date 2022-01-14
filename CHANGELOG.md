@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.1.1 (2022-01-14)
+### Fix
+* :bug: Fix path for Device42 logo ([`c36c5f8`](https://github.com/networking/nautobot-plugin-device42-sync/commit/c36c5f8d678a16c397013fea86cc5845bfa39244))
+* :bug: Ensure that hardware model names are sanitized ([`4f6c3c4`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4f6c3c4c6b67d4397a9b0428e245ad08dfb3a13b))
+
+### Documentation
+* :memo: Add usage information and sample detail view ([`261a4b8`](https://github.com/networking/nautobot-plugin-device42-sync/commit/261a4b8545950329c00bef1f6b548de0cce39680))
+* :memo: Update README with plugin setting details and fix nautobot_config example ([`6b2d3a7`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6b2d3a7d65d9ee40e9d6c6cfb1d8a1b28755cc27))
+
 ## v1.1.0 (2022-01-14)
 ### Feature
 * :sparkles: Correct data mappings for plugin to reflect all objects that are imported ([`4a701a4`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4a701a452bd2f64fa428fb8605d2a8a03dcb97c5))
