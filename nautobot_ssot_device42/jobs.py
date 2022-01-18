@@ -43,20 +43,72 @@ class Device42DataSource(DataSource, Job):
     def data_mappings(cls):
         """List describing the data mappings involved in this DataSource."""
         return (
-            DataMapping("Buildings", None, "Sites", reverse("dcim:site_list")),
-            DataMapping("Rooms", None, "Rack Groups", reverse("dcim:rackgroup_list")),
-            DataMapping("Racks", None, "Racks", reverse("dcim:rack_list")),
-            DataMapping("Vendors", None, "Manufacturers", reverse("dcim:manufacturer_list")),
-            DataMapping("Hardware Models", None, "Device Types", reverse("dcim:devicetype_list")),
-            DataMapping("Devices", None, "Devices", reverse("dcim:device_list")),
-            DataMapping("Ports", None, "Interfaces", reverse("dcim:interface_list")),
-            DataMapping("Cables", None, "Cables", reverse("dcim:cable_list")),
-            DataMapping("VPC (VRF Groups)", None, "VRFs", reverse("ipam:vrf_list")),
-            DataMapping("Subnets", None, "Prefixes", reverse("ipam:prefix_list")),
-            DataMapping("IP Addresses", None, "IP Addresses", reverse("ipam:ipaddress_list")),
-            DataMapping("VLANs", None, "VLANs", reverse("ipam:vlan_list")),
-            DataMapping("Providers", None, "Providers", reverse("circuits:provider_list")),
-            DataMapping("Telco Circuits", None, "Circuits", reverse("circuits:circuit_list")),
+            DataMapping(
+                "Buildings", f"{PLUGIN_CFG['device42_host']}admin/rackraj/building/", "Sites", reverse("dcim:site_list")
+            ),
+            DataMapping(
+                "Rooms",
+                f"{PLUGIN_CFG['device42_host']}admin/rackraj/room/",
+                "Rack Groups",
+                reverse("dcim:rackgroup_list"),
+            ),
+            DataMapping(
+                "Racks", f"{PLUGIN_CFG['device42_host']}admin/rackraj/rack/", "Racks", reverse("dcim:rack_list")
+            ),
+            DataMapping(
+                "Vendors",
+                f"{PLUGIN_CFG['device42_host']}admin/rackraj/organisation/",
+                "Manufacturers",
+                reverse("dcim:manufacturer_list"),
+            ),
+            DataMapping(
+                "Hardware Models",
+                f"{PLUGIN_CFG['device42_host']}admin/rackraj/hardware/",
+                "Device Types",
+                reverse("dcim:devicetype_list"),
+            ),
+            DataMapping(
+                "Devices", f"{PLUGIN_CFG['device42_host']}admin/rackraj/device/", "Devices", reverse("dcim:device_list")
+            ),
+            DataMapping(
+                "Ports",
+                f"{PLUGIN_CFG['device42_host']}admin/rackraj/netport/",
+                "Interfaces",
+                reverse("dcim:interface_list"),
+            ),
+            DataMapping(
+                "Cables", f"{PLUGIN_CFG['device42_host']}admin/rackraj/cable/", "Cables", reverse("dcim:cable_list")
+            ),
+            DataMapping(
+                "VPC (VRF Groups)",
+                f"{PLUGIN_CFG['device42_host']}admin/rackraj/vrfgroup/",
+                "VRFs",
+                reverse("ipam:vrf_list"),
+            ),
+            DataMapping(
+                "Subnets", f"{PLUGIN_CFG['device42_host']}admin/rackraj/vlan/", "Prefixes", reverse("ipam:prefix_list")
+            ),
+            DataMapping(
+                "IP Addresses",
+                f"{PLUGIN_CFG['device42_host']}admin/rackraj/ip_address/",
+                "IP Addresses",
+                reverse("ipam:ipaddress_list"),
+            ),
+            DataMapping(
+                "VLANs", f"{PLUGIN_CFG['device42_host']}admin/rackraj/switch_vlan/", "VLANs", reverse("ipam:vlan_list")
+            ),
+            DataMapping(
+                "Vendors",
+                f"{PLUGIN_CFG['device42_host']}admin/rackraj/organisation/",
+                "Providers",
+                reverse("circuits:provider_list"),
+            ),
+            DataMapping(
+                "Telco Circuits",
+                f"{PLUGIN_CFG['device42_host']}admin/rackraj/circuit/",
+                "Circuits",
+                reverse("circuits:circuit_list"),
+            ),
         )
 
     def sync_data(self):
