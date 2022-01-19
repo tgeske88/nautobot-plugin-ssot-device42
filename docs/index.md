@@ -48,7 +48,7 @@ __*hostname_mapping*__ - This option enables the ability for a Device to be assi
 
 ## Usage
 
-This plugin has been validated to work with Nautobot v1.1.0-1.2.2 and has been validated against Device42 v17.02.00.1622225288. It currently supports importing data from Device42 into Nautobot but not the reverse.
+This plugin has been validated to work with Nautobot v1.1.0-1.2.2 and has been validated against Device42 v17.02.00.1622225288 - v17.07.03.1636047368. It currently supports importing data from Device42 into Nautobot but not the reverse.
 
 ## Caveats
 
@@ -102,6 +102,7 @@ Due to requirements for model creation in Nautobot, the following requirements o
 - must have at least Building or Customer specified
 - only one Device can be racked in a specific Rack and position
 - must have the Hardware model specified
+- must be marked as a Network Device
 
   __NOTE__: Device Platform has a different use for each section as follows:
 
