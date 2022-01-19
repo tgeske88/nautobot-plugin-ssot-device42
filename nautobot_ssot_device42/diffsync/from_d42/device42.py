@@ -455,7 +455,8 @@ class Device42Adapter(DiffSync):
         """Load Device42 ports."""
         vlan_ports = self.device42.get_ports_with_vlans()
         no_vlan_ports = self.device42.get_ports_wo_vlans()
-        merged_ports = self.filter_ports(vlan_ports, no_vlan_ports)
+        # merged_ports = self.filter_ports(vlan_ports, no_vlan_ports)
+        merged_ports = vlan_ports + no_vlan_ports
         default_cfs = self.device42.get_port_default_custom_fields()
         _cfs = self.device42.get_port_custom_fields()
         for _port in merged_ports:
