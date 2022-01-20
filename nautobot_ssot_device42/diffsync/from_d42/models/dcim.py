@@ -817,8 +817,12 @@ class Device(DiffSyncModel):
                 if self.diffsync.job.debug:
                     self.diffsync.job.log_warning(message=f"Unable to find VC {_clus_host} {err}")
         print(f"Saving Device {self.name} in {_dev.site} {_dev.rack}")
-        _dev.validated_save()
-        return super().update(attrs)
+        try:
+            _dev.validated_save()
+            return super().update(attrs)
+        except ValidationError as err:
+            print(f"Unable to update Device {self.name} with {attrs}. {err}")
+            return None
 
     def delete(self):
         """Delete Device object from Nautobot.
