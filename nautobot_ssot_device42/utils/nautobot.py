@@ -131,8 +131,6 @@ def set_primary_ip_and_mgmt(ipaddr: IPAddress, dev: Device, intf: Interface):
         ipaddr.assigned_object = intf
         ipaddr.validated_save()
     assign_primary(dev=dev, ipaddr=ipaddr)
-    print(f"{ipaddr.address} set to primary on {dev.name}")
-    dev.validated_save()
     intf.mgmt_only = True
     intf.validated_save()
 
@@ -152,7 +150,10 @@ def assign_primary(dev: Device, ipaddr: IPAddress):
             dev.primary_ip6 = ipaddr
         else:
             dev.primary_ip4 = ipaddr
+        print(f"{ipaddr.address} set to primary on {dev.name}")
         dev.validated_save()
+    else:
+        print(f"IP Address on device {ipaddr.assigned_object.device} != {dev}")
 
 
 def get_or_create_tag(tag_name: str) -> Tag:
