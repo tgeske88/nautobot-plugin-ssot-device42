@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.2.0 (2022-01-20)
+### Feature
+* :sparkles: Add links for Device42 data mapping to D42 objects ([`1e37f53`](https://github.com/networking/nautobot-plugin-device42-sync/commit/1e37f53e59f7b216adba70a7107bccea08c8b265))
+
+### Fix
+* :bug: Add ValidationError handling for IP Address updates ([`7c17ec0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/7c17ec0f0bf04c3f539e4c610d0c92df04ef93b4))
+* :bug: Add handling for only device attribute passed for update ([`40bea3e`](https://github.com/networking/nautobot-plugin-device42-sync/commit/40bea3e9712b0e00658e0da3b0cc733c717d7116))
+* :bug: Handle validation errors for device updates ([`cfe4e69`](https://github.com/networking/nautobot-plugin-device42-sync/commit/cfe4e697b437b78ef87e8e7aa65a47407838d1b0))
+* :bug: Remove redundant device save and tweak debug output ([`cf7b63d`](https://github.com/networking/nautobot-plugin-device42-sync/commit/cf7b63df89631652d5df5a1a980b988080cba6d3))
+
+### Documentation
+* :memo: Update documentation on Devices and D42 support ([`f608c28`](https://github.com/networking/nautobot-plugin-device42-sync/commit/f608c286b83efac7e47e393bdb371247d1516854))
+
 ## v1.1.1 (2022-01-14)
 ### Fix
 * :bug: Fix path for Device42 logo ([`c36c5f8`](https://github.com/networking/nautobot-plugin-device42-sync/commit/c36c5f8d678a16c397013fea86cc5845bfa39244))
