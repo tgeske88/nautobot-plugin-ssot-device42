@@ -7,6 +7,7 @@ from uuid import UUID
 from diffsync import DiffSyncModel
 from diffsync.exceptions import ObjectAlreadyExists
 from django.contrib.contenttypes.models import ContentType
+from django.forms import ValidationError
 from django.utils.text import slugify
 from nautobot.dcim.models import Device as NautobotDevice
 from nautobot.dcim.models import Interface as NautobotInterface
@@ -380,8 +381,12 @@ class IPAddress(DiffSyncModel):
                 field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
                 field.content_types.add(ContentType.objects.get_for_model(NautobotIPAddress).id)
                 _ipaddr.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
-        _ipaddr.validated_save()
-        return super().update(attrs)
+        try:
+            _ipaddr.validated_save()
+            return super().update(attrs)
+        except ValidationError as err:
+            print(f"Unable to update IP Address {self.address} with {attrs} {err}")
+            return None
 
     def delete(self):
         """Delete IPAddress object from Nautobot.
