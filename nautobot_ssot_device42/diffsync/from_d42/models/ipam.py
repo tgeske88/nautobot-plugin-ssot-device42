@@ -344,21 +344,29 @@ class IPAddress(DiffSyncModel):
                         message=f"Unable to find Interface {self.interface} for {attrs['device']} with label {self.label}. {err}"
                     )
         if attrs.get("primary") and attrs["primary"] is not None:
-            _device, _intf = False, False
-            if attrs.get("device") and self.device != "":
-                _device = NautobotDevice.objects.get(name=attrs["device"])
-            elif self.device != "":
-                _device = NautobotDevice.objects.get(name=self.device)
-            if attrs.get("interface") and attrs["interface"] != "" and _device:
-                _intf = NautobotInterface.objects.get(name=attrs["interface"], device=_device)
-            elif attrs.get("label") and _device:
-                _intf = NautobotInterface.objects.get(name=attrs["label"], device=_device)
-            elif self.interface != "" and _device:
-                _intf = NautobotInterface.objects.get(name=self.interface, device=_device)
-            elif self.label != "" and _device:
-                _intf = NautobotInterface.objects.get(name=self.label, device=_device)
-            if _device and _intf:
-                nautobot.set_primary_ip_and_mgmt(ipaddr=_ipaddr, dev=_device, intf=_intf)
+            dev, _device, intf, _intf = None, False, None, False
+            try:
+                if attrs.get("device") and attrs["device"] != "":
+                    dev = attrs["device"]
+                else:
+                    dev = self.device
+                _device = NautobotDevice.objects.get(name=dev)
+            except NautobotDevice.DoesNotExist as err:
+                print(f"Unable to find Device {dev} {err}")
+            if attrs.get("interface") and attrs["interface"] != "":
+                intf = attrs["interface"]
+            elif self.interface != "":
+                intf = self.interface
+            elif attrs.get("label") and attrs["label"] != "":
+                intf = attrs["label"]
+            elif self.label != "":
+                intf = self.label
+            if _device and intf:
+                try:
+                    _intf = NautobotInterface.objects.get(name=intf, device=_device)
+                    nautobot.set_primary_ip_and_mgmt(ipaddr=_ipaddr, dev=_device, intf=_intf)
+                except NautobotInterface.DoesNotExist as err:
+                    print(f"Unable to find Interface {intf} for Device {_device.name} {err}")
         if attrs.get("tags"):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _ipaddr.tags.add(_tag)
