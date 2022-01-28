@@ -8,40 +8,40 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v1.2.0 (2022-01-20)
 ### Feature
-* :sparkles: Add links for Device42 data mapping to D42 objects ([`1e37f53`](https://github.com/networking/nautobot-plugin-device42-sync/commit/1e37f53e59f7b216adba70a7107bccea08c8b265))
+* :sparkles: Add links for Device42 data mapping to D42 objects ([`1e37f53`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/1e37f53e59f7b216adba70a7107bccea08c8b265))
 
 ### Fix
-* :bug: Add ValidationError handling for IP Address updates ([`7c17ec0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/7c17ec0f0bf04c3f539e4c610d0c92df04ef93b4))
-* :bug: Add handling for only device attribute passed for update ([`40bea3e`](https://github.com/networking/nautobot-plugin-device42-sync/commit/40bea3e9712b0e00658e0da3b0cc733c717d7116))
-* :bug: Handle validation errors for device updates ([`cfe4e69`](https://github.com/networking/nautobot-plugin-device42-sync/commit/cfe4e697b437b78ef87e8e7aa65a47407838d1b0))
-* :bug: Remove redundant device save and tweak debug output ([`cf7b63d`](https://github.com/networking/nautobot-plugin-device42-sync/commit/cf7b63df89631652d5df5a1a980b988080cba6d3))
+* :bug: Add ValidationError handling for IP Address updates ([`7c17ec0`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/7c17ec0f0bf04c3f539e4c610d0c92df04ef93b4))
+* :bug: Add handling for only device attribute passed for update ([`40bea3e`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/40bea3e9712b0e00658e0da3b0cc733c717d7116))
+* :bug: Handle validation errors for device updates ([`cfe4e69`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/cfe4e697b437b78ef87e8e7aa65a47407838d1b0))
+* :bug: Remove redundant device save and tweak debug output ([`cf7b63d`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/cf7b63df89631652d5df5a1a980b988080cba6d3))
 
 ### Documentation
-* :memo: Update documentation on Devices and D42 support ([`f608c28`](https://github.com/networking/nautobot-plugin-device42-sync/commit/f608c286b83efac7e47e393bdb371247d1516854))
+* :memo: Update documentation on Devices and D42 support ([`f608c28`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/f608c286b83efac7e47e393bdb371247d1516854))
 
 ## v1.1.1 (2022-01-14)
 ### Fix
-* :bug: Fix path for Device42 logo ([`c36c5f8`](https://github.com/networking/nautobot-plugin-device42-sync/commit/c36c5f8d678a16c397013fea86cc5845bfa39244))
-* :bug: Ensure that hardware model names are sanitized ([`4f6c3c4`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4f6c3c4c6b67d4397a9b0428e245ad08dfb3a13b))
+* :bug: Fix path for Device42 logo ([`c36c5f8`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/c36c5f8d678a16c397013fea86cc5845bfa39244))
+* :bug: Ensure that hardware model names are sanitized ([`4f6c3c4`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/4f6c3c4c6b67d4397a9b0428e245ad08dfb3a13b))
 
 ### Documentation
-* :memo: Add usage information and sample detail view ([`261a4b8`](https://github.com/networking/nautobot-plugin-device42-sync/commit/261a4b8545950329c00bef1f6b548de0cce39680))
-* :memo: Update README with plugin setting details and fix nautobot_config example ([`6b2d3a7`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6b2d3a7d65d9ee40e9d6c6cfb1d8a1b28755cc27))
+* :memo: Add usage information and sample detail view ([`261a4b8`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/261a4b8545950329c00bef1f6b548de0cce39680))
+* :memo: Update README with plugin setting details and fix nautobot_config example ([`6b2d3a7`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/6b2d3a7d65d9ee40e9d6c6cfb1d8a1b28755cc27))
 
 ## v1.1.0 (2022-01-14)
 ### Feature
-* :sparkles: Correct data mappings for plugin to reflect all objects that are imported ([`4a701a4`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4a701a452bd2f64fa428fb8605d2a8a03dcb97c5))
+* :sparkles: Correct data mappings for plugin to reflect all objects that are imported ([`4a701a4`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/4a701a452bd2f64fa428fb8605d2a8a03dcb97c5))
 
 ### Fix
-* :bug: Ensure all logging uses message attr ([`81976b6`](https://github.com/networking/nautobot-plugin-device42-sync/commit/81976b6c1e1516536455d494ac01b1a83ddc43fa))
-* :bug: Add handling for duplicate MAC addresses ([`8c886c6`](https://github.com/networking/nautobot-plugin-device42-sync/commit/8c886c67204795452c5bbbfe9e91a213f72a9cc7))
-* :bug: Ensure debug defaults to False. ([`2497cc1`](https://github.com/networking/nautobot-plugin-device42-sync/commit/2497cc166dcfcbb49c8a45e885e59316bf510d1a))
-* :bug: Catch ValidationErrors when creating a new Device. ([`e9a608a`](https://github.com/networking/nautobot-plugin-device42-sync/commit/e9a608a9d14ef6cd1965c376c0fed5e5f76bab82))
-* :bug: Fix port_speed trying to be set with FrontPort type ([`92985ea`](https://github.com/networking/nautobot-plugin-device42-sync/commit/92985eadcbb22bb3d1fe935aa5c6f907e871d488))
+* :bug: Ensure all logging uses message attr ([`81976b6`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/81976b6c1e1516536455d494ac01b1a83ddc43fa))
+* :bug: Add handling for duplicate MAC addresses ([`8c886c6`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/8c886c67204795452c5bbbfe9e91a213f72a9cc7))
+* :bug: Ensure debug defaults to False. ([`2497cc1`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/2497cc166dcfcbb49c8a45e885e59316bf510d1a))
+* :bug: Catch ValidationErrors when creating a new Device. ([`e9a608a`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/e9a608a9d14ef6cd1965c376c0fed5e5f76bab82))
+* :bug: Fix port_speed trying to be set with FrontPort type ([`92985ea`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/92985eadcbb22bb3d1fe935aa5c6f907e871d488))
 
 ## [v1.0.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v1.0.0) -  (2022-01-13)
 
-Plugin is officially in a stable, production ready state!
+The plugin is officially in a stable, production-ready state!
 
 ## [v0.15.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.15.0) -  (2022-01-13)
 ### Feature
@@ -133,30 +133,30 @@ Plugin is officially in a stable, production ready state!
 <small>[Compare with v0.11.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.11.0...v0.12.0)</small>
 
 ### Feature
-* :sparkles: Add `ignore_tag` feature to allow Devices to not be imported based on a Tag. ([`0bbca1f`](https://github.com/networking/nautobot-plugin-device42-sync/commit/0bbca1f4e179a6b5fc8e494a690a992e1118ed1d))
+* :sparkles: Add `ignore_tag` feature to allow Devices to not be imported based on a Tag. ([`0bbca1f`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/0bbca1f4e179a6b5fc8e494a690a992e1118ed1d))
 
 ### Fix
-* :bug: Fix catch for AP hosts. ([`495238e`](https://github.com/networking/nautobot-plugin-device42-sync/commit/495238e48897ed8402c00f73fc5578efbb9ae408))
-* :bug: Should have used continue instead of break. ([`2d8a6b0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/2d8a6b06bcc847f2cc13b66a61455b91f9a8b4bb))
-* :bug: Handle case where IP is assigned as primary to another device. ([`dfd113f`](https://github.com/networking/nautobot-plugin-device42-sync/commit/dfd113f7b9473a4d03c95829effc887debd7f8aa))
-* :bug: Correct job logging to come from diffsync object in models. ([`92871c0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/92871c03c1b8533d7e9efed441340619ec35102a))
+* :bug: Fix catch for AP hosts. ([`495238e`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/495238e48897ed8402c00f73fc5578efbb9ae408))
+* :bug: Should have used continue instead of break. ([`2d8a6b0`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/2d8a6b06bcc847f2cc13b66a61455b91f9a8b4bb))
+* :bug: Handle case where IP is assigned as primary to another device. ([`dfd113f`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/dfd113f7b9473a4d03c95829effc887debd7f8aa))
+* :bug: Correct job logging to come from diffsync object in models. ([`92871c0`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/92871c03c1b8533d7e9efed441340619ec35102a))
 
 ### Documentation
-* :memo: Add documentation for `ignore_tag` feature. ([`3ab83d6`](https://github.com/networking/nautobot-plugin-device42-sync/commit/3ab83d688a6d4bf236ba0aeb1cc403d4d318b99a))
+* :memo: Add documentation for `ignore_tag` feature. ([`3ab83d6`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/3ab83d688a6d4bf236ba0aeb1cc403d4d318b99a))
 
 ## [v0.11.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.11.0) - 2021-11-06
 
 <small>[Compare with v0.10.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/compare/v0.10.0...v0.11.0)</small>
 ### Feature
-* :sparkles: Add Custom Diff class to control order of operations. ([`0da4ff0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/0da4ff07a8d039f1913a2c166bf29313ba729f32))
-* :sparkles: Add method to find a site mapping from settings. ([`70f9a93`](https://github.com/networking/nautobot-plugin-device42-sync/commit/70f9a9369e705e3998073e18f9532a1738b6ff21))
+* :sparkles: Add Custom Diff class to control order of operations. ([`0da4ff0`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/0da4ff07a8d039f1913a2c166bf29313ba729f32))
+* :sparkles: Add method to find a site mapping from settings. ([`70f9a93`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/70f9a9369e705e3998073e18f9532a1738b6ff21))
 
 ### Fix
-* :bug: Handle edge cases where device has A record for non-existent Subnet. ([`8fcfeb3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/8fcfeb36082d3cae291240f5cbafa310c7b49cbc))
+* :bug: Handle edge cases where device has A record for non-existent Subnet. ([`8fcfeb3`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/8fcfeb36082d3cae291240f5cbafa310c7b49cbc))
 
 ### Documentation
-* :memo: Improve documentation in README and add information to RTD index ([`e9281ab`](https://github.com/networking/nautobot-plugin-device42-sync/commit/e9281abb6f21f374b82aef8d877427ecb89d4e3f))
-* :memo: Improve typing and docstrings for some methods. ([`6058a95`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6058a953a81128e9ebadf617d19dfa013cece5d5))
+* :memo: Improve documentation in README and add information to RTD index ([`e9281ab`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/e9281abb6f21f374b82aef8d877427ecb89d4e3f))
+* :memo: Improve typing and docstrings for some methods. ([`6058a95`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/6058a953a81128e9ebadf617d19dfa013cece5d5))
 
 ## [v0.10.0](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/tags/v0.10.0) - 2021-11-03
 

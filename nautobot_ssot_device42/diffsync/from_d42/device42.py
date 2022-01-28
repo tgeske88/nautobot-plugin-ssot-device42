@@ -491,7 +491,7 @@ class Device42Adapter(DiffSync):
                                     }
                                 )
                         _sorted_list = sorted(_tags, key=lambda k: k["vlan_id"])
-                        _vlans = [i for n, i in enumerate(_sorted_list) if i not in _sorted_list[n + 1 :]]
+                        _vlans = [i for n, i in enumerate(_sorted_list) if i not in _sorted_list[n + 1 :]]  # noqa: E203
                         new_port.vlans = _vlans
                         if len(_vlans) > 1:
                             new_port.mode = "tagged"
