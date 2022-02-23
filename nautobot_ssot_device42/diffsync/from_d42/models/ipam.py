@@ -58,7 +58,7 @@ class VRFGroup(DiffSyncModel):
 
     def update(self, attrs):
         """Update VRF object in Nautobot."""
-        _vrf = NautobotVRF.objects.get(name=self.name)
+        _vrf = NautobotVRF.objects.get(id=self.uuid)
         if attrs.get("description"):
             _vrf.description = attrs["description"]
         if attrs.get("tags"):
@@ -86,9 +86,9 @@ class VRFGroup(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            vrf = NautobotVRF.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"VRF {self.name} will be deleted.")
+            vrf = NautobotVRF.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["vrf"].append(vrf)  # pylint: disable=protected-access
         return self
 
@@ -167,9 +167,9 @@ class Subnet(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            subnet = NautobotPrefix.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_debug(message=f"Subnet {self.network} will be deleted.")
+            subnet = NautobotPrefix.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
         return self
 
@@ -397,9 +397,9 @@ class IPAddress(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            ipaddr = NautobotIPAddress.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_debug(message=f"IP Address {self.address} will be deleted. {self}")
+            ipaddr = NautobotIPAddress.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["ipaddr"].append(ipaddr)  # pylint: disable=protected-access
         return self
 
@@ -488,8 +488,8 @@ class VLAN(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            vlan = NautobotVLAN.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_debug(message=f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted.")
+            vlan = NautobotVLAN.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["vlan"].append(vlan)  # pylint: disable=protected-access
         return self

@@ -91,7 +91,7 @@ class Building(DiffSyncModel):
 
     def update(self, attrs):
         """Update Site object in Nautobot."""
-        _site = NautobotSite.objects.get(slug=slugify(self.name))
+        _site = NautobotSite.objects.get(id=self.uuid)
         if attrs.get("address"):
             _site.physical_address = attrs["address"]
         if attrs.get("latitude"):
@@ -130,9 +130,9 @@ class Building(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            site = NautobotSite.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"Site {self.name} will be deleted.")
+            site = NautobotSite.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["site"].append(site)  # pylint: disable=protected-access
         return self
 
@@ -176,7 +176,7 @@ class Room(DiffSyncModel):
 
     def update(self, attrs):
         """Update RackGroup object in Nautobot."""
-        _rg = NautobotRackGroup.objects.get(name=self.name, site__name=self.building)
+        _rg = NautobotRackGroup.objects.get(id=self.uuid)
         if attrs.get("notes"):
             _rg.description = attrs["notes"]
         if attrs.get("custom_fields"):
@@ -196,9 +196,9 @@ class Room(DiffSyncModel):
         """Delete RackGroup object from Nautobot."""
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            rackgroup = NautobotRackGroup.objects.get(self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"RackGroup {self.name} will be deleted.")
+            rackgroup = NautobotRackGroup.objects.get(id=self.uuid)
             rackgroup.delete()
         return self
 
@@ -251,7 +251,7 @@ class Rack(DiffSyncModel):
 
     def update(self, attrs):
         """Update Rack object in Nautobot."""
-        _rack = NautobotRack.objects.get(name=self.name, group__name=self.room, site__name=self.building)
+        _rack = NautobotRack.objects.get(id=self.uuid)
         if attrs.get("height"):
             _rack.u_height = attrs["height"]
         if attrs.get("numbering_start_from_bottom"):
@@ -281,9 +281,9 @@ class Rack(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            rack = NautobotRack.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"Rack {self.name} will be deleted.")
+            rack = NautobotRack.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["rack"].append(rack)  # pylint: disable=protected-access
         return self
 
@@ -349,9 +349,9 @@ class Vendor(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            _manu = NautobotManufacturer.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"Manufacturer {self.name} will be deleted.")
+            _manu = NautobotManufacturer.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["manufacturer"].append(_manu)  # pylint: disable=protected-access
         return self
 
@@ -433,9 +433,9 @@ class Hardware(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            _dt = NautobotDeviceType.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"DeviceType {self.name} will be deleted.")
+            _dt = NautobotDeviceType.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["device_type"].append(_dt)  # pylint: disable=protected-access
         return self
 
@@ -530,9 +530,9 @@ class Cluster(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            _cluster = NautobotVC.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"Virtual Chassis {self.name} will be deleted.")
+            _cluster = NautobotVC.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["cluster"].append(_cluster)  # pylint: disable=protected-access
         return self
 
@@ -833,9 +833,9 @@ class Device(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            _dev = NautobotDevice.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"Device {self.name} will be deleted.")
+            _dev = NautobotDevice.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["device"].append(_dev)  # pylint: disable=protected-access
         return self
 
@@ -1024,9 +1024,9 @@ class Port(DiffSyncModel):
         """Delete Interface object from Nautobot."""
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            _intf = NautobotInterface.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"Interface {self.name} for {self.device} will be deleted.")
+            _intf = NautobotInterface.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["port"].append(_intf)  # pylint: disable=protected-access
         return self
 
@@ -1218,9 +1218,9 @@ class Connection(DiffSyncModel):
         """Delete Cable object from Nautobot."""
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            _conn = NautobotCable.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_info(message=f"Deleting Cable {self.get_identifiers()} UUID: {self.uuid}")
+            _conn = NautobotCable.objects.get(id=self.uuid)
             _conn.delete()
         return self
 

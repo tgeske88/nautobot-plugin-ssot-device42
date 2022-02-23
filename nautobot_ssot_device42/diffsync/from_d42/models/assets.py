@@ -186,9 +186,9 @@ class PatchPanel(DiffSyncModel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            _pp = Device.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"Patch panel {self.name} will be deleted.")
+            _pp = Device.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["patchpanel"].append(_pp)  # pylint: disable=protected-access
         return self
 
@@ -245,9 +245,9 @@ class PatchPanelRearPort(DiffSyncModel):
         """Delete RearPort object from Nautobot."""
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            port = RearPort.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"RearPort {self.name} for {self.patchpanel} will be deleted.")
+            port = RearPort.objects.get(id=self.uuid)
             port.delete()
         return self
 
@@ -305,8 +305,8 @@ class PatchPanelFrontPort(DiffSyncModel):
         """Delete FrontPort object from Nautobot."""
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            port = FrontPort.objects.get(id=self.uuid)
             if self.diffsync.job.debug:
                 self.diffsync.job.log_warning(message=f"FrontPort {self.name} for {self.patchpanel} will be deleted.")
+            port = FrontPort.objects.get(id=self.uuid)
             port.delete()
         return self
