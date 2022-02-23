@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.2.1 (2022-02-23)
+### Fix
+* :bug: Fix deleting RackGroup and tweak delete logging ([`2a38589`](https://github.com/networking/nautobot-plugin-device42-sync/commit/2a385898f89c73028721942b0c438283e91d0ed3))
+
 ## v1.2.0 (2022-01-20)
 ### Feature
 * :sparkles: Add links for Device42 data mapping to D42 objects ([`1e37f53`](https://gitlab.corp.zmi.global/networking/nautobot-plugin-device42-sync/commit/1e37f53e59f7b216adba70a7107bccea08c8b265))
