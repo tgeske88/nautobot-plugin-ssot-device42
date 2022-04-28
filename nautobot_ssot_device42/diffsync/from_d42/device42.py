@@ -468,7 +468,7 @@ class Device42Adapter(DiffSync):
                     _tags.sort()
                 try:
                     new_port = self.port(
-                        name=_port["port_name"],
+                        name=_port["port_name"][:63].strip(),
                         device=_port["device_name"],
                         enabled=is_truthy(_port["up_admin"]),
                         mtu=_port["mtu"] if _port.get("mtu") in range(1, 65537) else 1500,
