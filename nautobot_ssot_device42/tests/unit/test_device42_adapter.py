@@ -1,4 +1,4 @@
-"""Unit tests for the IPFabric DiffSync adapter class."""
+"""Unit tests for the Device42 DiffSync adapter class."""
 import json
 import uuid
 from unittest.mock import MagicMock, patch
