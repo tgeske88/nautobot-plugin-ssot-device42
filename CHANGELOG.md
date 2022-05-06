@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.2.2 (2022-05-06)
+### Fix
+* :bug: Ensure port name is only 64 characters ([`36aff90`](https://github.com/networking/nautobot-plugin-device42-sync/commit/36aff9046eda0d4d171eb7b22dc5125143b3aac5))
+
+### Documentation
+* Fix docstring ([`2f6913c`](https://github.com/networking/nautobot-plugin-device42-sync/commit/2f6913c01d85112cb44d19846a851e643d553965))
+
 ## v1.2.1 (2022-02-23)
 ### Fix
 * :bug: Fix deleting RackGroup and tweak delete logging ([`2a38589`](https://github.com/networking/nautobot-plugin-device42-sync/commit/2a385898f89c73028721942b0c438283e91d0ed3))
