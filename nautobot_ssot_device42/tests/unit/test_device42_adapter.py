@@ -1,13 +1,13 @@
-"""Unit tests for the IPFabric DiffSync adapter class."""
+"""Unit tests for the Device42 DiffSync adapter class."""
 import json
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 from django.contrib.contenttypes.models import ContentType
-from django.test import TestCase
+from nautobot.utilities.testing import TransactionTestCase
 from nautobot.extras.models import Job, JobResult
 from parameterized import parameterized
-from nautobot_ssot_device42.diffsync.from_d42.device42 import Device42Adapter, get_circuit_status
+from nautobot_ssot_device42.diffsync.adapters.device42 import Device42Adapter, get_circuit_status
 from nautobot_ssot_device42.jobs import Device42DataSource
 
 
@@ -24,9 +24,10 @@ VENDOR_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vendors_
 HARDWARE_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_hardware_models_recv.json")
 
 
-@patch("nautobot.extras.models.models.JOB_LOGS", None)
-class Device42AdapterTestCase(TestCase):
+class Device42AdapterTestCase(TransactionTestCase):
     """Test the Device42Adapter class."""
+
+    databases = ("default", "job_logs")
 
     def setUp(self):
         """Method to initialize test case."""

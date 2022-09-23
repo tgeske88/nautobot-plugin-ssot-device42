@@ -38,9 +38,9 @@ namespace = Collection("nautobot_ssot_device42")
 namespace.configure(
     {
         "nautobot_ssot_device42": {
-            "nautobot_ver": "1.1.4",
+            "nautobot_ver": "1.3.7",
             "project_name": "nautobot-ssot-device42",
-            "python_ver": "3.7",
+            "python_ver": "3.8",
             "local": False,
             "compose_dir": os.path.join(os.path.dirname(__file__), "development"),
             "compose_files": [

@@ -1,6 +1,6 @@
 """Plugin declaration for nautobot_ssot_device42."""
 
-__version__ = "1.2.0"
+__version__ = "1.2.2"
 
 from nautobot.extras.plugins import PluginConfig
 
@@ -20,7 +20,7 @@ class NautobotDevice42SyncConfig(PluginConfig):
         "device42_password",
         "defaults",
     ]
-    min_version = "1.1.0"
+    min_version = "1.3.0"
     max_version = "1.9999"
     default_settings = {}
     caching_config = {}

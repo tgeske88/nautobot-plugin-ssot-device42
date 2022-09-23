@@ -3,15 +3,10 @@
 from collections import defaultdict
 import ipaddress
 from diffsync import DiffSync
-from diffsync.exceptions import ObjectAlreadyExists
+from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from django.db.models import ProtectedError
-from nautobot_ssot_device42.constant import PLUGIN_CFG
-from nautobot_ssot_device42.diffsync.from_d42.models import assets, circuits, dcim, ipam
-from nautobot_ssot_device42.utils import nautobot
-from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
 
 from nautobot.circuits.models import Circuit, CircuitTermination, Provider
-
 from nautobot.dcim.models import (
     Cable,
     Device,
@@ -20,16 +15,22 @@ from nautobot.dcim.models import (
     FrontPort,
     Interface,
     Manufacturer,
+    Platform,
     Rack,
     RackGroup,
     RearPort,
     Site,
     VirtualChassis,
 )
+from nautobot.extras.models import Relationship, RelationshipAssociation, Status
 from nautobot.ipam.models import VLAN, VRF, IPAddress, Prefix
+from nautobot_ssot_device42.constant import PLUGIN_CFG
+from nautobot_ssot_device42.diffsync.models.nautobot import assets, circuits, dcim, ipam
+from nautobot_ssot_device42.utils import nautobot
+from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
 
 try:
-    import nautobot_device_lifecycle_mgmt  # noqa: F401
+    from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
 
     LIFECYCLE_MGMT = True
 except ImportError:
@@ -40,33 +41,31 @@ except ImportError:
 class NautobotAdapter(DiffSync):
     """Nautobot adapter for DiffSync."""
 
-    objects_to_delete = defaultdict(list)
-
-    building = dcim.Building
-    room = dcim.Room
-    rack = dcim.Rack
-    vendor = dcim.Vendor
-    hardware = dcim.Hardware
-    cluster = dcim.Cluster
-    device = dcim.Device
-    port = dcim.Port
-    vrf = ipam.VRFGroup
-    subnet = ipam.Subnet
-    ipaddr = ipam.IPAddress
-    vlan = ipam.VLAN
-    conn = dcim.Connection
-    provider = circuits.Provider
-    circuit = circuits.Circuit
-    patchpanel = assets.PatchPanel
-    patchpanelrearport = assets.PatchPanelRearPort
-    patchpanelfrontport = assets.PatchPanelFrontPort
+    building = dcim.NautobotBuilding
+    room = dcim.NautobotRoom
+    rack = dcim.NautobotRack
+    vendor = dcim.NautobotVendor
+    hardware = dcim.NautobotHardware
+    cluster = dcim.NautobotCluster
+    device = dcim.NautobotDevice
+    port = dcim.NautobotPort
+    vrf = ipam.NautobotVRFGroup
+    subnet = ipam.NautobotSubnet
+    ipaddr = ipam.NautobotIPAddress
+    vlan = ipam.NautobotVLAN
+    conn = dcim.NautobotConnection
+    provider = circuits.NautobotProvider
+    circuit = circuits.NautobotCircuit
+    patchpanel = assets.NautobotPatchPanel
+    patchpanelrearport = assets.NautobotPatchPanelRearPort
+    patchpanelfrontport = assets.NautobotPatchPanelFrontPort
 
     top_level = [
-        "building",
-        "vendor",
-        "hardware",
         "vrf",
         "subnet",
+        "vendor",
+        "hardware",
+        "building",
         "vlan",
         "cluster",
         "device",
@@ -79,8 +78,31 @@ class NautobotAdapter(DiffSync):
         "conn",
     ]
 
+    status_map = {}
+    platform_map = {}
+    site_map = {}
+    room_map = {}
+    rack_map = {}
+    vendor_map = {}
+    devicerole_map = {}
+    devicetype_map = {}
+    cluster_map = {}
+    device_map = {}
+    port_map = {}
+    vrf_map = {}
+    prefix_map = {}
+    ipaddr_map = {}
+    vlan_map = {}
+    circuit_map = {}
+    cable_map = {}
+    provider_map = {}
+    rp_map = {}
+    fp_map = {}
+    softwarelcm_map = {}
+    relationship_map = {}
+
     def __init__(self, *args, job=None, sync=None, **kwargs):
-        """Initialize the Device42 DiffSync adapter.
+        """Initialize the Nautobot DiffSync adapter.
 
         Args:
             job (object, optional): Nautobot job. Defaults to None.
@@ -89,6 +111,8 @@ class NautobotAdapter(DiffSync):
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
+        self.objects_to_delete = defaultdict(list)
+        self.objects_to_create = defaultdict(list)
 
     def sync_complete(self, source: DiffSync, *args, **kwargs):
         """Clean up function for DiffSync sync.
@@ -123,11 +147,99 @@ class NautobotAdapter(DiffSync):
                         self.job.log(f"Deletion failed protected object: {nautobot_object}")
                 self.objects_to_delete[grouping] = []
 
+        if len(self.objects_to_create["sites"]) > 0:
+            self.job.log_info(message="Performing bulk create of Sites in Nautobot")
+            Site.objects.bulk_create(self.objects_to_create["sites"], batch_size=250)
+        if len(self.objects_to_create["sites"]) > 0:
+            self.job.log_info(message="Performing creation of RackGroups in Nautobot")
+            for room in self.objects_to_create["rooms"]:
+                room.validated_save()
+        if len(self.objects_to_create["racks"]) > 0:
+            self.job.log_info(message="Performing bulk create of Racks in Nautobot")
+            Rack.objects.bulk_create(self.objects_to_create["racks"], batch_size=250)
+        if len(self.objects_to_create["vendors"]) > 0:
+            self.job.log_info(message="Performing bulk create of Manufacturers in Nautobot")
+            Manufacturer.objects.bulk_create(self.objects_to_create["vendors"], batch_size=250)
+        if len(self.objects_to_create["devicetypes"]) > 0:
+            self.job.log_info(message="Performing bulk create of DeviceTypes in Nautobot")
+            DeviceType.objects.bulk_create(self.objects_to_create["devicetypes"], batch_size=250)
+        if len(self.objects_to_create["deviceroles"]) > 0:
+            self.job.log_info(message="Performing bulk create of DeviceRoles in Nautobot")
+            DeviceRole.objects.bulk_create(self.objects_to_create["deviceroles"], batch_size=250)
+        if len(self.objects_to_create["platforms"]) > 0:
+            self.job.log_info(message="Performing bulk create of Platforms in Nautobot")
+            Platform.objects.bulk_create(self.objects_to_create["platforms"], batch_size=250)
+
+        if len(self.objects_to_create["clusters"]) > 0:
+            self.job.log_info(message="Performing bulk create of Virtual Chassis in Nautobot")
+            VirtualChassis.objects.bulk_create(self.objects_to_create["clusters"], batch_size=250)
+        if len(self.objects_to_create["devices"]) > 0:
+            self.job.log_info(message="Performing bulk create of Devices in Nautobot")
+            Device.objects.bulk_create(self.objects_to_create["devices"], batch_size=250)
+        if len(self.objects_to_create["ports"]) > 0:
+            self.job.log_info(message="Performing bulk create of Interfaces in Nautobot")
+            Interface.objects.bulk_create(self.objects_to_create["ports"], batch_size=250)
+        if len(self.objects_to_create["rear_ports"]) > 0:
+            self.job.log_info(message="Performing bulk create of Rear Ports in Nautobot")
+            RearPort.objects.bulk_create(self.objects_to_create["rear_ports"], batch_size=250)
+        if len(self.objects_to_create["frontports"]) > 0:
+            self.job.log_info(message="Performing bulk create of Front Ports in Nautobot")
+            FrontPort.objects.bulk_create(self.objects_to_create["frontports"], batch_size=250)
+
+        if len(self.objects_to_create["vrfs"]) > 0:
+            self.job.log_info(message="Performing bulk create of VRFs in Nautobot")
+            VRF.objects.bulk_create(self.objects_to_create["vrfs"], batch_size=250)
+        if len(self.objects_to_create["vlans"]) > 0:
+            self.job.log_info(message="Performing bulk create of VLANs in Nautobot")
+            VLAN.objects.bulk_create(self.objects_to_create["vlans"], batch_size=250)
+        if len(self.objects_to_create["prefixes"]) > 0:
+            self.job.log_info(message="Performing bulk create of VRFs in Nautobot")
+            Prefix.objects.bulk_create(self.objects_to_create["prefixes"], batch_size=250)
+        if len(self.objects_to_create["ipaddrs"]) > 0:
+            self.job.log_info(message="Performing bulk create of IP Addresses in Nautobot")
+            IPAddress.objects.bulk_create(self.objects_to_create["ipaddrs"], batch_size=250)
+
+        if len(self.objects_to_create["providers"]) > 0:
+            self.job.log_info(message="Performing bulk create of Providers in Nautobot")
+            Provider.objects.bulk_create(self.objects_to_create["providers"], batch_size=250)
+        if len(self.objects_to_create["circuits"]) > 0:
+            self.job.log_info(message="Performing bulk create of Circuits in Nautobot")
+            Circuit.objects.bulk_create(self.objects_to_create["circuits"], batch_size=250)
+
+        if len(self.objects_to_create["cables"]) > 0:
+            self.job.log_info(message="Performing bulk create of Cables in Nautobot")
+            Cable.objects.bulk_create(self.objects_to_create["cables"], batch_size=250)
+
+        if len(self.objects_to_create["device_primary_ip"]) > 0:
+            if self.job.kwargs.get("debug"):
+                self.job.log_info(message="Performing bulk update of device management IP addresses in Nautobot.")
+            device_primary_ip4_objs = []
+            device_primary_ip6_objs = []
+            for d in self.objects_to_create["device_primary_ip"]:
+                dev = Device.objects.get(id=d[0])
+                ipaddr = IPAddress.objects.get(id=d[1])
+                if ipaddr.family == 4:
+                    dev.primary_ip4_id = d[1]
+                    device_primary_ip4_objs.append(dev)
+                else:
+                    dev.primary_ip6_id = d[1]
+                    device_primary_ip6_objs.append(dev)
+            Device.objects.bulk_update(device_primary_ip4_objs, ["primary_ip4_id"], batch_size=250)
+            Device.objects.bulk_update(device_primary_ip6_objs, ["primary_ip6_id"], batch_size=250)
+
+        if LIFECYCLE_MGMT:
+            if len(self.objects_to_create["softwarelcms"]) > 0:
+                self.job.log_info(message="Performing bulk creation of Software Versions in Device Lifecycle plugin.")
+                SoftwareLCM.objects.bulk_create(self.objects_to_create["softwarelcms"], batch_size=250)
+            if len(self.objects_to_create["relationshipasscs"]) > 0:
+                self.job.log_info(message="Creating Relationships between Devices and Software Versions.")
+                RelationshipAssociation.objects.bulk_create(self.objects_to_create["relationshipasscs"], batch_size=250)
         return super().sync_complete(source, *args, **kwargs)
 
     def load_sites(self):
         """Add Nautobot Site objects as DiffSync Building models."""
         for site in Site.objects.all():
+            self.site_map[site.slug] = site.id
             try:
                 building = self.building(
                     name=site.name,
@@ -147,6 +259,11 @@ class NautobotAdapter(DiffSync):
     def load_rackgroups(self):
         """Add Nautobot RackGroup objects as DiffSync Room models."""
         for _rg in RackGroup.objects.all():
+            if _rg.site.slug not in self.room_map:
+                self.room_map[_rg.site.slug] = {}
+            if _rg.slug not in self.room_map[_rg.site.slug]:
+                self.room_map[_rg.site.slug][_rg.slug] = {}
+            self.room_map[_rg.site.slug][_rg.slug] = _rg.id
             room = self.room(
                 name=_rg.name,
                 building=Site.objects.get(name=_rg.site).name,
@@ -161,12 +278,18 @@ class NautobotAdapter(DiffSync):
     def load_racks(self):
         """Add Nautobot Rack objects as DiffSync Rack models."""
         for rack in Rack.objects.all():
+            if rack.site.slug not in self.rack_map:
+                self.rack_map[rack.site.slug] = {}
+            if rack.group.slug not in self.rack_map[rack.site.slug]:
+                self.rack_map[rack.site.slug][rack.group.slug] = {}
+            if rack.name not in self.rack_map[rack.site.slug][rack.group.slug]:
+                self.rack_map[rack.site.slug][rack.group.slug][rack.name] = {}
+            self.rack_map[rack.site.slug][rack.group.slug][rack.name] = rack.id
             try:
-                _building_name = Site.objects.get(name=rack.site).name
                 new_rack = self.rack(
                     name=rack.name,
-                    building=_building_name,
-                    room=RackGroup.objects.get(name=rack.group, site__name=_building_name).name,
+                    building=rack.site.name,
+                    room=rack.group.name,
                     height=rack.u_height,
                     numbering_start_from_bottom="no" if rack.desc_units else "yes",
                     tags=nautobot.get_tag_strings(rack.tags),
@@ -174,15 +297,16 @@ class NautobotAdapter(DiffSync):
                     uuid=rack.id,
                 )
                 self.add(new_rack)
-                _room = self.get(self.room, {"name": rack.group, "building": _building_name})
+                _room = self.get(self.room, {"name": rack.group, "building": rack.site.name})
                 _room.add_child(child=new_rack)
             except ObjectAlreadyExists as err:
-                if self.job.debug:
+                if self.job.kwargs.get("debug"):
                     self.job.log_warning(message=err)
 
     def load_manufacturers(self):
         """Add Nautobot Manufacturer objects as DiffSync Vendor models."""
         for manu in Manufacturer.objects.all():
+            self.vendor_map[manu.slug] = manu.id
             new_manu = self.vendor(
                 name=manu.name,
                 custom_fields=nautobot.get_custom_field_dicts(manu.get_custom_fields()),
@@ -193,6 +317,7 @@ class NautobotAdapter(DiffSync):
     def load_device_types(self):
         """Add Nautobot DeviceType objects as DiffSync Hardware models."""
         for _dt in DeviceType.objects.all():
+            self.devicetype_map[_dt.slug] = _dt.id
             dtype = self.hardware(
                 name=_dt.model,
                 manufacturer=_dt.manufacturer.name,
@@ -208,6 +333,7 @@ class NautobotAdapter(DiffSync):
         """Add Nautobot Virtual Chassis objects as DiffSync."""
         # We import the master node as a VC
         for _vc in VirtualChassis.objects.all():
+            self.cluster_map[_vc.name] = _vc.id
             _members = [x.name for x in _vc.members.all() if x.name != _vc.name]
             if len(_members) > 1:
                 _members.sort()
@@ -223,6 +349,7 @@ class NautobotAdapter(DiffSync):
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
         for dev in Device.objects.all():
+            self.device_map[dev.name] = dev.id
             # As patch panels are added as Devices, we need to filter them out for their own load method.
             if DeviceRole.objects.get(id=dev.device_role.id).name == "patch panel":
                 patch_panel = self.patchpanel(
@@ -270,6 +397,7 @@ class NautobotAdapter(DiffSync):
                 custom_fields=nautobot.get_custom_field_dicts(dev.get_custom_fields()),
                 uuid=dev.id,
                 cluster_host=None,
+                vc_position=dev.vc_position,
             )
             if dev.virtual_chassis:
                 _dev.cluster_host = str(dev.virtual_chassis)
@@ -281,56 +409,60 @@ class NautobotAdapter(DiffSync):
     def load_interfaces(self):
         """Add Nautobot Interface objects as DiffSync Port models."""
         for port in Interface.objects.all():
-            if self.job.debug:
-                self.job.log_debug(message=f"Loading Interface: {port.name} for {port.device}.")
+            if port.device.name not in self.port_map:
+                self.port_map[port.device.name] = {}
+            if port.name not in self.port_map[port.device.name]:
+                self.port_map[port.device.name][port.name] = {}
+            self.port_map[port.device.name][port.name] = port.id
             if port.mac_address:
                 _mac_addr = str(port.mac_address).replace(":", "").lower()
             else:
                 _mac_addr = ""
-            _port = self.port(
-                name=port.name,
-                device=port.device.name,
-                enabled=port.enabled,
-                mtu=port.mtu,
-                description=port.description,
-                mac_addr=_mac_addr[:13],
-                type=port.type,
-                tags=nautobot.get_tag_strings(port.tags),
-                mode=port.mode,
-                custom_fields=nautobot.get_custom_field_dicts(port.get_custom_fields()),
-                uuid=port.id,
-            )
-            if port.mode == "access" and port.untagged_vlan:
-                _port.vlans = [
-                    {
-                        "vlan_name": port.untagged_vlan.name,
-                        "vlan_id": str(port.untagged_vlan.vid),
-                    }
-                ]
-            else:
-                _tags = []
-                for _vlan in port.tagged_vlans.values():
-                    _tags.append(
-                        {
-                            "vlan_name": _vlan["name"],
-                            "vlan_id": str(_vlan["vid"]),
-                        }
-                    )
-                _vlans = sorted(_tags, key=lambda k: k["vlan_id"])
-                _port.vlans = _vlans
             try:
+                _port = self.get(self.port, {"device": port.device.name, "name": port.name})
+            except ObjectNotFound:
+                if self.job.kwargs.get("debug"):
+                    self.job.log_debug(message=f"Loading Interface: {port.name} for {port.device}.")
+                _port = self.port(
+                    name=port.name,
+                    device=port.device.name,
+                    enabled=port.enabled,
+                    mtu=port.mtu,
+                    description=port.description,
+                    mac_addr=_mac_addr[:13],
+                    type=port.type,
+                    tags=nautobot.get_tag_strings(port.tags),
+                    mode=port.mode,
+                    custom_fields=nautobot.get_custom_field_dicts(port.get_custom_fields()),
+                    uuid=port.id,
+                )
+                if port.mode == "access" and port.untagged_vlan:
+                    _port.vlans = [
+                        {
+                            "vlan_name": port.untagged_vlan.name,
+                            "vlan_id": str(port.untagged_vlan.vid),
+                        }
+                    ]
+                else:
+                    _tags = []
+                    for _vlan in port.tagged_vlans.values():
+                        _tags.append(
+                            {
+                                "vlan_name": _vlan["name"],
+                                "vlan_id": str(_vlan["vid"]),
+                            }
+                        )
+                    _vlans = sorted(_tags, key=lambda k: k["vlan_id"])
+                    _port.vlans = _vlans
                 self.add(_port)
                 _dev = self.get(self.device, port.device.name)
                 _dev.add_child(_port)
-            except ObjectAlreadyExists as err:
-                if self.job.debug:
-                    self.job.log_warning(message=f"Port already exists for {port.device_name}. {err}")
-                continue
 
     def load_vrfs(self):
         """Add Nautobot VRF objects as DiffSync VRFGroup models."""
         for vrf in VRF.objects.all():
-            if self.job.debug:
+            self.vrf_map[vrf.name] = vrf.id
+            if self.job.kwargs.get("debug"):
                 self.job.log_debug(message=f"Loading VRF: {vrf.name}.")
             _vrf = self.vrf(
                 name=vrf.name,
@@ -344,12 +476,19 @@ class NautobotAdapter(DiffSync):
     def load_prefixes(self):
         """Add Nautobot Prefix objects as DiffSync Subnet models."""
         for _pf in Prefix.objects.all():
-            if self.job.debug:
+            if _pf.vrf:
+                vrf_name = _pf.vrf.name
+            else:
+                vrf_name = "unknown"
+            if vrf_name not in self.prefix_map:
+                self.prefix_map[vrf_name] = {}
+            self.prefix_map[vrf_name][str(_pf.prefix)] = _pf.id
+            if self.job.kwargs.get("debug"):
                 self.job.log_debug(message=f"Loading Prefix: {_pf.prefix}.")
             ip_net = ipaddress.ip_network(_pf.prefix)
             new_pf = self.subnet(
                 network=str(ip_net.network_address),
-                mask_bits=str(ip_net.prefixlen),
+                mask_bits=ip_net.prefixlen,
                 description=_pf.description,
                 vrf=_pf.vrf.name,
                 tags=nautobot.get_tag_strings(_pf.tags),
@@ -361,7 +500,16 @@ class NautobotAdapter(DiffSync):
     def load_ip_addresses(self):
         """Add Nautobot IPAddress objects as DiffSync IPAddress models."""
         for _ip in IPAddress.objects.all():
-            if self.job.debug:
+            if _ip.vrf:
+                vrf_name = _ip.vrf.name
+            else:
+                vrf_name = "global"
+            if vrf_name not in self.ipaddr_map:
+                self.ipaddr_map[vrf_name] = {}
+            if str(_ip.address) not in self.ipaddr_map[vrf_name]:
+                self.ipaddr_map[vrf_name][str(_ip.address)] = {}
+            self.ipaddr_map[vrf_name][str(_ip.address)] = _ip.id
+            if self.job.kwargs.get("debug"):
                 self.job.log_debug(message=f"Loading IPAddress: {_ip.address}.")
             new_ip = self.ipaddr(
                 address=str(_ip.address),
@@ -386,7 +534,7 @@ class NautobotAdapter(DiffSync):
             try:
                 self.add(new_ip)
             except ObjectAlreadyExists as err:
-                if self.job.debug:
+                if self.job.kwargs.get("debug"):
                     self.job.log_debug(
                         message=f"Duplicate IP Address {_ip.address} found and won't be imported. Validate the duplicate address is accurate. {err}"
                     )
@@ -394,7 +542,16 @@ class NautobotAdapter(DiffSync):
     def load_vlans(self):
         """Add Nautobot VLAN objects as DiffSync VLAN models."""
         for vlan in VLAN.objects.all():
-            if self.job.debug:
+            if vlan.site:
+                site_slug = vlan.site.slug
+            else:
+                site_slug = "global"
+            if site_slug not in self.vlan_map:
+                self.vlan_map[site_slug] = {}
+            if str(vlan.vid) not in self.vlan_map[site_slug]:
+                self.vlan_map[site_slug][str(vlan.vid)] = {}
+            self.vlan_map[site_slug][str(vlan.vid)] = vlan.id
+            if self.job.kwargs.get("debug"):
                 self.job.log_debug(message=f"Loading VLAN: {vlan.name}.")
             try:
                 _vlan = self.vlan(
@@ -408,12 +565,22 @@ class NautobotAdapter(DiffSync):
                 )
                 self.add(_vlan)
             except ObjectAlreadyExists as err:
-                if self.job.debug:
+                if self.job.kwargs.get("debug"):
                     self.job.log_warning(message=err)
 
     def load_cables(self):
         """Add Nautobot Cable objects as DiffSync Connection models."""
         for _cable in Cable.objects.all():
+            if _cable.termination_a.device.name not in self.cable_map:
+                self.cable_map[_cable.termination_a.device.name] = {}
+            if _cable.termination_a.name not in self.cable_map[_cable.termination_a.device.name]:
+                self.cable_map[_cable.termination_a.device.name][_cable.termination_a.name] = {}
+            self.cable_map[_cable.termination_a.device.name][_cable.termination_a.name] = _cable.id
+            if _cable.termination_b.device.name not in self.cable_map:
+                self.cable_map[_cable.termination_b.device.name] = {}
+            if _cable.termination_b.name not in self.cable_map[_cable.termination_b.device.name]:
+                self.cable_map[_cable.termination_b.device.name][_cable.termination_b.name] = {}
+            self.cable_map[_cable.termination_b.device.name][_cable.termination_b.name] = _cable.id
             new_conn = self.conn(
                 src_device="",
                 src_port="",
@@ -433,14 +600,14 @@ class NautobotAdapter(DiffSync):
                 cable_term_type=_cable.termination_b_type, cable_term_id=_cable.termination_b_id, connection=new_conn
             )
             self.add(new_conn)
-            # Now to ensure that diff matches, add a connection from reverse side.
-            new_conn = self.add_src_connection(
-                cable_term_type=_cable.termination_b_type, cable_term_id=_cable.termination_b_id, connection=new_conn
-            )
-            new_conn = self.add_dst_connection(
-                cable_term_type=_cable.termination_a_type, cable_term_id=_cable.termination_a_id, connection=new_conn
-            )
-            self.add(new_conn)
+            # # Now to ensure that diff matches, add a connection from reverse side.
+            # new_conn = self.add_src_connection(
+            #     cable_term_type=_cable.termination_b_type, cable_term_id=_cable.termination_b_id, connection=new_conn
+            # )
+            # new_conn = self.add_dst_connection(
+            #     cable_term_type=_cable.termination_a_type, cable_term_id=_cable.termination_a_id, connection=new_conn
+            # )
+            # self.add(new_conn)
 
     def add_src_connection(
         self, cable_term_type: Cable, cable_term_id: Cable, connection: dcim.Connection
@@ -505,6 +672,7 @@ class NautobotAdapter(DiffSync):
     def load_providers(self):
         """Add Nautobot Provider objects as DiffSync Provider models."""
         for _prov in Provider.objects.all():
+            self.provider_map[_prov.name] = _prov.id
             new_prov = self.provider(
                 name=_prov.name,
                 notes=_prov.comments,
@@ -520,6 +688,7 @@ class NautobotAdapter(DiffSync):
     def load_circuits(self):
         """Add Nautobot Circuit objects as DiffSync Circuit models."""
         for _circuit in Circuit.objects.all():
+            self.circuit_map[_circuit.cid] = _circuit.id
             new_circuit = self.circuit(
                 circuit_id=_circuit.cid,
                 provider=_circuit.provider.name,
@@ -551,6 +720,9 @@ class NautobotAdapter(DiffSync):
         """Add Nautobot FrontPort objects as DiffSync PatchPanelFrontPort models."""
         for port in FrontPort.objects.all():
             if port.device.device_role.name == "patch panel":
+                if port.device.name not in self.fp_map:
+                    self.fp_map[port.device.name] = {}
+                self.fp_map[port.device.name][port.name] = port.id
                 front_port = self.patchpanelfrontport(
                     name=port.name,
                     patchpanel=port.device.name,
@@ -563,6 +735,9 @@ class NautobotAdapter(DiffSync):
         """Add Nautobot RearPort objects as DiffSync PatchPanelRearPort models."""
         for port in RearPort.objects.all():
             if port.device.device_role.name == "patch panel":
+                if port.device.name not in self.rp_map:
+                    self.rp_map[port.device.name] = {}
+                self.rp_map[port.device.name][port.name] = port.id
                 rear_port = self.patchpanelrearport(
                     name=port.name,
                     patchpanel=port.device.name,
@@ -573,6 +748,15 @@ class NautobotAdapter(DiffSync):
 
     def load(self):
         """Load data from Nautobot."""
+        self.status_map = {s.slug: s.id for s in Status.objects.only("id", "slug")}
+        self.platform_map = {p.slug: p.id for p in Platform.objects.only("id", "slug")}
+        self.devicerole_map = {dr.slug: dr.id for dr in DeviceRole.objects.only("id", "slug")}
+        self.relationship_map = {r.name: r.id for r in Relationship.objects.only("id", "name")}
+        if LIFECYCLE_MGMT:
+            self.softwarelcm_map = nautobot.get_dlc_version_map()
+        else:
+            self.softwarelcm_map = nautobot.get_cf_version_map()
+
         # Import all Nautobot Site records as Buildings
         self.load_sites()
         self.load_rackgroups()

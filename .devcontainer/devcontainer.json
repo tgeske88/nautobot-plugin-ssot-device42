@@ -12,7 +12,6 @@
     "service": "nautobot",
     "runServices": [
         "celery",
-        "worker",
         "postgres",
         "redis"
     ],
