@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.2.3 (2022-09-23)
+### Fix
+* Many Fixes and Features for Bulk Create/Update/Delete ([`6c9ed94`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6c9ed94a90af2f421c04595bce1914ede5c8fbae))
+
 ## v1.2.2 (2022-05-06)
 
 ### Fix
