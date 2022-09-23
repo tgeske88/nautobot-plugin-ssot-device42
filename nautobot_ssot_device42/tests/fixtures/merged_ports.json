@@ -1,5 +1,6 @@
 [
     {
+        "netport_pk": 1,
         "vlan_pks": [
             "1"
         ],
@@ -15,6 +16,7 @@
         "device_name": "core-router.testexample.com"
     },
     {
+        "netport_pk": 2,
         "vlan_pks": [
             "1"
         ],

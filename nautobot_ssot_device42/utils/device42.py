@@ -49,7 +49,7 @@ def merge_offset_dicts(orig_dict: dict, offset_dict: dict) -> dict:
     return out
 
 
-def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=too-many-branches
+def get_intf_type(intf_record: dict) -> str:  # pylint: disable=too-many-branches
     """Method to determine an Interface type based on a few factors.
 
     Those factors include:
@@ -61,7 +61,6 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
 
     Args:
         intf_record (dict): Interface record from Device42 with details about the Port.
-        diffsync (obj): Object used for logging to Diffsync Job.
 
     Returns:
         _port_type (str): The Nautobot type appropriate for the interface based upon criteria explained above.
@@ -79,26 +78,16 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             and intf_record.get("port_speed")
             and intf_record["port_speed"] in PHY_INTF_MAP
         ):
-            if diffsync.debug:
-                diffsync.log_debug(message=f"Matched on intf mapping. {intf_record['port_speed']}")
             _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
         elif (
             "fibreChannel" in intf_record["discovered_type"]
             and intf_record.get("port_speed")
             and intf_record["port_speed"] in FC_INTF_MAP
         ):
-            if diffsync.debug:
-                diffsync.log_debug(
-                    message=f"Matched on FibreChannel. {intf_record['port_name']} {intf_record['device_name']}"
-                )
             _port_type = FC_INTF_MAP[intf_record["port_speed"]]
         elif intf_record["port_speed"] in PHY_INTF_MAP:
-            if diffsync.debug:
-                diffsync.log_debug(message=f"Matched on intf mapping. {intf_record['port_speed']}")
             _port_type = PHY_INTF_MAP[intf_record["port_speed"]]
         elif _port_name and _port_name in INTF_NAME_MAP:
-            if diffsync.debug:
-                diffsync.log_debug(message=f"Matched on interface name {_port_name}")
             _port_type = INTF_NAME_MAP[_port_name]["itype"]
         elif "gigabitEthernet" in intf_record["discovered_type"]:
             _port_type = "1000base-t"
@@ -106,18 +95,12 @@ def get_intf_type(intf_record: dict, diffsync=None) -> str:  # pylint: disable=t
             _port_type = "ieee802.11a"
     if intf_record["port_type"] == "logical" and intf_record.get("discovered_type"):
         if intf_record["discovered_type"] == "ieee8023adLag" or intf_record["discovered_type"] == "lacp":
-            if diffsync.debug:
-                diffsync.log_debug(message=f"LAG matched. {intf_record['port_name']} {intf_record['device_name']}")
             _port_type = "lag"
         elif (
             intf_record["discovered_type"] == "softwareLoopback"
             or intf_record["discovered_type"] == "l2vlan"
             or intf_record["discovered_type"] == "propVirtual"
         ):
-            if diffsync.debug:
-                diffsync.log_debug(
-                    message=f"Virtual, loopback, or l2vlan interface matched. {intf_record['port_name']} {intf_record['device_name']}."
-                )
             if _port_name and re.search(r"[pP]ort-?[cC]hannel", _port_name):
                 _port_type = "lag"
             else:
@@ -352,7 +335,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
 
         return {
             _i["cluster"]: {
-                "members": list(_i["members"].split("%3B ")),
+                "members": sorted(list(_i["members"].split("%3B "))),
                 "is_network": _i["network_device"],
                 "hardware": _i["hardware"],
                 "os": _i["os"],
@@ -370,7 +353,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             List[dict]: Dict of interface information from DOQL query.
         """
-        query = "SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name"
+        query = "SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.netport_pk, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.second_device_fk, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.netport_pk, n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.second_device_fk, d.name"
         return self.doql_query(query=query)
 
     def get_ports_wo_vlans(self) -> List[dict]:
@@ -379,7 +362,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             List[dict]: Dict of Interface information from DOQL query.
         """
-        query = "SELECT m.port as port_name, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port is not null GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name"
+        query = "SELECT m.netport_pk, m.port as port_name, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, m.second_device_fk, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port is not null GROUP BY m.netport_pk, m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, m.second_device_fk, d.name"
         return self.doql_query(query=query)
 
     def get_port_default_custom_fields(self) -> List[dict]:

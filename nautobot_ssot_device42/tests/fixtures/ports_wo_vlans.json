@@ -1,5 +1,6 @@
 [
     {
+        "netport_pk": 1,
         "port_name": "FortyGigabitEthernet1/1/1",
         "description": "Fo1/1/1",
         "up_admin": true,
@@ -12,6 +13,7 @@
         "device_name": "core-router.testexample.com"
     },
     {
+        "netport_pk": 2,
         "port_name": "FortyGigabitEthernet1/1/2",
         "description": "Fo1/1/2",
         "up_admin": true,

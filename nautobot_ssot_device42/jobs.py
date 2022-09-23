@@ -10,11 +10,13 @@ from requests import HTTPError
 from diffsync import DiffSyncFlags
 from diffsync.exceptions import ObjectNotCreated
 from nautobot_ssot_device42.constant import PLUGIN_CFG
-from nautobot_ssot_device42.diffsync.from_d42.device42 import Device42Adapter
-from nautobot_ssot_device42.diffsync.from_d42.nautobot import NautobotAdapter
+from nautobot_ssot_device42.diff import CustomOrderingDiff
+from nautobot_ssot_device42.diffsync.adapters.device42 import Device42Adapter
+from nautobot_ssot_device42.diffsync.adapters.nautobot import NautobotAdapter
 from nautobot_ssot_device42.utils.device42 import Device42API
 
-from .diff import CustomOrderingDiff
+
+name = "Device42 SSoT"  # pylint: disable=invalid-name
 
 
 class Device42DataSource(DataSource, Job):
@@ -111,8 +113,8 @@ class Device42DataSource(DataSource, Job):
             ),
         )
 
-    def sync_data(self):
-        """Device42 Sync."""
+    def load_source_adapter(self):
+        """Load data from Device42 into DiffSync models."""
         if self.kwargs["debug"]:
             self.log_info(message="Connecting to Device42...")
         client = Device42API(
@@ -121,26 +123,25 @@ class Device42DataSource(DataSource, Job):
             password=PLUGIN_CFG["device42_password"],
             verify=PLUGIN_CFG["verify_ssl"],
         )
-        d42_adapter = Device42Adapter(job=self, sync=self.sync, client=client)
+        self.source_adapter = Device42Adapter(job=self, sync=self.sync, client=client)
         if self.kwargs["debug"]:
             self.log_info(message="Loading data from Device42...")
-        d42_adapter.load()
-        nb_adapter = NautobotAdapter(job=self, sync=self.sync)
+        self.source_adapter.load()
+
+    def load_target_adapter(self):
+        """Load data from Nautobot into DiffSync models."""
+        self.target_adapter = NautobotAdapter(job=self, sync=self.sync)
         if self.kwargs["debug"]:
             self.log_info(message="Loading data from Nautobot...")
-        nb_adapter.load()
-        if self.kwargs["debug"]:
-            self.log_info(message="Performing diff of data between Device42 and Nautobot.")
-        diff = nb_adapter.diff_from(d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff)
-        self.sync.diff = diff.dict()
-        self.sync.save()
-        if self.kwargs["debug"]:
-            self.log_info(message=diff.summary())
+        self.target_adapter.load()
+
+    def execute_sync(self):
+        """Execute the synchronization of data from Device42 to Nautobot."""
         if not self.kwargs["dry_run"]:
             self.log_info(message="Performing data synchronization from Device42.")
             try:
-                nb_adapter.sync_from(
-                    d42_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff
+                self.target_adapter.sync_from(
+                    self.source_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff
                 )
             except HTTPError as err:
                 self.log_failure(message="Sync failed.")

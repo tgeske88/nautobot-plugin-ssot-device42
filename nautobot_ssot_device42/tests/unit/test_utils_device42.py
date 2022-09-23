@@ -33,6 +33,8 @@ class TestMissingConfigSetting(TestCase):
 class TestUtilsDevice42(TestCase):
     """Test Device42 util methods."""
 
+    databases = ("default", "job_logs")
+
     def test_merge_offset_dicts(self):
         first_dict = {"total_count": 10, "limit": 2, "offset": 2, "Objects": ["a", "b"]}
         second_dict = {"total_count": 10, "limit": 2, "offset": 4, "Objects": ["c", "d"]}
@@ -48,10 +50,7 @@ class TestUtilsDevice42(TestCase):
             "discovered_type": "ethernetCsmacd",
             "port_speed": "1.0 Gbps",
         }
-        dsync = MagicMock()
-        dsync.log_debug = MagicMock()
-        self.assertEqual(device42.get_intf_type(intf_record=eth_intf, diffsync=dsync), "1000base-t")
-        dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
+        self.assertEqual(device42.get_intf_type(intf_record=eth_intf), "1000base-t")
 
     @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_fc_intf(self):
@@ -63,10 +62,7 @@ class TestUtilsDevice42(TestCase):
             "port_speed": "1.0 Gbps",
             "device_name": "core-router.testexample.com",
         }
-        dsync = MagicMock()
-        dsync.log_debug = MagicMock()
-        self.assertEqual(device42.get_intf_type(intf_record=fc_intf, diffsync=dsync), "1gfc-sfp")
-        dsync.log_debug.assert_called_once_with(message="Matched on FibreChannel. FC0/1 core-router.testexample.com")
+        self.assertEqual(device42.get_intf_type(intf_record=fc_intf), "1gfc-sfp")
 
     @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_unknown_phy_intf(self):
@@ -77,10 +73,7 @@ class TestUtilsDevice42(TestCase):
             "discovered_type": "Unknown",
             "port_speed": "1.0 Gbps",
         }
-        dsync = MagicMock()
-        dsync.log_debug = MagicMock()
-        self.assertEqual(device42.get_intf_type(intf_record=unknown_phy_intf_speed, diffsync=dsync), "1000base-t")
-        dsync.log_debug.assert_called_once_with(message="Matched on intf mapping. 1.0 Gbps")
+        self.assertEqual(device42.get_intf_type(intf_record=unknown_phy_intf_speed), "1000base-t")
 
     @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_name_mapping(self):
@@ -91,10 +84,7 @@ class TestUtilsDevice42(TestCase):
             "discovered_type": "ethernetCsmacd",
             "port_speed": "10 Mbps",
         }
-        dsync = MagicMock()
-        dsync.log_debug = MagicMock()
-        self.assertEqual(device42.get_intf_type(intf_record=ethernet_interface, diffsync=dsync), "100base-tx")
-        dsync.log_debug.assert_called_once_with(message="Matched on interface name FastEthernet")
+        self.assertEqual(device42.get_intf_type(intf_record=ethernet_interface), "100base-tx")
 
     def test_get_intf_type_gigabit_ethernet_intf(self):
         # test physical interface that's discovered as gigabitEthernet
@@ -126,10 +116,7 @@ class TestUtilsDevice42(TestCase):
             "port_speed": "100 Mbps",
             "device_name": "core-router.testexample.com",
         }
-        dsync = MagicMock()
-        dsync.log_debug = MagicMock()
-        self.assertEqual(device42.get_intf_type(intf_record=ad_lag_intf, diffsync=dsync), "lag")
-        dsync.log_debug.assert_called_once_with(message="LAG matched. port-channel100 core-router.testexample.com")
+        self.assertEqual(device42.get_intf_type(intf_record=ad_lag_intf), "lag")
 
     @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_lacp_intf(self):
@@ -141,10 +128,7 @@ class TestUtilsDevice42(TestCase):
             "port_speed": "40 Gbps",
             "device_name": "core-router.testexample.com",
         }
-        dsync = MagicMock()
-        dsync.log_debug = MagicMock()
-        self.assertEqual(device42.get_intf_type(intf_record=lacp_intf, diffsync=dsync), "lag")
-        dsync.log_debug.assert_called_once_with(message="LAG matched. Internal_Trunk core-router.testexample.com")
+        self.assertEqual(device42.get_intf_type(intf_record=lacp_intf), "lag")
 
     @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_virtual_intf(self):
@@ -156,12 +140,7 @@ class TestUtilsDevice42(TestCase):
             "port_speed": "1.0 Gbps",
             "device_name": "distro-switch.testexample.com",
         }
-        dsync = MagicMock()
-        dsync.log_debug = MagicMock()
-        self.assertEqual(device42.get_intf_type(intf_record=virtual_intf, diffsync=dsync), "virtual")
-        dsync.log_debug.assert_called_once_with(
-            message="Virtual, loopback, or l2vlan interface matched. Vlan100 distro-switch.testexample.com."
-        )
+        self.assertEqual(device42.get_intf_type(intf_record=virtual_intf), "virtual")
 
     @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_port_channel_intf(self):
@@ -173,12 +152,7 @@ class TestUtilsDevice42(TestCase):
             "port_speed": "20 Gbps",
             "device_name": "distro-switch.testexample.com",
         }
-        dsync = MagicMock()
-        dsync.log_debug = MagicMock()
-        self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf, diffsync=dsync), "lag")
-        dsync.log_debug.assert_called_once_with(
-            message="Virtual, loopback, or l2vlan interface matched. port-channel100 distro-switch.testexample.com."
-        )
+        self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf), "lag")
 
     netmiko_platforms = [
         ("asa", "asa", "cisco_asa"),
@@ -226,11 +200,13 @@ class TestUtilsDevice42(TestCase):
 class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
     """Test Base Device42 API Client and Calls."""
 
+    databases = ("default", "job_logs")
+
     def setUp(self):
         """Setup Device42API instance."""
         self.uri = "https://device42.testexample.com"
         self.username = "testuser"
-        self.password = "testpassword"
+        self.password = "testpassword"  # nosec B105
         self.verify = False
         self.dev42 = device42.Device42API(self.uri, self.username, self.password, self.verify)
 
@@ -413,7 +389,7 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_with_vlans_sent.json")
         responses.add(
             responses.GET,
-            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, d.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.netport_pk, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.second_device_fk, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.netport_pk, n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.second_device_fk, d.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )
@@ -428,7 +404,7 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_wo_vlans_sent.json")
         responses.add(
             responses.GET,
-            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT m.port as port_name, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port is not null GROUP BY m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, d.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT m.netport_pk, m.port as port_name, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, m.second_device_fk, d.name as device_name FROM view_netport_v1 m JOIN view_device_v1 d on d.device_pk = m.device_fk WHERE m.port is not null GROUP BY m.netport_pk, m.port, m.description, m.up_admin, m.discovered_type, m.hwaddress, m.port_type, m.port_speed, m.mtu, m.tags, m.second_device_fk, d.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )

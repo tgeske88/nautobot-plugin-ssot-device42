@@ -1,14 +1,14 @@
 """Utility functions for Nautobot ORM."""
 from typing import List, OrderedDict
+from uuid import UUID
 
 import random
 from django.utils.text import slugify
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
 from nautobot.circuits.models import CircuitType
-from nautobot.dcim.models import Device, DeviceRole, Interface, Manufacturer, Platform
+from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
 from nautobot.extras.models import Tag, Relationship
-from nautobot.ipam.models import IPAddress
 
 try:
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
@@ -28,35 +28,39 @@ def get_random_color() -> str:
     return f"{'%06x' % random.randint(0, 0xFFFFFF)}"  # pylint: disable=consider-using-f-string
 
 
-def verify_device_role(role_name: str, role_color: str = None) -> DeviceRole:
+def verify_device_role(diffsync, role_name: str, role_color: str = None) -> UUID:
     """Verifies DeviceRole object exists in Nautobot. If not, creates it.
 
     Args:
+        diffsync (obj): DiffSync Job object.
         role_name (str): Name of role to verify.
         role_color (str): Color of role to verify. Must be hex code format.
 
     Returns:
-        DeviceRole: Created DeviceRole object.
+        UUID: ID of found or created DeviceRole object.
     """
     if not role_color:
         role_color = get_random_color()
     try:
-        role_obj = DeviceRole.objects.get(slug=slugify(role_name))
-    except DeviceRole.DoesNotExist:
+        role_obj = diffsync.devicerole_map[slugify(role_name)]
+    except KeyError:
         role_obj = DeviceRole(name=role_name, slug=slugify(role_name), color=role_color)
-        role_obj.validated_save()
+        diffsync.objects_to_create["deviceroles"].append(role_obj)
+        diffsync.devicerole_map[slugify(role_name)] = role_obj.id
+        role_obj = role_obj.id
     return role_obj
 
 
-def verify_platform(platform_name: str, manu: str) -> Platform:
+def verify_platform(diffsync, platform_name: str, manu: UUID) -> UUID:
     """Verifies Platform object exists in Nautobot. If not, creates it.
 
     Args:
+        diffsync (obj): DiffSync Job with maps.
         platform_name (str): Name of platform to verify.
-        manu (str): Name of platform manufacturer.
+        manu (UUID): The ID (primary key) of platform manufacturer.
 
     Returns:
-        DeviceRole: Created DeviceRole object.
+        UUID: UUID for found or created DeviceRole object.
     """
     if ANSIBLE_LIB_MAPPER_REVERSE.get(platform_name):
         _name = ANSIBLE_LIB_MAPPER_REVERSE[platform_name]
@@ -70,15 +74,17 @@ def verify_platform(platform_name: str, manu: str) -> Platform:
         else:
             napalm_driver = platform_name
     try:
-        platform_obj = Platform.objects.get(slug=slugify(platform_name))
-    except Platform.DoesNotExist:
+        platform_obj = diffsync.platform_map[slugify(platform_name)]
+    except KeyError:
         platform_obj = Platform(
             name=_name,
             slug=slugify(platform_name),
-            manufacturer=Manufacturer.objects.get(name=manu),
-            napalm_driver=napalm_driver,
+            manufacturer_id=manu,
+            napalm_driver=napalm_driver[:50],
         )
-        platform_obj.validated_save()
+        diffsync.objects_to_create["platforms"].append(platform_obj)
+        diffsync.platform_map[slugify(platform_name)] = platform_obj.id
+        platform_obj = platform_obj.id
     return platform_obj
 
 
@@ -109,51 +115,6 @@ def get_or_create_mgmt_intf(intf_name: str, dev: Device) -> Interface:
         )
         mgmt_intf.validated_save()
     return mgmt_intf
-
-
-def set_primary_ip_and_mgmt(ipaddr: IPAddress, dev: Device, intf: Interface):
-    """Method to set primary IP for a Device and mark Interface as management only.
-
-    Args:
-        diffsync (object): DiffSync job for logging.
-        ids (dict): IPAddress object identifier attributes.
-        attrs (dict): IPAddress object attributes.
-        ipaddr (NautobotIPAddress): IPAddress object being created.
-        dev (Device): Device to have primary IP set on.
-        intf (Interface): Interface to set as management.
-    """
-    if ipaddr.assigned_object.device != dev:
-        if ipaddr.family == 6:
-            ipaddr.assigned_object.device.primary_ip6 = None
-        else:
-            ipaddr.assigned_object.device.primary_ip4 = None
-        ipaddr.assigned_object.device.validated_save()
-        ipaddr.assigned_object = intf
-        ipaddr.validated_save()
-    assign_primary(dev=dev, ipaddr=ipaddr)
-    intf.mgmt_only = True
-    intf.validated_save()
-
-
-def assign_primary(dev: Device, ipaddr: IPAddress):
-    """Method to assign IP address as primary to specified device.
-
-    Expects the assigned interface for the IP to belong to the passed Device.
-
-    Args:
-        dev (Device): Device object that the IPAddress is expected to already be assigned to.
-        ipaddr (IPAddress): IPAddress object that is to be primary for `dev`.
-    """
-    # Check if Interface assigned to IP matching DNS query matches Device that is being worked with.
-    if ipaddr.assigned_object.device == dev:
-        if ipaddr.family == 6:
-            dev.primary_ip6 = ipaddr
-        else:
-            dev.primary_ip4 = ipaddr
-        print(f"{ipaddr.address} set to primary on {dev.name}")
-        dev.validated_save()
-    else:
-        print(f"IP Address on device {ipaddr.assigned_object.device} != {dev}")
 
 
 def get_or_create_tag(tag_name: str) -> Tag:
@@ -258,7 +219,7 @@ def get_software_version_from_lcm(relations: dict):
     Returns:
         str: String of SoftwareLCM version.
     """
-    version = ""
+    version = None
     if LIFECYCLE_MGMT:
         _softwarelcm = Relationship.objects.get(name="Software on Device")
         for _, relationships in relations.items():
@@ -275,3 +236,50 @@ def get_version_from_custom_field(fields: OrderedDict):
         if field.label == "OS Version":
             return value
     return ""
+
+
+def determine_vc_position(vc_map: dict, virtual_chassis: str, device_name: str) -> int:
+    """Determine position of Member Device in Virtual Chassis based on name and other factors.
+
+    Args:
+        vc_map (dict): Dictionary of virtual chassis positions mapped to devices.
+        virtual_chassis (str): Name of the virtual chassis that device is being added to.
+        device_name (str): Name of member device to be added in virtual chassis.
+
+    Returns:
+        int: Position for member device in Virtual Chassis. Will always be position 2 or higher as 1 is master device.
+    """
+    return sorted(vc_map[virtual_chassis]["members"]).index(device_name) + 2
+
+
+def get_dlc_version_map():
+    """Method to create nested dictionary of Software versions mapped to their ID along with Platform.
+
+    This should only be used if the Device Lifecycle plugin is found to be installed.
+
+    Returns:
+        dict: Nested dictionary of versions mapped to their ID and to their Platform.
+    """
+    version_map = {}
+    for ver in SoftwareLCM.objects.only("id", "device_platform", "version"):
+        if ver.device_platform.slug not in version_map:
+            version_map[ver.device_platform.slug] = {}
+        version_map[ver.device_platform.slug][ver.version] = ver.id
+    return version_map
+
+
+def get_cf_version_map():
+    """Method to create nested dictionary of Software versions mapped to their ID along with Platform.
+
+    This should only be used if the Device Lifecycle plugin is not found. It will instead use custom field "OS Version".
+
+    Returns:
+        dict: Nested dictionary of versions mapped to their ID and to their Platform.
+    """
+    version_map = {}
+    for dev in Device.objects.only("id", "platform", "_custom_field_data"):
+        if dev.platform.slug not in version_map:
+            version_map[dev.platform.slug] = {}
+        if "os-version" in dev.custom_field_data:
+            version_map[dev.platform.slug][dev.custom_field_data["os-version"]] = dev.id
+    return version_map
