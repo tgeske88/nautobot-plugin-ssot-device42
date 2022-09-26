@@ -142,6 +142,8 @@ class NautobotAdapter(DiffSync):
             ):
                 for nautobot_object in self.objects_to_delete[grouping]:
                     try:
+                        if self.job.kwargs.get("debug"):
+                            self.job.log_info(message=f"Deleting {nautobot_object}.")
                         nautobot_object.delete()
                     except ProtectedError:
                         self.job.log(f"Deletion failed protected object: {nautobot_object}")
