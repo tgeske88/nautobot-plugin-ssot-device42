@@ -22,7 +22,7 @@ from nautobot.dcim.models import RackGroup as OrmRackGroup
 from nautobot.dcim.models import Site as OrmSite
 from nautobot.dcim.models import VirtualChassis as OrmVC
 from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField, RelationshipAssociation
+from nautobot.extras.models import CustomField, Relationship, RelationshipAssociation
 from nautobot.extras.models import Status as OrmStatus
 from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP, PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.models.base.dcim import (
@@ -490,6 +490,9 @@ class NautobotCluster(Cluster):
 class NautobotDevice(Device):
     """Nautobot Device model."""
 
+    if LIFECYCLE_MGMT:
+        _softwarelcm = Relationship.objects.get(name="Software on Device")
+
     @staticmethod
     def _get_site(diffsync, building: str):
         """Get Site ID from Building name."""
@@ -745,9 +748,19 @@ class NautobotDevice(Device):
             os_ver = os_ver.id
         return os_ver
 
-    @staticmethod
-    def _assign_version_to_device(diffsync, device, software_lcm):
+    def _assign_version_to_device(self, diffsync, device: UUID, software_lcm: UUID):
         """Add Relationship between Device and SoftwareLCM."""
+        dev = OrmDevice.objects.get(id=device)
+        relations = dev.get_relationships()
+        for _, relationships in relations.items():
+            for relationship, queryset in relationships.items():
+                if relationship == self._softwarelcm:
+                    if diffsync.job.kwargs.get("debug"):
+                        diffsync.job.log_warning(
+                            message=f"Deleting Software Version Relationships for {dev.name} to assign a new version."
+                        )
+                    queryset.delete()
+
         new_assoc = RelationshipAssociation(
             relationship_id=diffsync.relationship_map["Software on Device"],
             source_type=ContentType.objects.get_for_model(SoftwareLCM),
