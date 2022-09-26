@@ -224,7 +224,7 @@ def get_software_version_from_lcm(relations: dict):
         _softwarelcm = Relationship.objects.get(name="Software on Device")
         for _, relationships in relations.items():
             for relationship, queryset in relationships.items():
-                if relationship == _softwarelcm:
+                if relationship == _softwarelcm and len(queryset) > 0:
                     version = queryset[0].source.version
     return version
 
