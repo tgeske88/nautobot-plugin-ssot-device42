@@ -526,9 +526,17 @@ class NautobotAdapter(DiffSync):
                 primary=None,
             )
             if _ip.assigned_object_id:
-                _intf = Interface.objects.get(id=_ip.assigned_object_id)
-                new_ip.interface = _intf.name
-                new_ip.device = _intf.device.name
+                try:
+                    _intf = Interface.objects.get(id=_ip.assigned_object_id)
+                    new_ip.interface = _intf.name
+                    new_ip.device = _intf.device.name
+                except Interface.DoesNotExist:
+                    _ip.assigned_object_id = None
+                    _ip.assigned_object_type = None
+                    if self.job.kwargs.get("debug"):
+                        self.job.log_warning(
+                            message=f"Can't find assigned Interface {_ip.assigned_object_id} for {_ip.address}. Removing assignment."
+                        )
             if hasattr(_ip, "primary_ip4_for") or hasattr(_ip, "primary_ip6_for"):
                 new_ip.primary = True
             else:
