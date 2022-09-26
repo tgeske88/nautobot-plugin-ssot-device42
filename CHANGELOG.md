@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.2.5 (2022-09-26)
+### Fix
+* Check that queryset has a version ([`b8428f0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/b8428f052bfc829bd5e21f6747f2182381d3696e))
+
+### Documentation
+* 📝 Add debug logging for deleting devices ([`6125600`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6125600857a0cd651077607a55282ca4d7ac3791))
+
 ## v1.2.4 (2022-09-26)
 ### Fix
 * 🐛 Ensure only one version assigned to Device ([`65dde96`](https://github.com/networking/nautobot-plugin-device42-sync/commit/65dde968bf8db1311be4df8696337b66dde81c8c))
