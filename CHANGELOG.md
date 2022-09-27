@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.2.8 (2022-09-27)
+### Fix
+* Correct import for DiffSyncFlags ([`89e77ef`](https://github.com/networking/nautobot-plugin-device42-sync/commit/89e77efa402a7df7dfc331cd77811bf8b8848778))
+
 ## v1.2.7 (2022-09-27)
 ### Fix
 * 🐛 Correct label attr to be defined even if field missing for diff ([`3a8a3cb`](https://github.com/networking/nautobot-plugin-device42-sync/commit/3a8a3cbdc2466b647055b070e78b25d43034e6a5))
