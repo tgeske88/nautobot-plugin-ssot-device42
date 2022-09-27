@@ -7,7 +7,7 @@ from nautobot.extras.jobs import BooleanVar, Job
 from nautobot_ssot.jobs.base import DataMapping, DataSource
 from requests import HTTPError
 
-from diffsync import DiffSyncFlags
+from diffsync.enum import DiffSyncFlags
 from diffsync.exceptions import ObjectNotCreated
 from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diff import CustomOrderingDiff
