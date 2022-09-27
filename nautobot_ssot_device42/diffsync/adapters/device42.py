@@ -645,7 +645,7 @@ class Device42Adapter(DiffSync):
                 new_ip = self.ipaddr(
                     address=_ipaddr,
                     available=_ip["available"],
-                    label=_ip["label"],
+                    label=_ip["label"] if _ip.get("label") is not None else "",
                     device=_ip["device"] if _ip.get("device") else "",
                     interface=_ip["port_name"] if _ip.get("port_name") else "",
                     primary=False,
