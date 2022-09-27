@@ -219,7 +219,7 @@ def get_software_version_from_lcm(relations: dict):
     Returns:
         str: String of SoftwareLCM version.
     """
-    version = None
+    version = ""
     if LIFECYCLE_MGMT:
         _softwarelcm = Relationship.objects.get(name="Software on Device")
         for _, relationships in relations.items():
