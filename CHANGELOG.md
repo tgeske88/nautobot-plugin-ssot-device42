@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.2.7 (2022-09-27)
+### Fix
+* 🐛 Correct label attr to be defined even if field missing for diff ([`3a8a3cb`](https://github.com/networking/nautobot-plugin-device42-sync/commit/3a8a3cbdc2466b647055b070e78b25d43034e6a5))
+* 🐛 Ensure updates to device are saved ([`86758d9`](https://github.com/networking/nautobot-plugin-device42-sync/commit/86758d9bcc837a250a586afe13f1b75937ff23c8))
+
 ## v1.2.6 (2022-09-26)
 ### Fix
 * 🐛 Add handling for IP showing assigned but non-existant Interface ([`7da3a69`](https://github.com/networking/nautobot-plugin-device42-sync/commit/7da3a69998b8545702d65c7c1b579e50aa4941f8))
