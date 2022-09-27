@@ -449,6 +449,7 @@ class NautobotCluster(Cluster):
                     else:
                         position = len(OrmDevice.objects.filter(virtual_chassis__name=self.name))
                     device.vc_position = position + 1
+                    device.validated_save()
                 except OrmDevice.DoesNotExist as err:
                     if self.diffsync.job.kwargs.get("debug"):
                         self.diffsync.job.log_warning(
