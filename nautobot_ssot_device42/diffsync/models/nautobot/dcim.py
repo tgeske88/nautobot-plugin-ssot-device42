@@ -609,18 +609,14 @@ class NautobotDevice(Device):
                         site_id = self._get_site(diffsync=self.diffsync, building=attrs["building"])
             if site_id:
                 _dev.site_id = site_id
+        if attrs.get("rack_position"):
+            _dev.position = int(attrs["rack_position"])
+        if attrs.get("rack_orientation"):
+            _dev.face = attrs["rack_orientation"]
         if attrs.get("rack") and attrs.get("room"):
             try:
                 _dev.rack = OrmRack.objects.get(name=attrs["rack"], group__name=attrs["room"])
                 _dev.site = _dev.rack.site
-                if attrs.get("rack_position"):
-                    _dev.position = int(attrs["rack_position"])
-                else:
-                    _dev.position = None
-                if attrs.get("rack_orientation"):
-                    _dev.face = attrs["rack_orientation"]
-                else:
-                    _dev.face = "rear"
             except OrmRack.DoesNotExist as err:
                 if self.diffsync.job.kwargs.get("debug"):
                     self.diffsync.job.log_warning(
