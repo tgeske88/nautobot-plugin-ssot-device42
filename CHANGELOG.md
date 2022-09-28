@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.0 (2022-09-28)
+### Feature
+* ✨ Add Status to Ports ([`3d76bfd`](https://github.com/networking/nautobot-plugin-device42-sync/commit/3d76bfd809a47a0a744a074104050fdc912b59bc))
+
+### Fix
+* 🐛 Correct get of Device to use variable ([`cf6bf80`](https://github.com/networking/nautobot-plugin-device42-sync/commit/cf6bf802f1be9ad3c6e3c88fc3403022bae5c379))
+
 ## v1.2.8 (2022-09-27)
 ### Fix
 * Correct import for DiffSyncFlags ([`89e77ef`](https://github.com/networking/nautobot-plugin-device42-sync/commit/89e77efa402a7df7dfc331cd77811bf8b8848778))
