@@ -504,6 +504,7 @@ class Device42Adapter(DiffSync):
                     _device_name = self.d42_device_map[_port["second_device_fk"]]["name"]
                 else:
                     _device_name = _port["device_name"]
+                _port_name = _port["port_name"][:63].strip()
                 if is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
                     _status = "active"
                 elif not is_truthy(_port.get("up")) and not is_truthy(_port.get("up_admin")):
@@ -516,7 +517,7 @@ class Device42Adapter(DiffSync):
                     new_port = self.get(self.port, {"device": _device_name, "name": _port["port_name"][:63].strip()})
                 except ObjectNotFound:
                     new_port = self.port(
-                        name=_port["port_name"][:63].strip(),
+                        name=_port_name,
                         device=_device_name,
                         enabled=is_truthy(_port["up_admin"]),
                         mtu=_port["mtu"] if _port.get("mtu") in range(1, 65537) else 1500,
@@ -544,19 +545,19 @@ class Device42Adapter(DiffSync):
                         new_port.vlans = _vlans
                         if len(_vlans) > 1:
                             new_port.mode = "tagged"
-                    if _port["device_name"] in _cfs and _cfs[_port["device_name"]].get(_port["port_name"]):
-                        new_port.custom_fields = sorted(
-                            _cfs[_port["device_name"]][_port["port_name"]], key=lambda d: d["key"]
-                        )
+                    if _port["device_name"] in _cfs and _cfs[_device_name].get(_port_name):
+                        new_port.custom_fields = sorted(_cfs[_device_name][_port_name], key=lambda d: d["key"])
                     else:
                         new_port.custom_fields = default_cfs
                     self.add(new_port)
                     try:
-                        _dev = self.get(self.device, _port["device_name"])
+                        _dev = self.get(self.device, _device_name)
                         _dev.add_child(new_port)
                     except ObjectNotFound as err:
                         if self.job.kwargs.get("debug"):
-                            self.job.log_warning(message=f"Device {_port['device_name']} not found. {err}")
+                            self.job.log_warning(
+                                message=f"Device {_device_name} not found for port {_port_name}. {err}"
+                            )
                         continue
 
     def filter_ports(self, vlan_ports: List[dict], no_vlan_ports: List[dict]) -> List[dict]:
