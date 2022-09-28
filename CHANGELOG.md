@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.2 (2022-09-28)
+### Fix
+* 🐛 Add check for up on port to handle virtual ports ([`36c8d8c`](https://github.com/networking/nautobot-plugin-device42-sync/commit/36c8d8c205713e70f450f19799f04bf119d2beff))
+
 ## v1.3.1 (2022-09-28)
 ### Fix
 * Correct var to be _device_name ([`3f361ca`](https://github.com/networking/nautobot-plugin-device42-sync/commit/3f361cac2d51156918b043ba537992769253243d))
