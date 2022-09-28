@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.3 (2022-09-28)
+### Fix
+* 🐛 Add Status attribute to mgmt interface ([`0bb9070`](https://github.com/networking/nautobot-plugin-device42-sync/commit/0bb907005b09ceb9a2438fa46211f113676b1535))
+
 ## v1.3.2 (2022-09-28)
 ### Fix
 * 🐛 Add check for up on port to handle virtual ports ([`36c8d8c`](https://github.com/networking/nautobot-plugin-device42-sync/commit/36c8d8c205713e70f450f19799f04bf119d2beff))
