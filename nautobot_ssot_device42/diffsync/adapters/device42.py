@@ -903,6 +903,7 @@ class Device42Adapter(DiffSync):
             mac_addr=None,
             custom_fields=None,
             tags=None,
+            status="active",
             uuid=None,
         )
         try:
