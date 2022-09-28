@@ -504,6 +504,14 @@ class Device42Adapter(DiffSync):
                     _device_name = self.d42_device_map[_port["second_device_fk"]]["name"]
                 else:
                     _device_name = _port["device_name"]
+                if is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
+                    _status = "active"
+                elif not is_truthy(_port.get("up")) and not is_truthy(_port.get("up_admin")):
+                    _status = "decommissioned"
+                elif not is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
+                    _status = "failed"
+                else:
+                    _status = "planned"
                 try:
                     new_port = self.get(self.port, {"device": _device_name, "name": _port["port_name"][:63].strip()})
                 except ObjectNotFound:
@@ -517,6 +525,7 @@ class Device42Adapter(DiffSync):
                         type=get_intf_type(intf_record=_port),
                         tags=_tags,
                         mode="access",
+                        status=_status,
                         custom_fields=None,
                         uuid=None,
                     )

@@ -435,6 +435,7 @@ class NautobotAdapter(DiffSync):
                     type=port.type,
                     tags=nautobot.get_tag_strings(port.tags),
                     mode=port.mode,
+                    status=port.status.slug,
                     custom_fields=nautobot.get_custom_field_dicts(port.get_custom_fields()),
                     uuid=port.id,
                 )

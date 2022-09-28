@@ -798,6 +798,7 @@ class NautobotPort(Port):
                 type=attrs["type"],
                 mac_address=attrs["mac_addr"][:12] if attrs.get("mac_addr") else None,
                 mode=attrs["mode"],
+                status_id=diffsync.status_map[attrs["status"]],
             )
             if attrs.get("tags"):
                 for _tag in nautobot.get_tags(attrs["tags"]):
@@ -860,6 +861,8 @@ class NautobotPort(Port):
             _port.type = attrs["type"]
         if attrs.get("mode"):
             _port.mode = attrs["mode"]
+        if "status" in attrs:
+            _port.status_id = self.diffsync.status_map[attrs["status"]]
         if attrs.get("tags"):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _port.tags.add(_tag)

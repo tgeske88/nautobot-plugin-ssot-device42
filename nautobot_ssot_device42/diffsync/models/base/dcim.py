@@ -147,7 +147,18 @@ class Port(DiffSyncModel):
 
     _modelname = "port"
     _identifiers = ("device", "name")
-    _attributes = ("enabled", "mtu", "description", "mac_addr", "type", "mode", "tags", "vlans", "custom_fields")
+    _attributes = (
+        "enabled",
+        "mtu",
+        "description",
+        "mac_addr",
+        "type",
+        "mode",
+        "status",
+        "tags",
+        "vlans",
+        "custom_fields",
+    )
     _children = {}
     name: str
     device: str
@@ -158,6 +169,7 @@ class Port(DiffSyncModel):
     type: str
     tags: Optional[List[str]]
     mode: Optional[str]
+    status: str
     vlans: Optional[List[dict]] = list()
     custom_fields: Optional[List[dict]]
     uuid: Optional[UUID]
