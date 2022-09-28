@@ -505,12 +505,15 @@ class Device42Adapter(DiffSync):
                 else:
                     _device_name = _port["device_name"]
                 _port_name = _port["port_name"][:63].strip()
-                if is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
+                if _port.get("up") and is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
                     _status = "active"
-                elif not is_truthy(_port.get("up")) and not is_truthy(_port.get("up_admin")):
+                elif _port.get("up") and not is_truthy(_port.get("up")) and not is_truthy(_port.get("up_admin")):
                     _status = "decommissioned"
-                elif not is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
+                elif _port.get("up") and not is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
                     _status = "failed"
+                elif is_truthy(_port.get("up_admin")):
+                    # this is for virtual interfaces that don't have an up status but do an up_admin
+                    _status = "active"
                 else:
                     _status = "planned"
                 try:
