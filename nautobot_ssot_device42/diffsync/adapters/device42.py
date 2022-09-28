@@ -545,7 +545,7 @@ class Device42Adapter(DiffSync):
                         new_port.vlans = _vlans
                         if len(_vlans) > 1:
                             new_port.mode = "tagged"
-                    if _port["device_name"] in _cfs and _cfs[_device_name].get(_port_name):
+                    if _device_name in _cfs and _cfs[_device_name].get(_port_name):
                         new_port.custom_fields = sorted(_cfs[_device_name][_port_name], key=lambda d: d["key"])
                     else:
                         new_port.custom_fields = default_cfs
