@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.4 (2022-09-29)
+### Fix
+* 🐛 Fix tag updates so they're added/removed properly ([`03ff4fc`](https://github.com/networking/nautobot-plugin-device42-sync/commit/03ff4fcf18441450b614b38c96cd4edf3120a005))
+
 ## v1.3.3 (2022-09-28)
 ### Fix
 * 🐛 Add Status attribute to mgmt interface ([`0bb9070`](https://github.com/networking/nautobot-plugin-device42-sync/commit/0bb907005b09ceb9a2438fa46211f113676b1535))
