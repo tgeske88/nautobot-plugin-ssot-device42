@@ -54,7 +54,7 @@ class NautobotVRFGroup(VRFGroup):
             tags_to_remove = list(set(_vrf.tags.names()).difference(attrs["tags"]))
             for _tag in tags_to_remove:
                 _vrf.tags.remove(_tag)
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -130,7 +130,7 @@ class NautobotSubnet(Subnet):
             tags_to_remove = list(set(_pf.tags.names()).difference(attrs["tags"]))
             for _tag in tags_to_remove:
                 _pf.tags.remove(_tag)
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -311,7 +311,7 @@ class NautobotIPAddress(IPAddress):
             tags_to_remove = list(set(_ipaddr.tags.names()).difference(attrs["tags"]))
             for _tag in tags_to_remove:
                 _ipaddr.tags.remove(_tag)
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -402,7 +402,7 @@ class NautobotVLAN(VLAN):
         _vlan = OrmVLAN.objects.get(id=self.uuid)
         if "description" in attrs:
             self.description = attrs["description"]
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),

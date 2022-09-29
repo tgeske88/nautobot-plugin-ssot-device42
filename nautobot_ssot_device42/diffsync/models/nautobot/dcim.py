@@ -107,7 +107,7 @@ class NautobotBuilding(Building):
             _facility = device42.get_facility(tags=attrs["tags"], diffsync=self.diffsync)
             if _facility:
                 _site.facility = _facility.upper()
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -169,7 +169,7 @@ class NautobotRoom(Room):
         _rg = OrmRackGroup.objects.get(id=self.uuid)
         if "notes" in attrs:
             _rg.description = attrs["notes"]
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -244,7 +244,7 @@ class NautobotRack(Rack):
             tags_to_remove = list(set(_rack.tags.names()).difference(attrs["tags"]))
             for _tag in tags_to_remove:
                 _rack.tags.remove(_tag)
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -305,7 +305,7 @@ class NautobotVendor(Vendor):
     def update(self, attrs):
         """Update Manufacturer object in Nautobot."""
         _manu = OrmManufacturer.objects.get(id=self.uuid)
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -378,7 +378,7 @@ class NautobotHardware(Hardware):
             _dt.u_height = int(attrs["size"])
         if "depth" in attrs:
             _dt.is_full_depth = bool(attrs["depth"] == "Full Depth")
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -471,7 +471,7 @@ class NautobotCluster(Cluster):
             tags_to_remove = list(set(_vc.tags.names()).difference(attrs["tags"]))
             for _tag in tags_to_remove:
                 _vc.tags.remove(_tag)
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -688,7 +688,7 @@ class NautobotDevice(Device):
                 _dev.role = nautobot.verify_device_role(diffsync=self.diffsync, role_name=DEFAULTS.get("device_role"))
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _dev.tags.add(_tag)
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -881,7 +881,7 @@ class NautobotPort(Port):
             tags_to_remove = list(set(_port.tags.names()).difference(attrs["tags"]))
             for _tag in tags_to_remove:
                 _port.tags.remove(_tag)
-        if "custom_fields" in attrs:
+        if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
