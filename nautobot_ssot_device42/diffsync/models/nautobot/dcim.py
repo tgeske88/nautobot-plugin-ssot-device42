@@ -373,7 +373,10 @@ class NautobotHardware(Hardware):
         if "manufacturer" in attrs:
             _dt.manufacturer = OrmManufacturer.objects.get(slug=slugify(attrs["manufacturer"]))
         if "part_number" in attrs:
-            _dt.part_number = attrs["part_number"]
+            if attrs["part_number"] is not None:
+                _dt.part_number = attrs["part_number"]
+            else:
+                _dt.part_number = ""
         if "size" in attrs:
             _dt.u_height = int(attrs["size"])
         if "depth" in attrs:
