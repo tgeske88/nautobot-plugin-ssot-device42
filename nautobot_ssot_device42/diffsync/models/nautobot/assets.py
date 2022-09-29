@@ -88,35 +88,35 @@ class NautobotPatchPanel(PatchPanel):
     def update(self, attrs):
         """Update Patch Panel object in Nautobot."""
         ppanel = Device.objects.get(id=self.uuid)
-        if attrs.get("in_service"):
+        if "in_service" in attrs:
             if attrs["in_service"] is True:
                 ppanel.status_id = self.diffsync.status_map["active"]
             else:
                 ppanel.status_id = self.diffsync.status_map["offline"]
-        if attrs.get("vendor") and attrs.get("model"):
+        if "vendor" in attrs and "model" in attrs:
             ppanel.device_type = DeviceType.objects.get(model=attrs["model"])
             if attrs.get("size"):
                 ppanel.device_type.u_height = int(attrs["size"])
             if attrs.get("depth"):
                 ppanel.device_type.is_full_depth = bool(attrs["depth"] == "Full Depth")
-        if attrs.get("orientation"):
+        if "orientation" in attrs:
             ppanel.face = attrs["orientation"]
-        if attrs.get("position"):
+        if "position" in attrs:
             ppanel.position = attrs["position"]
-        if attrs.get("building"):
+        if "building" in attrs:
             pp_site = find_site(diffsync=self.diffsync, attrs=attrs)
             if pp_site:
                 ppanel.site_id = pp_site
-        if attrs.get("room") or attrs.get("rack"):
+        if "room" in attrs or "rack" in attrs:
             if attrs.get("building"):
                 _building = attrs["building"]
             else:
                 _building = self.building
-            if attrs.get("room"):
+            if "room" in attrs:
                 _room = attrs["room"]
             else:
                 _room = self.room
-            if attrs.get("rack"):
+            if "rack" in attrs:
                 _rack = attrs["rack"]
             else:
                 _rack = self.rack
@@ -124,7 +124,7 @@ class NautobotPatchPanel(PatchPanel):
             if pp_rack:
                 ppanel.rack_id = pp_rack
                 ppanel.face = attrs["orientation"] if attrs.get("orientation") else self.orientation
-        if attrs.get("serial_no"):
+        if "serial_no" in attrs:
             ppanel.serial = attrs["serial_no"]
         try:
             ppanel.validated_save()
@@ -181,7 +181,7 @@ class NautobotPatchPanelRearPort(PatchPanelRearPort):
     def update(self, attrs):
         """Update RearPort object in Nautobot."""
         port = RearPort.objects.get(id=self.uuid)
-        if attrs.get("type"):
+        if "type" in attrs:
             port.type = attrs["type"]
         try:
             port.validated_save()
@@ -234,7 +234,7 @@ class NautobotPatchPanelFrontPort(PatchPanelFrontPort):
     def update(self, attrs):
         """Update FrontPort object in Nautobot."""
         port = FrontPort.objects.get(id=self.uuid)
-        if attrs.get("type"):
+        if "type" in attrs:
             port.type = attrs["type"]
         try:
             port.validated_save()

@@ -45,12 +45,12 @@ class NautobotVRFGroup(VRFGroup):
     def update(self, attrs):
         """Update VRF object in Nautobot."""
         _vrf = OrmVRF.objects.get(id=self.uuid)
-        if attrs.get("description"):
+        if "description" in attrs:
             _vrf.description = attrs["description"]
-        if attrs.get("tags"):
+        if "tags" in attrs:
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -117,12 +117,12 @@ class NautobotSubnet(Subnet):
     def update(self, attrs):
         """Update Prefix object in Nautobot."""
         _pf = OrmPrefix.objects.get(id=self.uuid)
-        if attrs.get("description"):
+        if "description" in attrs:
             _pf.description = attrs["description"]
-        if attrs.get("tags"):
+        if "tags" in attrs:
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _pf.tags.add(_tag)
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -230,15 +230,15 @@ class NautobotIPAddress(IPAddress):
                     message="IP Address passed to update but can't be found. This shouldn't happen. Why is this happening?!?!"
                 )
             return
-        if attrs.get("available"):
+        if "available" in attrs:
             _ipaddr.status = (
                 OrmStatus.objects.get(name="Active")
                 if not attrs["available"]
                 else OrmStatus.objects.get(name="Reserved")
             )
-        if attrs.get("label"):
+        if "label" in attrs:
             _ipaddr.description = attrs["label"]
-        if (attrs.get("device") and attrs["device"] != "") and (attrs.get("interface") and attrs["interface"] != ""):
+        if ("device" in attrs and attrs["device"] != "") and ("interface" in attrs and attrs["interface"] != ""):
             _device = attrs["device"]
             try:
                 intf = OrmInterface.objects.get(device__name=_device, name=attrs["interface"])
@@ -254,7 +254,7 @@ class NautobotIPAddress(IPAddress):
                     self.diffsync.job.log_debug(
                         message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
                     )
-        elif attrs.get("device") and attrs["device"] == "":
+        elif "device" in attrs and attrs["device"] == "":
             try:
                 intf = OrmInterface.objects.get(device=_ipaddr.assigned_object.device, name=self.interface)
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
@@ -271,7 +271,7 @@ class NautobotIPAddress(IPAddress):
                     self.diffsync.job.log_debug(
                         message=f"Unable to find Interface {attrs['interface']} for {str(_ipaddr.assigned_object.device)} {err}"
                     )
-        elif attrs.get("interface") and attrs["interface"] == "":
+        elif "interface" in attrs and attrs["interface"] == "":
             try:
                 intf = OrmInterface.objects.get(name=self.interface, device__name=attrs["device"])
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
@@ -286,7 +286,7 @@ class NautobotIPAddress(IPAddress):
                     self.diffsync.job.log_debug(
                         message=f"Unable to find Interface {self.interface} for {attrs['device']}. {err}"
                     )
-        elif attrs.get("device") and attrs["device"] != "":
+        elif "device" in attrs and attrs["device"] != "":
             try:
                 intf = OrmInterface.objects.get(name=self.label, device__name=attrs["device"])
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
@@ -296,10 +296,10 @@ class NautobotIPAddress(IPAddress):
                     self.diffsync.job.log_debug(
                         message=f"Unable to find Interface {self.interface} for {attrs['device']} with label {self.label}. {err}"
                     )
-        if attrs.get("tags"):
+        if "tags" in attrs:
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _ipaddr.tags.add(_tag)
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -388,9 +388,9 @@ class NautobotVLAN(VLAN):
     def update(self, attrs):
         """Update VLAN object in Nautobot."""
         _vlan = OrmVLAN.objects.get(id=self.uuid)
-        if attrs.get("description"):
+        if "description" in attrs:
             self.description = attrs["description"]
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),

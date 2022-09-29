@@ -87,23 +87,23 @@ class NautobotBuilding(Building):
     def update(self, attrs):
         """Update Site object in Nautobot."""
         _site = OrmSite.objects.get(id=self.uuid)
-        if attrs.get("address"):
+        if "address" in attrs:
             _site.physical_address = attrs["address"]
-        if attrs.get("latitude"):
+        if "latitude" in attrs:
             _site.latitude = round(Decimal(attrs["latitude"]), 6)
-        if attrs.get("longitude"):
+        if "longitude" in attrs:
             _site.longitude = round(Decimal(attrs["longitude"]), 6)
-        if attrs.get("contact_name"):
+        if "contact_name" in attrs:
             _site.contact_name = attrs["contact_name"]
-        if attrs.get("contact_phone"):
+        if "contact_phone" in attrs:
             _site.contact_phone = attrs["contact_phone"]
-        if attrs.get("tags"):
+        if "tags" in attrs:
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _site.tags.add(_tag)
             _facility = device42.get_facility(tags=attrs["tags"], diffsync=self.diffsync)
             if _facility:
                 _site.facility = _facility.upper()
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -163,9 +163,9 @@ class NautobotRoom(Room):
     def update(self, attrs):
         """Update RackGroup object in Nautobot."""
         _rg = OrmRackGroup.objects.get(id=self.uuid)
-        if attrs.get("notes"):
+        if "notes" in attrs:
             _rg.description = attrs["notes"]
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -229,14 +229,14 @@ class NautobotRack(Rack):
     def update(self, attrs):
         """Update Rack object in Nautobot."""
         _rack = OrmRack.objects.get(id=self.uuid)
-        if attrs.get("height"):
+        if "height" in attrs:
             _rack.u_height = attrs["height"]
-        if attrs.get("numbering_start_from_bottom"):
+        if "numbering_start_from_bottom" in attrs:
             _rack.desc_units = not (is_truthy(attrs["numbering_start_from_bottom"]))
-        if attrs.get("tags"):
+        if "tags" in attrs:
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _rack.tags.add(_tag)
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -297,7 +297,7 @@ class NautobotVendor(Vendor):
     def update(self, attrs):
         """Update Manufacturer object in Nautobot."""
         _manu = OrmManufacturer.objects.get(id=self.uuid)
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -362,15 +362,15 @@ class NautobotHardware(Hardware):
     def update(self, attrs):
         """Update DeviceType object in Nautobot."""
         _dt = OrmDeviceType.objects.get(id=self.uuid)
-        if attrs.get("manufacturer"):
+        if "manufacturer" in attrs:
             _dt.manufacturer = OrmManufacturer.objects.get(slug=slugify(attrs["manufacturer"]))
-        if attrs.get("part_number"):
+        if "part_number" in attrs:
             _dt.part_number = attrs["part_number"]
-        if attrs.get("size"):
+        if "size" in attrs:
             _dt.u_height = int(attrs["size"])
-        if attrs.get("depth"):
+        if "depth" in attrs:
             _dt.is_full_depth = bool(attrs["depth"] == "Full Depth")
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -434,7 +434,7 @@ class NautobotCluster(Cluster):
     def update(self, attrs):
         """Update Virtual Chassis object in Nautobot."""
         _vc = OrmVC.objects.get(id=self.uuid)
-        if attrs.get("members"):
+        if "members" in attrs:
             for _member in attrs["members"]:
                 try:
                     device = OrmDevice.objects.get(name=_member)
@@ -456,10 +456,10 @@ class NautobotCluster(Cluster):
                             message=f"Unable to find {_member} to add to VC {self.name} {err}"
                         )
                     continue
-        if attrs.get("tags"):
+        if "tags" in attrs:
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _vc.tags.add(_tag)
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -597,7 +597,7 @@ class NautobotDevice(Device):
         _dev = OrmDevice.objects.get(id=self.uuid)
         if self.diffsync.job.kwargs.get("debug"):
             self.diffsync.job.log_debug(message=f"Updating Device {self.name} in {_dev.site} with {attrs}")
-        if attrs.get("building"):
+        if "building" in attrs:
             site_id = None
             try:
                 site_id = OrmSite.objects.get(name=attrs["building"])
@@ -609,11 +609,11 @@ class NautobotDevice(Device):
                         site_id = self._get_site(diffsync=self.diffsync, building=attrs["building"])
             if site_id:
                 _dev.site_id = site_id
-        if attrs.get("rack_position"):
+        if "rack_position" in attrs:
             _dev.position = int(attrs["rack_position"])
-        if attrs.get("rack_orientation"):
+        if "rack_orientation" in attrs:
             _dev.face = attrs["rack_orientation"]
-        if attrs.get("rack") and attrs.get("room"):
+        if "rack" in attrs and "room" in attrs:
             try:
                 _dev.rack = OrmRack.objects.get(name=attrs["rack"], group__name=attrs["room"])
                 _dev.site = _dev.rack.site
@@ -622,13 +622,13 @@ class NautobotDevice(Device):
                     self.diffsync.job.log_warning(
                         message=f"Unable to find rack {attrs['rack']} in {attrs['room']} {err}"
                     )
-        if attrs.get("hardware"):
+        if "hardware" in attrs:
             for new_dt in self.diffsync.objects_to_create["devicetypes"]:
                 if new_dt.model == attrs["hardware"]:
                     new_dt.validated_save()
                     self.diffsync.objects_to_create["devicetypes"].remove(new_dt)
             _dev.device_type_id = self.diffsync.devicetype_map[slugify(attrs["hardware"])]
-        if attrs.get("os"):
+        if "os" in attrs:
             if attrs.get("hardware"):
                 _hardware = self.diffsync.get(NautobotHardware, attrs["hardware"])
             else:
@@ -638,7 +638,7 @@ class NautobotDevice(Device):
                 platform_name=attrs["os"],
                 manu=self.diffsync.vendor_map[slugify(_hardware.manufacturer)],
             )
-        if attrs.get("os_version"):
+        if "os_version" in attrs:
             if attrs.get("os"):
                 _os = attrs["os"]
             else:
@@ -659,15 +659,15 @@ class NautobotDevice(Device):
                 attrs["custom_fields"].append(
                     {"key": "OS Version", "value": attrs["os_version"] if attrs.get("os_version") else self.os_version}
                 )
-        if attrs.get("in_service"):
+        if "in_service" in attrs:
             if attrs["in_service"]:
                 _status = OrmStatus.objects.get(name="Active")
             else:
                 _status = OrmStatus.objects.get(name="Offline")
             _dev.status = _status
-        if attrs.get("serial_no"):
+        if "serial_no" in attrs:
             _dev.serial = attrs["serial_no"]
-        if attrs.get("tags"):
+        if "tags" in attrs:
             if attrs.get("tags") and len(attrs["tags"]) > 0:
                 _dev.role = nautobot.verify_device_role(
                     diffsync=self.diffsync, role_name=device42.find_device_role_from_tags(tag_list=attrs["tags"])
@@ -676,7 +676,7 @@ class NautobotDevice(Device):
                 _dev.role = nautobot.verify_device_role(diffsync=self.diffsync, role_name=DEFAULTS.get("device_role"))
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _dev.tags.add(_tag)
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -687,7 +687,7 @@ class NautobotDevice(Device):
                 field.content_types.add(ContentType.objects.get_for_model(OrmDevice).id)
                 _dev.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         # ensure that VC Master Device is set to that
-        if attrs.get("cluster_host") or attrs.get("master_device"):
+        if "cluster_host" in attrs or "master_device" in attrs:
             if attrs.get("cluster_host"):
                 _clus_host = attrs["cluster_host"]
             else:
@@ -702,9 +702,8 @@ class NautobotDevice(Device):
             except KeyError:
                 if self.diffsync.job.kwargs.get("debug"):
                     self.diffsync.job.log_warning(message=f"Unable to find VC {attrs['cluster_host']}")
-        if attrs.get("vc_position"):
+        if "vc_position" in attrs:
             _dev.vc_position = attrs["vc_position"]
-        print(f"Saving Device {self.name} in {_dev.site} {_dev.rack}")
         try:
             _dev.validated_save()
             return super().update(attrs)
@@ -849,24 +848,24 @@ class NautobotPort(Port):
     def update(self, attrs):
         """Update Interface object in Nautobot."""
         _port = OrmInterface.objects.get(id=self.uuid)
-        if attrs.get("enabled"):
+        if "enabled" in attrs:
             _port.enabled = is_truthy(attrs["enabled"])
-        if attrs.get("mtu"):
+        if "mtu" in attrs:
             _port.mtu = attrs["mtu"]
-        if attrs.get("description"):
+        if "description" in attrs:
             _port.description = attrs["description"]
-        if attrs.get("mac_addr"):
+        if "mac_addr" in attrs:
             _port.mac_address = attrs["mac_addr"][:12]
-        if attrs.get("type"):
+        if "type" in attrs:
             _port.type = attrs["type"]
-        if attrs.get("mode"):
+        if "mode" in attrs:
             _port.mode = attrs["mode"]
         if "status" in attrs:
             _port.status_id = self.diffsync.status_map[attrs["status"]]
-        if attrs.get("tags"):
+        if "tags" in attrs:
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _port.tags.add(_tag)
-        if attrs.get("custom_fields"):
+        if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
@@ -876,7 +875,7 @@ class NautobotPort(Port):
                 field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
                 field.content_types.add(ContentType.objects.get_for_model(OrmInterface).id)
                 _port.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
-        if attrs.get("vlans"):
+        if "vlans" in attrs:
             if attrs.get("mode"):
                 _mode = attrs["mode"]
             else:

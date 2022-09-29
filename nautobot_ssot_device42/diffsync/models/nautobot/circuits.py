@@ -47,15 +47,15 @@ class NautobotProvider(Provider):
     def update(self, attrs):
         """Update Provider object in Nautobot."""
         _prov = OrmProvider.objects.get(id=self.uuid)
-        if attrs.get("notes"):
+        if "notes" in attrs:
             _prov.comments = attrs["notes"]
-        if attrs.get("vendor_url"):
+        if "vendor_url" in attrs:
             _prov.portal_url = attrs["vendor_url"]
-        if attrs.get("vendor_acct"):
+        if "vendor_acct" in attrs:
             _prov.account = attrs["vendor_acct"]
-        if attrs.get("vendor_contact1"):
+        if "vendor_contact1" in attrs:
             _prov.noc_contact = attrs["vendor_contact1"]
-        if attrs.get("vendor_contact2"):
+        if "vendor_contact2" in attrs:
             _prov.admin_contact = attrs["vendor_contact2"]
         _prov.validated_save()
         return super().update(attrs)
@@ -124,23 +124,31 @@ class NautobotCircuit(Circuit):
     def update(self, attrs):
         """Update Circuit object in Nautobot."""
         _circuit = OrmCircuit.objects.get(id=self.uuid)
-        if attrs.get("notes"):
+        if "notes" in attrs:
             _circuit.comments = attrs["notes"]
-        if attrs.get("type"):
+        if "type" in attrs:
             _circuit.type = nautobot.verify_circuit_type(attrs["type"])
-        if attrs.get("status"):
+        if "status" in attrs:
             _circuit.status = OrmStatus.objects.get(name=attrs["status"])
-        if attrs.get("install_date"):
+        if "install_date" in attrs:
             _circuit.install_date = attrs["install_date"]
-        if attrs.get("bandwidth"):
+        if "bandwidth" in attrs:
             _circuit.commit_rate = attrs["bandwidth"]
-        if attrs.get("origin_int") and attrs.get("origin_dev"):
+        if "origin_int" in attrs and "origin_dev" in attrs:
             self.connect_circuit_to_device(
-                intf=attrs["origin_int"], dev=attrs["origin_dev"], term_side="A", circuit=_circuit
+                diffsync=self.diffsync,
+                intf=attrs["origin_int"],
+                dev=attrs["origin_dev"],
+                term_side="A",
+                circuit=_circuit,
             )
-        if attrs.get("endpoint_int") and attrs.get("endpoint_dev"):
+        if "endpoint_int" in attrs and "endpoint_dev" in attrs:
             self.connect_circuit_to_device(
-                intf=attrs["endpoint_int"], dev=attrs["endpoint_dev"], term_side="Z", circuit=_circuit
+                diffsync=self.diffsync,
+                intf=attrs["endpoint_int"],
+                dev=attrs["endpoint_dev"],
+                term_side="Z",
+                circuit=_circuit,
             )
         _circuit.validated_save()
         return super().update(attrs)
