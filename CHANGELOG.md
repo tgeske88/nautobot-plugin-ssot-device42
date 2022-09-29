@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.6 (2022-09-29)
+### Fix
+* Ensure part number isn't null ([`4138e64`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4138e64b1c2ea3b67f7fde53c66f0e6b35e6d8a8))
+
 ## v1.3.5 (2022-09-29)
 ### Fix
 * ⏪️ Revert custom_field to be a get ([`8631b6f`](https://github.com/networking/nautobot-plugin-device42-sync/commit/8631b6fb99e20b3eeba1771e0c4bf5e6157a6019))
