@@ -98,8 +98,12 @@ class NautobotBuilding(Building):
         if "contact_phone" in attrs:
             _site.contact_phone = attrs["contact_phone"]
         if "tags" in attrs:
-            for _tag in nautobot.get_tags(attrs["tags"]):
+            tags_to_add = list(set(attrs["tags"]).difference(list(_site.tags.names())))
+            for _tag in nautobot.get_tags(tags_to_add):
                 _site.tags.add(_tag)
+            tags_to_remove = list(set(_site.tags.names()).difference(attrs["tags"]))
+            for _tag in tags_to_remove:
+                _site.tags.remove(_tag)
             _facility = device42.get_facility(tags=attrs["tags"], diffsync=self.diffsync)
             if _facility:
                 _site.facility = _facility.upper()
@@ -234,8 +238,12 @@ class NautobotRack(Rack):
         if "numbering_start_from_bottom" in attrs:
             _rack.desc_units = not (is_truthy(attrs["numbering_start_from_bottom"]))
         if "tags" in attrs:
-            for _tag in nautobot.get_tags(attrs["tags"]):
+            tags_to_add = list(set(attrs["tags"]).difference(list(_rack.tags.names())))
+            for _tag in nautobot.get_tags(tags_to_add):
                 _rack.tags.add(_tag)
+            tags_to_remove = list(set(_rack.tags.names()).difference(attrs["tags"]))
+            for _tag in tags_to_remove:
+                _rack.tags.remove(_tag)
         if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
@@ -457,8 +465,12 @@ class NautobotCluster(Cluster):
                         )
                     continue
         if "tags" in attrs:
-            for _tag in nautobot.get_tags(attrs["tags"]):
+            tags_to_add = list(set(attrs["tags"]).difference(list(_vc.tags.names())))
+            for _tag in nautobot.get_tags(tags_to_add):
                 _vc.tags.add(_tag)
+            tags_to_remove = list(set(_vc.tags.names()).difference(attrs["tags"]))
+            for _tag in tags_to_remove:
+                _vc.tags.remove(_tag)
         if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
@@ -863,8 +875,12 @@ class NautobotPort(Port):
         if "status" in attrs:
             _port.status_id = self.diffsync.status_map[attrs["status"]]
         if "tags" in attrs:
-            for _tag in nautobot.get_tags(attrs["tags"]):
+            tags_to_add = list(set(attrs["tags"]).difference(list(_port.tags.names())))
+            for _tag in nautobot.get_tags(tags_to_add):
                 _port.tags.add(_tag)
+            tags_to_remove = list(set(_port.tags.names()).difference(attrs["tags"]))
+            for _tag in tags_to_remove:
+                _port.tags.remove(_tag)
         if "custom_fields" in attrs:
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
