@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.7 (2022-09-30)
+### Fix
+* Validate rack_position var for dev position ([`f4626f4`](https://github.com/networking/nautobot-plugin-device42-sync/commit/f4626f4acd21d7a45b43ca24d05ccd926ba6df71))
+
 ## v1.3.6 (2022-09-29)
 ### Fix
 * Ensure part number isn't null ([`4138e64`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4138e64b1c2ea3b67f7fde53c66f0e6b35e6d8a8))
