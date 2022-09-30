@@ -625,7 +625,7 @@ class NautobotDevice(Device):
             if site_id:
                 _dev.site_id = site_id
         if "rack_position" in attrs:
-            _dev.position = int(attrs["rack_position"])
+            _dev.position = int(attrs["rack_position"]) if attrs["rack_position"] else None
         if "rack_orientation" in attrs:
             _dev.face = attrs["rack_orientation"]
         if "rack" in attrs and "room" in attrs:
