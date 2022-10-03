@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.12 (2022-10-03)
+### Fix
+* Verify device is in port map before assigning ID ([`1d960e3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/1d960e39f034293e019da23282eb4813f423d0f8))
+
 ## v1.3.11 (2022-10-03)
 ### Fix
 * 🐛 Fix IPAddr moving interface in update function ([`9d5ed98`](https://github.com/networking/nautobot-plugin-device42-sync/commit/9d5ed9854a009ad7c154849a3fc17f76842ab5e9))
