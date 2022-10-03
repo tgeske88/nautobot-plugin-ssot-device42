@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.11 (2022-10-03)
+### Fix
+* 🐛 Fix IPAddr moving interface in update function ([`9d5ed98`](https://github.com/networking/nautobot-plugin-device42-sync/commit/9d5ed9854a009ad7c154849a3fc17f76842ab5e9))
+
 ## v1.3.10 (2022-10-03)
 ### Fix
 * 🐛 Ensure device found before trying to save ([`dab7cc8`](https://github.com/networking/nautobot-plugin-device42-sync/commit/dab7cc89721d5c74a83d8c42a8964907740e36bc))
