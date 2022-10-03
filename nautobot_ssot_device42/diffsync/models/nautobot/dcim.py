@@ -870,7 +870,7 @@ class NautobotPort(Port):
         if "description" in attrs:
             _port.description = attrs["description"]
         if "mac_addr" in attrs:
-            _port.mac_address = attrs["mac_addr"][:12]
+            _port.mac_address = attrs["mac_addr"][:12] if attrs.get("mac_addr") else None
         if "type" in attrs:
             _port.type = attrs["type"]
         if "mode" in attrs:
