@@ -285,7 +285,7 @@ class NautobotIPAddress(IPAddress):
                     )
         elif "interface" in attrs and attrs["interface"] == "":
             try:
-                if attrs.get("device"):
+                if attrs.get("device") and attrs["device"] in self.diffsync.port_map:
                     intf = self.diffsync.port_map[attrs["device"]][attrs["interface"]]
                     if attrs.get("primary"):
                         self.diffsync.objects_to_create["device_primary_ip"].append(
@@ -295,7 +295,7 @@ class NautobotIPAddress(IPAddress):
                     intf = self.diffsync.port_map[self.device][attrs["interface"]]
                 _ipaddr.assigned_object_type_id = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf
-            except OrmInterface.DoesNotExist as err:
+            except KeyError as err:
                 if self.diffsync.job.kwargs.get("debug"):
                     self.diffsync.job.log_debug(
                         message=f"Unable to find Interface {self.interface} for {attrs['device']}. {err}"
