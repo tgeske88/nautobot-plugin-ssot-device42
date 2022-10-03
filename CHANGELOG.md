@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.9 (2022-10-03)
+### Fix
+* Handle None for tags ([`ec3fff3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/ec3fff34749bd315069dc0f6c1b6976745135d3c))
+
 ## v1.3.8 (2022-10-03)
 ### Fix
 * Add handling for None being passed ([`c5e9184`](https://github.com/networking/nautobot-plugin-device42-sync/commit/c5e9184a19e0e9de9a9d99c59fdb1285c9aeae1d))
