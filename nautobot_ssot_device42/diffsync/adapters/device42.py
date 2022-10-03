@@ -495,8 +495,6 @@ class Device42Adapter(DiffSync):
         _cfs = self.device42.get_port_custom_fields()
         for _port in merged_ports:
             if _port.get("port_name") and _port.get("device_name"):
-                if self.job.kwargs.get("debug"):
-                    self.job.log_info(message=f"Loading Port {_port['port_name']} for Device {_port['device_name']}")
                 _tags = _port["tags"].split(",") if _port.get("tags") else []
                 if len(_tags) > 1:
                     _tags.sort()
@@ -505,6 +503,16 @@ class Device42Adapter(DiffSync):
                 else:
                     _device_name = _port["device_name"]
                 _port_name = _port["port_name"][:63].strip()
+                try:
+                    _dev = self.get(self.device, _device_name)
+                except ObjectNotFound:
+                    if self.job.kwargs.get("debug"):
+                        self.job.log_warning(
+                            message=f"Skipping loading of Port {_port_name} for Device {_device_name} as device was not loaded."
+                        )
+                    continue
+                if self.job.kwargs.get("debug"):
+                    self.job.log_info(message=f"Loading Port {_port_name} for Device {_device_name}")
                 if _port.get("up") and is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
                     _status = "active"
                 elif _port.get("up") and not is_truthy(_port.get("up")) and not is_truthy(_port.get("up_admin")):
@@ -517,7 +525,7 @@ class Device42Adapter(DiffSync):
                 else:
                     _status = "planned"
                 try:
-                    new_port = self.get(self.port, {"device": _device_name, "name": _port["port_name"][:63].strip()})
+                    self.get(self.port, {"device": _device_name, "name": _port_name})
                 except ObjectNotFound:
                     new_port = self.port(
                         name=_port_name,
@@ -553,15 +561,7 @@ class Device42Adapter(DiffSync):
                     else:
                         new_port.custom_fields = default_cfs
                     self.add(new_port)
-                    try:
-                        _dev = self.get(self.device, _device_name)
-                        _dev.add_child(new_port)
-                    except ObjectNotFound as err:
-                        if self.job.kwargs.get("debug"):
-                            self.job.log_warning(
-                                message=f"Device {_device_name} not found for port {_port_name}. {err}"
-                            )
-                        continue
+                    _dev.add_child(new_port)
 
     def filter_ports(self, vlan_ports: List[dict], no_vlan_ports: List[dict]) -> List[dict]:
         """Method to combine lists of ports while removing duplicates.
