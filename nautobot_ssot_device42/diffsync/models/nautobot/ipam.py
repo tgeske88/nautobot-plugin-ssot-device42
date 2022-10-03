@@ -269,13 +269,15 @@ class NautobotIPAddress(IPAddress):
                 intf = OrmInterface.objects.get(device=_ipaddr.assigned_object.device, name=self.interface)
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
+                _dev = None
                 if hasattr(_ipaddr, "primary_ip4_for"):
                     _dev = OrmDevice.objects.get(name=_ipaddr.primary_ip4_for)
                     _dev.primary_ip4 = None
                 elif hasattr(_ipaddr, "primary_ip6_for"):
                     _dev = OrmDevice.objects.get(name=_ipaddr.primary_ip6_for)
                     _dev.primary_ip6 = None
-                _dev.validated_save()
+                if _dev:
+                    _dev.validated_save()
             except OrmInterface.DoesNotExist as err:
                 if self.diffsync.job.kwargs.get("debug"):
                     self.diffsync.job.log_debug(
