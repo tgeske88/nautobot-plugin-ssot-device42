@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.10 (2022-10-03)
+### Fix
+* 🐛 Ensure device found before trying to save ([`dab7cc8`](https://github.com/networking/nautobot-plugin-device42-sync/commit/dab7cc89721d5c74a83d8c42a8964907740e36bc))
+
 ## v1.3.9 (2022-10-03)
 ### Fix
 * Handle None for tags ([`ec3fff3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/ec3fff34749bd315069dc0f6c1b6976745135d3c))
