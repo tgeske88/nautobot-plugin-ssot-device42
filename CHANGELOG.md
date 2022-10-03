@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.3.8 (2022-10-03)
+### Fix
+* Add handling for None being passed ([`c5e9184`](https://github.com/networking/nautobot-plugin-device42-sync/commit/c5e9184a19e0e9de9a9d99c59fdb1285c9aeae1d))
+
 ## v1.3.7 (2022-09-30)
 ### Fix
 * Validate rack_position var for dev position ([`f4626f4`](https://github.com/networking/nautobot-plugin-device42-sync/commit/f4626f4acd21d7a45b43ca24d05ccd926ba6df71))
