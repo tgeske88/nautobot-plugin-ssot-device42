@@ -429,6 +429,15 @@ class Device42Adapter(DiffSync):
                     if _record.get("start_at"):
                         rack_position = int(_record["start_at"])
                         for slot in range(rack_position, rack_position + model_size + 1):
+                            if (
+                                slot
+                                not in self.rack_elevations[slugify(_building)][slugify(_record["room"])][
+                                    _record["rack"]
+                                ]
+                            ):
+                                self.rack_elevations[slugify(_building)][slugify(_record["room"])][_record["rack"]][
+                                    slot
+                                ] = []
                             self.rack_elevations[slugify(_building)][slugify(_record["room"])][_record["rack"]][
                                 slot
                             ].append(_record["name"][:64])
