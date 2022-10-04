@@ -654,8 +654,10 @@ class Device42Adapter(DiffSync):
             try:
                 if _ip.get("second_device_fk"):
                     _device_name = self.d42_device_map[_ip["second_device_fk"]]["name"]
+                elif _ip.get("device"):
+                    _device_name = _ip["device"]
                 else:
-                    _device_name = _ip["device_name"]
+                    _device_name = None
                 _tags = _ip["tags"].split(",") if _ip.get("tags") else []
                 if len(_tags) > 1:
                     _tags.sort()
