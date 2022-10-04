@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.4.4 (2022-10-04)
+### Fix
+* Don't set description to None for IPAddress ([`6400ab7`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6400ab7ac7218fce7a705b77fd7468bcfc64b727))
+
 ## v1.4.3 (2022-10-04)
 ### Fix
 * 🐛 Correct rack_position determination ([`befc6a0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/befc6a06a40d74f55356bfd98bdf4e5a88305168))
