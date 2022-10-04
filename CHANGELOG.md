@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.4.5 (2022-10-04)
+### Fix
+* Add check for slot in rack_elevations ([`7440a97`](https://github.com/networking/nautobot-plugin-device42-sync/commit/7440a97ad34508e715923fb7126d4b0793b366a2))
+
 ## v1.4.4 (2022-10-04)
 ### Fix
 * Don't set description to None for IPAddress ([`6400ab7`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6400ab7ac7218fce7a705b77fd7468bcfc64b727))
