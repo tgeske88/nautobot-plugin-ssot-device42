@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.4.0 (2022-10-04)
+### Feature
+* ✨ Update port queries to include second device ([`0335835`](https://github.com/networking/nautobot-plugin-device42-sync/commit/0335835313e1fa522445b428b448c8e0e7356747))
+
+### Fix
+* 🐛 Correct debug message for device name ([`5c99c42`](https://github.com/networking/nautobot-plugin-device42-sync/commit/5c99c42268e4eca37d4724ab5fc86e8ddfca1611))
+
 ## v1.3.12 (2022-10-03)
 ### Fix
 * Verify device is in port map before assigning ID ([`1d960e3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/1d960e39f034293e019da23282eb4813f423d0f8))
