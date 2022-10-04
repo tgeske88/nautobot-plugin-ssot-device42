@@ -652,6 +652,10 @@ class Device42Adapter(DiffSync):
         for _ip in self.device42.get_ip_addrs():
             _ipaddr = f"{_ip['ip_address']}/{str(_ip['netmask'])}"
             try:
+                if _ip.get("second_device_fk"):
+                    _device_name = self.d42_device_map[_ip["second_device_fk"]]["name"]
+                else:
+                    _device_name = _ip["device_name"]
                 _tags = _ip["tags"].split(",") if _ip.get("tags") else []
                 if len(_tags) > 1:
                     _tags.sort()
@@ -659,7 +663,7 @@ class Device42Adapter(DiffSync):
                     address=_ipaddr,
                     available=_ip["available"],
                     label=_ip["label"] if _ip.get("label") is not None else "",
-                    device=_ip["device"] if _ip.get("device") else "",
+                    device=_device_name,
                     interface=_ip["port_name"] if _ip.get("port_name") else "",
                     primary=False,
                     vrf=_ip["vrf"],
