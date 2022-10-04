@@ -247,7 +247,7 @@ class NautobotIPAddress(IPAddress):
                 else OrmStatus.objects.get(name="Reserved")
             )
         if "label" in attrs:
-            _ipaddr.description = attrs["label"]
+            _ipaddr.description = attrs["label"] if attrs.get("label") else ""
         if ("device" in attrs and attrs["device"] != "") and ("interface" in attrs and attrs["interface"] != ""):
             _device = attrs["device"]
             try:
@@ -420,7 +420,7 @@ class NautobotVLAN(VLAN):
         """Update VLAN object in Nautobot."""
         _vlan = OrmVLAN.objects.get(id=self.uuid)
         if "description" in attrs:
-            self.description = attrs["description"]
+            _vlan.description = attrs["description"] if attrs.get("description") else ""
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"]:
                 _cf_dict = {
