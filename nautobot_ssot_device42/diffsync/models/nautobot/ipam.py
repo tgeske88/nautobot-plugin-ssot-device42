@@ -301,15 +301,27 @@ class NautobotIPAddress(IPAddress):
                         message=f"Unable to find Interface {self.interface} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
                     )
         elif "device" in attrs and attrs["device"] != "":
-            try:
-                intf = OrmInterface.objects.get(name=self.label, device__name=attrs["device"])
+            intf = None
+            if self.interface or attrs.get("interface"):
+                try:
+                    intf = self.diffsync.port_map[attrs["device"]][self.interface]
+                except KeyError as err:
+                    if self.diffsync.job.kwargs.get("debug"):
+                        self.diffsync.job.log_debug(
+                            message=f"Unable to find Interface {self.interface} for {attrs['device']}. {err}"
+                        )
+            elif self.label or attrs.get("label"):
+                try:
+                    intf = self.diffsync.port_map[attrs["device"]][self.label]
+                except KeyError as err:
+                    if self.diffsync.job.kwargs.get("debug"):
+                        self.diffsync.job.log_debug(
+                            message=f"Unable to find Interface {self.interface} for {attrs['device']} with label {self.label}. {err}"
+                        )
+            if intf:
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
-                _ipaddr.assigned_object_id = intf.id
-            except OrmInterface.DoesNotExist as err:
-                if self.diffsync.job.kwargs.get("debug"):
-                    self.diffsync.job.log_debug(
-                        message=f"Unable to find Interface {self.interface} for {attrs['device']} with label {self.label}. {err}"
-                    )
+                _ipaddr.assigned_object_id = intf
+
         if "tags" in attrs:
             if attrs.get("tags"):
                 tags_to_add = list(set(attrs["tags"]).difference(list(_ipaddr.tags.names())))
