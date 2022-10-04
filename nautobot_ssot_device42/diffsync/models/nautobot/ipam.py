@@ -298,7 +298,7 @@ class NautobotIPAddress(IPAddress):
             except KeyError as err:
                 if self.diffsync.job.kwargs.get("debug"):
                     self.diffsync.job.log_debug(
-                        message=f"Unable to find Interface {self.interface} for {attrs['device']}. {err}"
+                        message=f"Unable to find Interface {self.interface} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
                     )
         elif "device" in attrs and attrs["device"] != "":
             try:
