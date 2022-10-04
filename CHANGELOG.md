@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.4.2 (2022-10-04)
+### Fix
+* 🐛 Correct key for device name, add catch for no Device assigned ([`4b57882`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4b578828a00e7bc955e915d18d7e0d5f4eb878a8))
+
 ## v1.4.1 (2022-10-04)
 ### Fix
 * ⏪️ Restore the netport_pk in DOQL query for ports ([`d7e09fd`](https://github.com/networking/nautobot-plugin-device42-sync/commit/d7e09fd477e3c456da85625deca96e033f210789))
