@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.4.3 (2022-10-04)
+### Fix
+* 🐛 Correct rack_position determination ([`befc6a0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/befc6a06a40d74f55356bfd98bdf4e5a88305168))
+* 🐛 Correct update of device assigned to IP ([`c8f06bc`](https://github.com/networking/nautobot-plugin-device42-sync/commit/c8f06bc74dc968269289b6b9bbd9683ba243e44a))
+
 ## v1.4.2 (2022-10-04)
 ### Fix
 * 🐛 Correct key for device name, add catch for no Device assigned ([`4b57882`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4b578828a00e7bc955e915d18d7e0d5f4eb878a8))
