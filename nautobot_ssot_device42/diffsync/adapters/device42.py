@@ -415,7 +415,7 @@ class Device42Adapter(DiffSync):
                         )
                     continue
                 # Get size of model to ensure appropriate number of rack Us are filled
-                rack_position = None
+                rack_position, model = None, None
                 try:
                     model = self.get(self.hardware, sanitize_string(_record["hw_model"]))
                 except ObjectNotFound as err:
@@ -428,7 +428,7 @@ class Device42Adapter(DiffSync):
                     model_size = int(model.size)
                     if _record.get("start_at"):
                         rack_position = int(_record["start_at"])
-                        for slot in range(rack_position, model_size + 1):
+                        for slot in range(rack_position, rack_position + model_size + 1):
                             self.rack_elevations[slugify(_building)][slugify(_record["room"])][_record["rack"]][
                                 slot
                             ].append(_record["name"][:64])
@@ -438,10 +438,8 @@ class Device42Adapter(DiffSync):
                                     int(_record["start_at"])
                                 ]
                             )
-                            == 1
+                            > 1
                         ):
-                            rack_position = int(_record["start_at"])
-                        else:
                             rack_position = None
                 _device = self.device(
                     name=_record["name"][:64],
