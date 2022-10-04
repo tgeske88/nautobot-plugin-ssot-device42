@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.4.6 (2022-10-04)
+### Fix
+* 🐛 Redo how VC position is updated, find if another dev is in position ([`181ec39`](https://github.com/networking/nautobot-plugin-device42-sync/commit/181ec39f70a4736a74ba914760eff1f488bdefd4))
+
 ## v1.4.5 (2022-10-04)
 ### Fix
 * Add check for slot in rack_elevations ([`7440a97`](https://github.com/networking/nautobot-plugin-device42-sync/commit/7440a97ad34508e715923fb7126d4b0793b366a2))
