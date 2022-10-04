@@ -449,9 +449,9 @@ class NautobotCluster(Cluster):
         _vc = OrmVC.objects.get(id=self.uuid)
         if "members" in attrs:
             for _member in attrs["members"]:
+                position = 1
                 try:
                     device = OrmDevice.objects.get(name=_member)
-                    device.virtual_chassis = _vc
                     switch_pos = re.search(r".+-\s([sS]witch)\s?(?P<pos>\d+)", _member)
                     node_pos = re.search(r".+-\s([nN]ode)\s?(?P<pos>\d+)", _member)
                     if switch_pos or node_pos:
@@ -461,6 +461,14 @@ class NautobotCluster(Cluster):
                             position = int(node_pos.group("pos")) + 1
                     else:
                         position = len(OrmDevice.objects.filter(virtual_chassis__name=self.name))
+                    try:
+                        dev = OrmDevice.objects.get(virtual_chassis=_vc, vc_position=position + 1)
+                        dev.virtual_chassis = None
+                        dev.vc_position = None
+                        dev.validated_save()
+                    except OrmDevice.DoesNotExist:
+                        pass
+                    device.virtual_chassis = _vc
                     device.vc_position = position + 1
                     device.validated_save()
                 except OrmDevice.DoesNotExist as err:
