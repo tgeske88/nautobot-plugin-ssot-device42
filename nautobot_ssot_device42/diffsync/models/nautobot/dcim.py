@@ -670,17 +670,40 @@ class NautobotDevice(Device):
             else:
                 _os = self.os
             if LIFECYCLE_MGMT:
-                soft_lcm = self._add_software_lcm(
-                    diffsync=self.diffsync,
-                    os=_os,
-                    version=attrs["os_version"],
-                    manufacturer=_dev.device_type.manufacturer.id,
-                )
-                self._assign_version_to_device(diffsync=self.diffsync, device=self.uuid, software_lcm=soft_lcm)
+                if attrs.get("os_version"):
+                    soft_lcm = self._add_software_lcm(
+                        diffsync=self.diffsync,
+                        os=_os,
+                        version=attrs["os_version"],
+                        manufacturer=_dev.device_type.manufacturer.id,
+                    )
+                    self._assign_version_to_device(diffsync=self.diffsync, device=self.uuid, software_lcm=soft_lcm)
+                elif attrs["os_version"] is None:
+                    relations = _dev.get_relationships()
+                    _softwarelcm = SoftwareLCM.objects.get(device_platform__slug=_os, version=self.os_version)
+                    for _, relationships in relations.items():
+                        for relationship, queryset in relationships.items():
+                            if relationship == _softwarelcm:
+                                if self.diffsync.job.kwargs.get("debug"):
+                                    self.diffsync.job.log_warning(
+                                        message=f"Deleting Software Version Relationship for {_dev.name} as Device42 shows no version."
+                                    )
+                                queryset.delete()
             else:
-                attrs["custom_fields"].append(
-                    {"key": "OS Version", "value": attrs["os_version"] if attrs.get("os_version") else self.os_version}
-                )
+                if attrs.get("os_version"):
+                    attrs["custom_fields"].append(
+                        {
+                            "key": "OS Version",
+                            "value": attrs["os_version"] if attrs.get("os_version") else self.os_version,
+                        }
+                    )
+                elif attrs["os_version"] is None:
+                    attrs["custom_fields"].append(
+                        {
+                            "key": "OS Version",
+                            "value": "",
+                        }
+                    )
         if "in_service" in attrs:
             if attrs["in_service"]:
                 _status = OrmStatus.objects.get(name="Active")
