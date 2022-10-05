@@ -792,17 +792,20 @@ class NautobotDevice(Device):
     @staticmethod
     def _assign_version_to_device(diffsync, device: UUID, software_lcm: UUID):
         """Add Relationship between Device and SoftwareLCM."""
-        dev = OrmDevice.objects.get(id=device)
-        relations = dev.get_relationships()
-        software_relation_id = diffsync.relationship_map["Software on Device"]
-        for _, relationships in relations.items():
-            for relationship, queryset in relationships.items():
-                if relationship.id == software_relation_id:
-                    if diffsync.job.kwargs.get("debug"):
-                        diffsync.job.log_warning(
-                            message=f"Deleting Software Version Relationships for {dev.name} to assign a new version."
-                        )
-                    queryset.delete()
+        try:
+            dev = OrmDevice.objects.get(id=device)
+            relations = dev.get_relationships()
+            software_relation_id = diffsync.relationship_map["Software on Device"]
+            for _, relationships in relations.items():
+                for relationship, queryset in relationships.items():
+                    if relationship.id == software_relation_id:
+                        if diffsync.job.kwargs.get("debug"):
+                            diffsync.job.log_warning(
+                                message=f"Deleting Software Version Relationships for {dev.name} to assign a new version."
+                            )
+                        queryset.delete()
+        except OrmDevice.DoesNotExist:
+            pass
 
         new_assoc = RelationshipAssociation(
             relationship_id=diffsync.relationship_map["Software on Device"],
