@@ -669,10 +669,6 @@ class NautobotDevice(Device):
                 _os = attrs["os"]
             else:
                 _os = self.os
-            if attrs.get("hardware"):
-                _hardware = attrs["hardware"]
-            else:
-                _hardware = self.hardware
             if LIFECYCLE_MGMT:
                 soft_lcm = self._add_software_lcm(
                     diffsync=self.diffsync,
