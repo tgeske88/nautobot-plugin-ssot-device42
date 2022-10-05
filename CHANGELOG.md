@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.4.7 (2022-10-05)
+### Fix
+* ♻️ Redo how OS version is updated for Devices ([`cf889b3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/cf889b306bd2f8a3c66274008f2fa079177424fa))
+
+### Performance
+* ♻️ Use status_map in Device update to reduce db queries ([`49b48cf`](https://github.com/networking/nautobot-plugin-device42-sync/commit/49b48cf789ce4ae07a66caf08002a37030205f8b))
+* 🔥 Remove hardware determination in update as not used ([`e5ff85d`](https://github.com/networking/nautobot-plugin-device42-sync/commit/e5ff85d7d2962dbe32cf510670fb88391e4e2e93))
+
 ## v1.4.6 (2022-10-04)
 ### Fix
 * 🐛 Redo how VC position is updated, find if another dev is in position ([`181ec39`](https://github.com/networking/nautobot-plugin-device42-sync/commit/181ec39f70a4736a74ba914760eff1f488bdefd4))
