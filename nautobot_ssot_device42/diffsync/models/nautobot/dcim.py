@@ -706,10 +706,10 @@ class NautobotDevice(Device):
                     )
         if "in_service" in attrs:
             if attrs["in_service"]:
-                _status = OrmStatus.objects.get(name="Active")
+                _status = self.diffsync.status_map["active"]
             else:
-                _status = OrmStatus.objects.get(name="Offline")
-            _dev.status = _status
+                _status = self.diffsync.status_map["offline"]
+            _dev.status_id = _status
         if "serial_no" in attrs:
             _dev.serial = attrs["serial_no"]
         if "tags" in attrs:
