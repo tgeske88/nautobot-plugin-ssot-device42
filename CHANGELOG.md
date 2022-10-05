@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.4.8 (2022-10-05)
+### Fix
+* 🐛 Correct version assignment/removal with DLC plugin ([`62eac46`](https://github.com/networking/nautobot-plugin-device42-sync/commit/62eac46669509164ee6ef8d2a9437b5e8775dddf))
+
 ## v1.4.7 (2022-10-05)
 ### Fix
 * ♻️ Redo how OS version is updated for Devices ([`cf889b3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/cf889b306bd2f8a3c66274008f2fa079177424fa))
