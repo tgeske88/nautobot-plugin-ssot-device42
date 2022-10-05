@@ -680,10 +680,10 @@ class NautobotDevice(Device):
                     self._assign_version_to_device(diffsync=self.diffsync, device=self.uuid, software_lcm=soft_lcm)
                 elif attrs["os_version"] is None:
                     relations = _dev.get_relationships()
-                    _softwarelcm = SoftwareLCM.objects.get(device_platform__slug=_os, version=self.os_version)
+                    software_relation_id = self.diffsync.relationship_map["Software on Device"]
                     for _, relationships in relations.items():
                         for relationship, queryset in relationships.items():
-                            if relationship == _softwarelcm:
+                            if relationship.id == software_relation_id:
                                 if self.diffsync.job.kwargs.get("debug"):
                                     self.diffsync.job.log_warning(
                                         message=f"Deleting Software Version Relationship for {_dev.name} as Device42 shows no version."
@@ -789,13 +789,15 @@ class NautobotDevice(Device):
             os_ver = os_ver.id
         return os_ver
 
-    def _assign_version_to_device(self, diffsync, device: UUID, software_lcm: UUID):
+    @staticmethod
+    def _assign_version_to_device(diffsync, device: UUID, software_lcm: UUID):
         """Add Relationship between Device and SoftwareLCM."""
         dev = OrmDevice.objects.get(id=device)
         relations = dev.get_relationships()
+        software_relation_id = diffsync.relationship_map["Software on Device"]
         for _, relationships in relations.items():
             for relationship, queryset in relationships.items():
-                if relationship == self._softwarelcm:
+                if relationship.id == software_relation_id:
                     if diffsync.job.kwargs.get("debug"):
                         diffsync.job.log_warning(
                             message=f"Deleting Software Version Relationships for {dev.name} to assign a new version."
