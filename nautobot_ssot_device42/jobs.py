@@ -5,12 +5,8 @@ from django.templatetags.static import static
 from django.urls import reverse
 from nautobot.extras.jobs import BooleanVar, Job
 from nautobot_ssot.jobs.base import DataMapping, DataSource
-from requests import HTTPError
 
-from diffsync.enum import DiffSyncFlags
-from diffsync.exceptions import ObjectNotCreated
 from nautobot_ssot_device42.constant import PLUGIN_CFG
-from nautobot_ssot_device42.diff import CustomOrderingDiff
 from nautobot_ssot_device42.diffsync.adapters.device42 import Device42Adapter
 from nautobot_ssot_device42.diffsync.adapters.nautobot import NautobotAdapter
 from nautobot_ssot_device42.utils.device42 import Device42API
@@ -135,21 +131,16 @@ class Device42DataSource(DataSource, Job):
             self.log_info(message="Loading data from Nautobot...")
         self.target_adapter.load()
 
-    def execute_sync(self):
-        """Execute the synchronization of data from Device42 to Nautobot."""
-        if not self.kwargs["dry_run"]:
-            self.log_info(message="Performing data synchronization from Device42.")
-            try:
-                self.target_adapter.sync_from(
-                    self.source_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff
-                )
-            except HTTPError as err:
-                self.log_failure(message="Sync failed.")
-                raise err
-            except ObjectNotCreated as err:
-                if self.kwargs["debug"]:
-                    self.log_debug(message=f"Unable to create object. {err}")
-            self.log_success(message="Sync complete.")
+    # TODO: Remove custom diff class as it doesn't appear to be needed any longer?
+    # def execute_sync(self):
+    #     """Execute the synchronization of data from Device42 to Nautobot."""
+    #     if not self.kwargs["dry_run"]:
+    #         self.log_info(message="Performing data synchronization from Device42.")
+    #         self.target_adapter.sync_from(
+    #             self.source_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff
+    #         )
+    #     else:
+    #         self.log_warning(message=f"Dry run is enabled so skipping sync.")
 
 
 jobs = [Device42DataSource]

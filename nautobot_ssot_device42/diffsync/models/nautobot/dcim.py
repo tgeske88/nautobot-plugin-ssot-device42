@@ -8,7 +8,6 @@ from uuid import UUID
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 from django.utils.text import slugify
-from nautobot.circuits.models import Circuit as OrmCircuit
 from nautobot.circuits.models import CircuitTermination as OrmCT
 from nautobot.core.settings_funcs import is_truthy
 from nautobot.dcim.models import Cable as OrmCable
@@ -22,7 +21,7 @@ from nautobot.dcim.models import RackGroup as OrmRackGroup
 from nautobot.dcim.models import Site as OrmSite
 from nautobot.dcim.models import VirtualChassis as OrmVC
 from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField, Relationship, RelationshipAssociation
+from nautobot.extras.models import CustomField, RelationshipAssociation
 from nautobot.extras.models import Status as OrmStatus
 from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP, PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.models.base.dcim import (
@@ -517,9 +516,6 @@ class NautobotCluster(Cluster):
 class NautobotDevice(Device):
     """Nautobot Device model."""
 
-    if LIFECYCLE_MGMT:
-        _softwarelcm = Relationship.objects.get(name="Software on Device")
-
     @staticmethod
     def _get_site(diffsync, building: str):
         """Get Site ID from Building name."""
@@ -678,7 +674,7 @@ class NautobotDevice(Device):
                         manufacturer=_dev.device_type.manufacturer.id,
                     )
                     self._assign_version_to_device(diffsync=self.diffsync, device=self.uuid, software_lcm=soft_lcm)
-                elif attrs["os_version"] is None:
+                elif attrs["os_version"] == "":
                     relations = _dev.get_relationships()
                     software_relation_id = self.diffsync.relationship_map["Software on Device"]
                     for _, relationships in relations.items():
@@ -695,13 +691,6 @@ class NautobotDevice(Device):
                         {
                             "key": "OS Version",
                             "value": attrs["os_version"] if attrs.get("os_version") else self.os_version,
-                        }
-                    )
-                elif attrs["os_version"] is None:
-                    attrs["custom_fields"].append(
-                        {
-                            "key": "OS Version",
-                            "value": "",
                         }
                     )
         if "in_service" in attrs:
@@ -829,71 +818,72 @@ class NautobotPort(Port):
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
         """Create Interface object in Nautobot."""
-        if ids.get("device"):
-            try:
-                _dev = diffsync.device_map[ids["device"]]
-            except KeyError:
-                if diffsync.job.kwargs.get("debug"):
-                    diffsync.job.log_warning(
-                        message=f"Attempting to create {ids['name']} for {ids['device']} failed as {ids['device']} doesn't exist."
-                    )
-                return None
-            new_intf = OrmInterface(
-                name=ids["name"],
-                device_id=_dev,
-                enabled=is_truthy(attrs["enabled"]),
-                mtu=attrs["mtu"] if attrs.get("mtu") else 1500,
-                description=attrs["description"],
-                type=attrs["type"],
-                mac_address=attrs["mac_addr"][:12] if attrs.get("mac_addr") else None,
-                mode=attrs["mode"],
-                status_id=diffsync.status_map[attrs["status"]],
-            )
-            if attrs.get("tags"):
-                for _tag in nautobot.get_tags(attrs["tags"]):
-                    new_intf.tags.add(_tag)
-            if attrs.get("custom_fields"):
-                for _cf in attrs["custom_fields"]:
-                    _cf_dict = {
-                        "name": slugify(_cf["key"]),
-                        "type": CustomFieldTypeChoices.TYPE_TEXT,
-                        "label": _cf["key"],
-                    }
-                    field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                    field.content_types.add(ContentType.objects.get_for_model(OrmInterface).id)
-                    new_intf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
-            if attrs.get("vlans"):
-                site_name = None
-                for dev in diffsync.objects_to_create["devices"]:
-                    if dev.name == ids["device"]:
-                        site_name = cls.find_site(cls, diffsync=diffsync, site_id=dev.site_id)
-                if not site_name:
-                    site_name = "global"
-                if attrs["mode"] == "access" and len(attrs["vlans"]) == 1:
-                    _vlan = attrs["vlans"][0]
+        try:
+            _dev = diffsync.device_map[ids["device"]]
+        except KeyError:
+            if diffsync.job.kwargs.get("debug"):
+                diffsync.job.log_warning(
+                    message=f"Attempting to create {ids['name']} for {ids['device']} failed as {ids['device']} doesn't exist."
+                )
+            return None
+        new_intf = OrmInterface(
+            name=ids["name"],
+            device_id=_dev,
+            enabled=is_truthy(attrs["enabled"]),
+            mtu=attrs["mtu"] if attrs.get("mtu") else 1500,
+            description=attrs["description"],
+            type=attrs["type"],
+            mac_address=attrs["mac_addr"][:12] if attrs.get("mac_addr") else None,
+            mode=attrs["mode"],
+            status_id=diffsync.status_map[attrs["status"]],
+        )
+        if attrs.get("tags"):
+            for _tag in nautobot.get_tags(attrs["tags"]):
+                new_intf.tags.add(_tag)
+        if attrs.get("custom_fields"):
+            for _cf in attrs["custom_fields"]:
+                _cf_dict = {
+                    "name": slugify(_cf["key"]),
+                    "type": CustomFieldTypeChoices.TYPE_TEXT,
+                    "label": _cf["key"],
+                }
+                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+                field.content_types.add(ContentType.objects.get_for_model(OrmInterface).id)
+                new_intf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+        if attrs.get("vlans"):
+            site_name = None
+            for dev in diffsync.objects_to_create["devices"]:
+                if dev.name == ids["device"]:
+                    site_name = cls.find_site(cls, diffsync=diffsync, site_id=dev.site_id)
+            if not site_name:
+                site_name = "global"
+            if attrs["mode"] == "access" and len(attrs["vlans"]) == 1:
+                _vlan = attrs["vlans"][0]
+                try:
+                    new_intf.untagged_vlan_id = diffsync.vlan_map[slugify(site_name)][str(_vlan["vlan_id"])]
+                except KeyError:
+                    if diffsync.job.kwargs.get("debug"):
+                        diffsync.job.log_warning(
+                            message=f"Unable to find access VLAN {_vlan['vlan_id']} in {site_name}."
+                        )
+            else:
+                for _vlan in attrs["vlans"]:
                     try:
-                        new_intf.untagged_vlan_id = diffsync.vlan_map[slugify(site_name)][str(_vlan["vlan_id"])]
+                        tagged_vlan = diffsync.vlan_map[slugify(site_name)][str(_vlan["vlan_id"])]
+                        if tagged_vlan:
+                            new_intf.tagged_vlans.add(tagged_vlan)
                     except KeyError:
                         if diffsync.job.kwargs.get("debug"):
                             diffsync.job.log_warning(
-                                message=f"Unable to find access VLAN {_vlan['vlan_id']} in {site_name}."
+                                message=f"Unable to find trunked VLAN {_vlan['vlan_id']} in {site_name}."
                             )
-                else:
-                    for _vlan in attrs["vlans"]:
-                        try:
-                            tagged_vlan = diffsync.vlan_map[slugify(site_name)][str(_vlan["vlan_id"])]
-                            if tagged_vlan:
-                                new_intf.tagged_vlans.add(tagged_vlan)
-                        except KeyError:
-                            if diffsync.job.kwargs.get("debug"):
-                                diffsync.job.log_warning(
-                                    message=f"Unable to find trunked VLAN {_vlan['vlan_id']} in {site_name}."
-                                )
-            diffsync.objects_to_create["ports"].append(new_intf)
-            if ids["device"] not in diffsync.port_map:
-                diffsync.port_map[ids["device"]] = {}
-            diffsync.port_map[ids["device"]][ids["name"]] = new_intf.id
-            return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+        diffsync.objects_to_create["ports"].append(new_intf)
+        if ids["device"] not in diffsync.port_map:
+            diffsync.port_map[ids["device"]] = {}
+        diffsync.port_map[ids["device"]][ids["name"]] = new_intf.id
+        if attrs.get("mac_addr"):
+            diffsync.port_map[attrs["mac_addr"][:12]] = new_intf.id
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
         """Update Interface object in Nautobot."""
@@ -1022,14 +1012,24 @@ class NautobotConnection(Connection):
         _intf, circuit = None, None
         if attrs["src_type"] == "interface":
             try:
-                _intf = diffsync.cable_map[ids["src_device"]][ids["src_port"]]
                 circuit = diffsync.circuit_map[ids["dst_device"]]
             except KeyError:
                 if diffsync.job.kwargs.get("debug"):
                     diffsync.job.log_warning(
-                        message=f"Unable to find source port for {ids['src_device']}: {ids['src_port']} to connect to Circuit {ids['dst_device']}"
+                        message=f"Unable to find Circuit for {ids['src_device']}: {ids['src_port']} to connect to Circuit {ids['dst_device']}"
                     )
                 return None
+            try:
+                _intf = diffsync.port_map[ids["src_port_mac"]]
+            except KeyError:
+                try:
+                    _intf = diffsync.port_map[ids["src_device"]][ids["src_port"]]
+                except KeyError:
+                    if diffsync.job.kwargs.get("debug"):
+                        diffsync.job.log_warning(
+                            message=f"Unable to find source port for {ids['src_device']}: {ids['src_port']} to connect to Circuit {ids['dst_device']}"
+                        )
+                    return None
         elif attrs["src_type"] == "patch panel":
             try:
                 _intf = OrmFrontPort.objects.get(device__name=ids["src_device"], name=ids["src_port"])
@@ -1043,16 +1043,31 @@ class NautobotConnection(Connection):
         if attrs["dst_type"] == "interface":
             try:
                 circuit = diffsync.circuit_map[ids["src_device"]]
-                _intf = diffsync.cable_map[ids["dst_device"]][ids["dst_port"]]
             except KeyError:
                 if diffsync.job.kwargs.get("debug"):
                     diffsync.job.log_warning(
-                        message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} to connect to Circuit {ids['src_device']}"
+                        message=f"Unable to find Circuit for {ids['src_device']}: {ids['src_port']} to connect to Circuit {ids['dst_device']}"
                     )
                 return None
+            try:
+                _intf = diffsync.port_map[ids["dst_port_mac"]]
+            except KeyError:
+                try:
+                    _intf = diffsync.port_map[ids["dst_device"]][ids["dst_port"]]
+                except KeyError:
+                    if diffsync.job.kwargs.get("debug"):
+                        diffsync.job.log_warning(
+                            message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} to connect to Circuit {ids['src_device']}"
+                        )
+                    return None
         elif attrs["dst_type"] == "patch panel":
             try:
-                circuit = OrmCircuit.objects.get(cid=ids["src_device"])
+                circuit = diffsync.circuit_map[ids["src_device"]]
+            except KeyError as err:
+                if diffsync.job.kwargs.get("debug"):
+                    diffsync.job.log_warning(message=f"Unable to find Circuit {ids['dst_device']} {err}")
+                return None
+            try:
                 _intf = OrmFrontPort.objects.get(device__name=ids["dst_device"], name=ids["dst_port"])
             except OrmFrontPort.DoesNotExist as err:
                 if diffsync.job.kwargs.get("debug"):
@@ -1060,13 +1075,9 @@ class NautobotConnection(Connection):
                         message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} to connect to Circuit {ids['src_device']} {err}"
                     )
                 return None
-            except OrmCircuit.DoesNotExist as err:
-                if diffsync.job.kwargs.get("debug"):
-                    diffsync.job.log_warning(message=f"Unable to find Circuit {ids['dst_device']} {err}")
-                return None
         if circuit and _intf:
             _ct = {
-                "circuit": circuit,
+                "circuit_id": circuit,
                 "site": _intf.device.site,
             }
         else:
@@ -1088,7 +1099,7 @@ class NautobotConnection(Connection):
                 termination_a_type=ContentType.objects.get(app_label="dcim", model="interface")
                 if attrs["src_type"] == "interface"
                 else ContentType.objects.get(app_label="dcim", model="frontport"),
-                termination_a_id=_intf.id,
+                termination_a_id=_intf,
                 termination_b_type=ContentType.objects.get(app_label="circuits", model="circuittermination"),
                 termination_b_id=circuit_term.id,
                 status=OrmStatus.objects.get(name="Connected"),
@@ -1110,21 +1121,27 @@ class NautobotConnection(Connection):
         """
         _src_port, _dst_port = None, None
         try:
-            _src_port = diffsync.cable_map[ids["src_device"]][ids["src_port"]]
+            _src_port = diffsync.port_map[ids["src_port_mac"]]
         except KeyError:
-            if diffsync.job.kwargs.get("debug"):
-                diffsync.job.log_warning(
-                    message=f"Unable to find source port for {ids['src_device']}: {ids['src_port']} {ids['src_port_mac']}"
-                )
-            return None
+            try:
+                _src_port = diffsync.port_map[ids["src_device"]][ids["src_port"]]
+            except KeyError:
+                if diffsync.job.kwargs.get("debug"):
+                    diffsync.job.log_warning(
+                        message=f"Unable to find source port for {ids['src_device']}: {ids['src_port']} {ids['src_port_mac']}"
+                    )
+                return None
         try:
-            _dst_port = diffsync.port_map[ids["dst_device"]][ids["dst_port"]]
+            _dst_port = diffsync.port_map[ids["dst_port_mac"]]
         except KeyError:
-            if diffsync.job.kwargs.get("debug"):
-                diffsync.job.log_warning(
-                    message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} {ids['dst_port_mac']}"
-                )
-            return None
+            try:
+                _dst_port = diffsync.port_map[ids["dst_device"]][ids["dst_port"]]
+            except KeyError:
+                if diffsync.job.kwargs.get("debug"):
+                    diffsync.job.log_warning(
+                        message=f"Unable to find destination port for {ids['dst_device']}: {ids['dst_port']} {ids['dst_port_mac']}"
+                    )
+                return None
         if _src_port and _dst_port:
             new_cable = OrmCable(
                 termination_a_type=ContentType.objects.get(app_label="dcim", model="interface"),

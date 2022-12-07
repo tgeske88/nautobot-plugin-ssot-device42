@@ -184,9 +184,9 @@ class NautobotAdapter(DiffSync):
         if len(self.objects_to_create["rear_ports"]) > 0:
             self.job.log_info(message="Performing bulk create of Rear Ports in Nautobot")
             RearPort.objects.bulk_create(self.objects_to_create["rear_ports"], batch_size=250)
-        if len(self.objects_to_create["frontports"]) > 0:
+        if len(self.objects_to_create["front_ports"]) > 0:
             self.job.log_info(message="Performing bulk create of Front Ports in Nautobot")
-            FrontPort.objects.bulk_create(self.objects_to_create["frontports"], batch_size=250)
+            FrontPort.objects.bulk_create(self.objects_to_create["front_ports"], batch_size=250)
 
         if len(self.objects_to_create["vrfs"]) > 0:
             self.job.log_info(message="Performing bulk create of VRFs in Nautobot")
@@ -364,9 +364,9 @@ class NautobotAdapter(DiffSync):
                     position=dev.position,
                     orientation=dev.face if dev.face else "rear",
                     num_ports=len(FrontPort.objects.filter(device__name=dev.name)),
-                    building=dev.site.name,
-                    room=dev.rack.group.name if dev.rack else "",
-                    rack=dev.rack.name if dev.rack else "",
+                    building=dev.site.slug,
+                    room=dev.rack.group.name if dev.rack else None,
+                    rack=dev.rack.name if dev.rack else None,
                     serial_no=dev.serial if dev.serial else "",
                     uuid=dev.id,
                 )
@@ -418,6 +418,7 @@ class NautobotAdapter(DiffSync):
             self.port_map[port.device.name][port.name] = port.id
             if port.mac_address:
                 _mac_addr = str(port.mac_address).replace(":", "").lower()
+                self.port_map[_mac_addr[:12]] = port.id
             else:
                 _mac_addr = ""
             try:
@@ -435,7 +436,7 @@ class NautobotAdapter(DiffSync):
                     type=port.type,
                     tags=nautobot.get_tag_strings(port.tags),
                     mode=port.mode,
-                    status=port.status.slug if port.status else "",
+                    status=port.status.slug if hasattr(port, "status") else "active",
                     custom_fields=nautobot.get_custom_field_dicts(port.get_custom_fields()),
                     uuid=port.id,
                 )
