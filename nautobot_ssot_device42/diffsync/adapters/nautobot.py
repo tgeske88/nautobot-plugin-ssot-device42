@@ -208,9 +208,9 @@ class NautobotAdapter(DiffSync):
             self.job.log_info(message="Performing bulk create of Circuits in Nautobot")
             Circuit.objects.bulk_create(self.objects_to_create["circuits"], batch_size=250)
 
-        if len(self.objects_to_create["cables"]) > 0:
-            self.job.log_info(message="Performing bulk create of Cables in Nautobot")
-            Cable.objects.bulk_create(self.objects_to_create["cables"], batch_size=250)
+        # if len(self.objects_to_create["cables"]) > 0:
+        #     self.job.log_info(message="Performing bulk create of Cables in Nautobot")
+        #     Cable.objects.bulk_create(self.objects_to_create["cables"], batch_size=250)
 
         if len(self.objects_to_create["device_primary_ip"]) > 0:
             if self.job.kwargs.get("debug"):
