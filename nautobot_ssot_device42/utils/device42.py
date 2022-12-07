@@ -574,7 +574,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             dict: Information about each port and it's connection information.
         """
-        query = "SELECT netport_pk as src_port, device_fk as src_device, second_device_fk as dst_device, remote_netport_fk as dst_port FROM view_netport_v1 WHERE second_device_fk is not null AND remote_netport_fk is not null"
+        query = "SELECT netport_pk as src_port, device_fk as src_device, second_device_fk as second_src_device, remote_netport_fk as dst_port FROM view_netport_v1 WHERE device_fk is not null AND remote_netport_fk is not null"
         return self.doql_query(query=query)
 
     def get_telcocircuits(self) -> List[dict]:

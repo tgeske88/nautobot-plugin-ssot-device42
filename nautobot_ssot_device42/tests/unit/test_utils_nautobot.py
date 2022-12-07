@@ -1,13 +1,11 @@
 """Tests of Nautobot utility methods."""
-
-# from uuid import UUID
 from unittest.mock import MagicMock
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_device42.utils.nautobot import verify_platform, determine_vc_position
 
 
 class TestNautobotUtils(TransactionTestCase):
-    """Test MissingConfigSetting Exception."""
+    """Test Nautobot utility methods."""
 
     databases = ("default", "job_logs")
 
