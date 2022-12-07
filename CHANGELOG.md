@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.4.10 (2022-12-07)
+### Fix
+* 🐛 Set Nautobot minimum version to 1.4.0 for Interface Status support ([`c3d6305`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/c3d6305f626f3895bf2b1db55edf985b95442165))
+* 🐛 Set Nautobot minimum version to 1.4.0 for Interface Status support ([`c93ac16`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/c93ac16deb46316329143616c2b84db65af8953e))
+
 ## v1.4.9 (2022-10-05)
 ### Fix
 * 🐛 Add handling for instance of new device passed to assign version ([`e014c0f`](https://github.com/networking/nautobot-plugin-device42-sync/commit/e014c0f48a05f019ef6d824d7bbba33abd10ddac))
