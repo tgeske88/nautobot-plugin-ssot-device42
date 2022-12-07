@@ -564,8 +564,11 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             dict: Dict of ports where key is the primary key of the Port with the port name.
         """
-        query = "SELECT np.port, np.netport_pk, np.hwaddress, d.name as device FROM view_netport_v1 np JOIN view_device_v1 d ON d.device_pk = np.device_fk WHERE port <> ''"
+        query = "SELECT np.port, np.netport_pk, np.hwaddress, d.name as device FROM view_netport_v1 np JOIN view_device_v1 d ON d.device_pk = np.device_fk"
         _ports = self.doql_query(query=query)
+        for _port in _ports:
+            if not _port["port"] and _port.get("hwaddress"):
+                _port["port"] = _port["hwaddress"]
         return {x["netport_pk"]: x for x in _ports}
 
     def get_port_connections(self) -> dict:

@@ -43,7 +43,7 @@ def get_circuit_status(status: str) -> str:
         return "Offline"
 
 
-def get_site_from_mapping(device_name: str) -> Union[str, bool]:
+def get_site_from_mapping(device_name: str) -> Union[str, None]:
     """Method to map a Device to a Site based upon their name using a regex pattern in the settings.
 
     This works in conjunction with the `hostname_mapping` setting to have a Device assigned to a Site by hostname. This is done using a regex pattern mapped to the Site slug.
@@ -52,14 +52,14 @@ def get_site_from_mapping(device_name: str) -> Union[str, bool]:
         device_name (str): Name of the Device to be matched. Must match one of the regex patterns provided to get a response.
 
     Returns:
-        Union[str, bool]: The Site slug of the associated Site for the Device in the mapping. Returns False if match not found.
+        Union[str, None]: The Site slug of the associated Site for the Device in the mapping. Returns None if match not found.
     """
     for _entry in PLUGIN_CFG["hostname_mapping"]:
         for _mapping, _slug in _entry.items():
             site_match = re.match(_mapping, device_name)
             if site_match:
                 return _slug
-    return False
+    return None
 
 
 def get_dns_a_record(dev_name: str):
@@ -656,35 +656,37 @@ class Device42Adapter(DiffSync):
             self.job.log_info(message="Retrieving IP Addresses from Device42.")
         default_cfs = self.device42.get_ipaddr_default_custom_fields()
         _cfs = self.device42.get_ipaddr_custom_fields()
+        devices = self.dict()["device"]
         for _ip in self.device42.get_ip_addrs():
             _ipaddr = f"{_ip['ip_address']}/{str(_ip['netmask'])}"
             try:
-                if _ip.get("second_device_fk"):
+                if _ip.get("second_device_fk") and self.d42_device_map[_ip["second_device_fk"]]["name"] in devices:
                     _device_name = self.d42_device_map[_ip["second_device_fk"]]["name"]
-                elif _ip.get("device"):
+                elif _ip.get("device") and _ip["device"] in devices:
                     _device_name = _ip["device"]
                 else:
                     _device_name = ""
-                _tags = _ip["tags"].split(",") if _ip.get("tags") else []
-                if len(_tags) > 1:
-                    _tags.sort()
+                if _ip.get("port_name") and _device_name in devices:
+                    _port_name = _ip["port_name"]
+                else:
+                    _port_name = ""
+                _tags = _ip["tags"].split(",").sort() if _ip.get("tags") else []
+                self.job.log_info(message=f"Loading IP Address {_ipaddr}.")
                 new_ip = self.ipaddr(
                     address=_ipaddr,
                     available=_ip["available"],
-                    label=_ip["label"] if _ip.get("label") is not None else "",
+                    label=_ip["label"] if _ip.get("label") else "",
                     device=_device_name,
-                    interface=_ip["port_name"] if _ip.get("port_name") else "",
+                    interface=_port_name,
                     primary=False,
                     vrf=_ip["vrf"],
                     tags=_tags,
-                    custom_fields=None,
+                    custom_fields=default_cfs,
                     uuid=None,
                 )
                 if _ipaddr in _cfs:
                     print(f"{_ipaddr} found in _cfs. CustomFields being added.")
                     new_ip.custom_fields = _cfs[_ipaddr]
-                else:
-                    new_ip.custom_fields = default_cfs
                 self.add(new_ip)
             except ObjectAlreadyExists as err:
                 if self.job.kwargs.get("debug"):
@@ -739,7 +741,13 @@ class Device42Adapter(DiffSync):
     def load_connections(self):
         """Load Device42 connections."""
         _port_conns = self.device42.get_port_connections()
+        devices = self.dict()["device"]
         for _conn in _port_conns:
+            if _conn.get("second_src_device"):
+                if self.d42_device_map[_conn["second_src_device"]]["name"] not in devices:
+                    continue
+            if self.d42_device_map[_conn["src_device"]]["name"] not in devices:
+                continue
             try:
                 new_conn = self.conn(
                     src_device=self.d42_device_map[_conn["second_src_device"]]["name"]
@@ -756,22 +764,6 @@ class Device42Adapter(DiffSync):
                     uuid=None,
                 )
                 self.add(new_conn)
-                # in order to have cables match up to Nautobot, we need to add from both sides
-                rev_conn = self.conn(
-                    src_device=self.d42_port_map[_conn["dst_port"]]["device"],
-                    src_port=self.d42_port_map[_conn["dst_port"]]["port"],
-                    src_port_mac=self.d42_port_map[_conn["dst_port"]]["hwaddress"],
-                    src_type="interface",
-                    dst_device=self.d42_device_map[_conn["second_src_device"]]["name"]
-                    if _conn.get("second_src_device")
-                    else self.d42_device_map[_conn["src_device"]]["name"],
-                    dst_port=self.d42_port_map[_conn["src_port"]]["port"],
-                    dst_port_mac=self.d42_port_map[_conn["src_port"]]["hwaddress"],
-                    dst_type="interface",
-                    tags=None,
-                    uuid=None,
-                )
-                self.add(rev_conn)
             except ObjectAlreadyExists as err:
                 if self.job.kwargs.get("debug"):
                     self.job.log_warning(message=err)
@@ -1008,20 +1000,20 @@ class Device42Adapter(DiffSync):
             _building, _room, _rack = None, None, None
             if PLUGIN_CFG.get("hostname_mapping") and len(PLUGIN_CFG["hostname_mapping"]) > 0:
                 _building = get_site_from_mapping(device_name=panel["name"])
-            elif PLUGIN_CFG.get("customer_is_facility") and panel["customer_fk"] is not None:
+            if not _building and PLUGIN_CFG.get("customer_is_facility") and panel["customer_fk"] is not None:
                 _building = slugify(self.d42_customer_map[panel["customer_fk"]]["name"])
-            elif panel["building_fk"] is not None:
+            if not _building and panel["building_fk"] is not None:
                 _building = slugify(self.d42_building_map[panel["building_fk"]]["name"])
-            elif panel["calculated_building_fk"] is not None:
+            if not _building and panel["calculated_building_fk"] is not None:
                 _building = slugify(self.d42_building_map[panel["calculated_building_fk"]]["name"])
             if panel["room_fk"] is not None:
                 _room = self.d42_room_map[panel["room_fk"]]["name"]
-            elif panel["calculated_room_fk"] is not None:
+            if not _room and panel["calculated_room_fk"] is not None:
                 _room = self.d42_room_map[panel["calculated_room_fk"]]["name"]
-            elif panel["rack_fk"] is not None:
+            if panel["rack_fk"] is not None:
                 _rack = self.d42_rack_map[panel["rack_fk"]]["name"]
-            elif panel["calculated_rack_fk"] is not None:
-                _rack = self.d42_rack_map[panel["rack_fk"]]["name"]
+            if not _rack and panel["calculated_rack_fk"] is not None:
+                _rack = self.d42_rack_map[panel["calculated_rack_fk"]]["name"]
             if _building is None and _room is None and _rack is None:
                 if self.job.kwargs.get("debug"):
                     self.job.log_debug(
