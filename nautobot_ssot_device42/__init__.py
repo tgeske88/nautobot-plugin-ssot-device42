@@ -20,7 +20,7 @@ class NautobotDevice42SyncConfig(PluginConfig):
         "device42_password",
         "defaults",
     ]
-    min_version = "1.3.0"
+    min_version = "1.4.0"
     max_version = "1.9999"
     default_settings = {}
     caching_config = {}

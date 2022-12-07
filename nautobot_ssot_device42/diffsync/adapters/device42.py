@@ -376,7 +376,7 @@ class Device42Adapter(DiffSync):
                 serial_no="",
                 custom_fields=sorted(cluster_info["custom_fields"], key=lambda d: d["key"]),
                 rack_position=None,
-                os_version=None,
+                os_version="",
                 vc_position=1,
                 uuid=None,
             )
@@ -664,7 +664,7 @@ class Device42Adapter(DiffSync):
                 elif _ip.get("device"):
                     _device_name = _ip["device"]
                 else:
-                    _device_name = None
+                    _device_name = ""
                 _tags = _ip["tags"].split(",") if _ip.get("tags") else []
                 if len(_tags) > 1:
                     _tags.sort()
@@ -742,11 +742,13 @@ class Device42Adapter(DiffSync):
         for _conn in _port_conns:
             try:
                 new_conn = self.conn(
-                    src_device=self.d42_device_map[_conn["src_device"]]["name"],
+                    src_device=self.d42_device_map[_conn["second_src_device"]]["name"]
+                    if _conn.get("second_src_device")
+                    else self.d42_device_map[_conn["src_device"]]["name"],
                     src_port=self.d42_port_map[_conn["src_port"]]["port"],
                     src_port_mac=self.d42_port_map[_conn["src_port"]]["hwaddress"],
                     src_type="interface",
-                    dst_device=self.d42_device_map[_conn["dst_device"]]["name"],
+                    dst_device=self.d42_port_map[_conn["dst_port"]]["device"],
                     dst_port=self.d42_port_map[_conn["dst_port"]]["port"],
                     dst_port_mac=self.d42_port_map[_conn["dst_port"]]["hwaddress"],
                     dst_type="interface",
@@ -756,11 +758,13 @@ class Device42Adapter(DiffSync):
                 self.add(new_conn)
                 # in order to have cables match up to Nautobot, we need to add from both sides
                 rev_conn = self.conn(
-                    src_device=self.d42_device_map[_conn["dst_device"]]["name"],
+                    src_device=self.d42_port_map[_conn["dst_port"]]["device"],
                     src_port=self.d42_port_map[_conn["dst_port"]]["port"],
                     src_port_mac=self.d42_port_map[_conn["dst_port"]]["hwaddress"],
                     src_type="interface",
-                    dst_device=self.d42_device_map[_conn["src_device"]]["name"],
+                    dst_device=self.d42_device_map[_conn["second_src_device"]]["name"]
+                    if _conn.get("second_src_device")
+                    else self.d42_device_map[_conn["src_device"]]["name"],
                     dst_port=self.d42_port_map[_conn["src_port"]]["port"],
                     dst_port_mac=self.d42_port_map[_conn["src_port"]]["hwaddress"],
                     dst_type="interface",
@@ -873,12 +877,11 @@ class Device42Adapter(DiffSync):
                     self.job.log_warning(message=f"Skipping {_device.name} due to invalid Device name.")
                 continue
 
-    def get_management_intf(self, dev_name: str, diffsync=None):
+    def get_management_intf(self, dev_name: str):
         """Method to find a Device's management interface or create one if one doesn't exist.
 
         Args:
             dev_name (str): Name of Device to find Management interface.
-            diffsync (object, optional): DiffSync object for handling interactions with Job, such as logging. Defaults to None.
 
         Returns:
             Port: DiffSyncModel Port object that's assumed to be Management interface if found. False if not found.
@@ -913,9 +916,9 @@ class Device42Adapter(DiffSync):
             description="Interface added by script for Management of device using DNS A record.",
             mode="access",
             mtu=None,
-            mac_addr=None,
-            custom_fields=None,
-            tags=None,
+            mac_addr="",
+            custom_fields=self.device42.get_port_default_custom_fields(),
+            tags=[],
             status="active",
             uuid=None,
         )
@@ -1003,22 +1006,22 @@ class Device42Adapter(DiffSync):
         panels = self.device42.get_patch_panels()
         for panel in panels:
             _building, _room, _rack = None, None, None
-            if PLUGIN_CFG.get("customer_is_facility") and panel["customer_fk"] is not None:
-                _building = self.d42_customer_map[panel["customer_fk"]]["name"]
-            if panel["building_fk"] is not None:
-                _building = self.d42_building_map[panel["building_fk"]]["name"]
+            if PLUGIN_CFG.get("hostname_mapping") and len(PLUGIN_CFG["hostname_mapping"]) > 0:
+                _building = get_site_from_mapping(device_name=panel["name"])
+            elif PLUGIN_CFG.get("customer_is_facility") and panel["customer_fk"] is not None:
+                _building = slugify(self.d42_customer_map[panel["customer_fk"]]["name"])
+            elif panel["building_fk"] is not None:
+                _building = slugify(self.d42_building_map[panel["building_fk"]]["name"])
             elif panel["calculated_building_fk"] is not None:
-                _building = self.d42_building_map[panel["calculated_building_fk"]]["name"]
+                _building = slugify(self.d42_building_map[panel["calculated_building_fk"]]["name"])
             if panel["room_fk"] is not None:
                 _room = self.d42_room_map[panel["room_fk"]]["name"]
             elif panel["calculated_room_fk"] is not None:
                 _room = self.d42_room_map[panel["calculated_room_fk"]]["name"]
-            if panel["rack_fk"] is not None:
+            elif panel["rack_fk"] is not None:
                 _rack = self.d42_rack_map[panel["rack_fk"]]["name"]
             elif panel["calculated_rack_fk"] is not None:
                 _rack = self.d42_rack_map[panel["rack_fk"]]["name"]
-            elif PLUGIN_CFG.get("hostname_mapping") and len(PLUGIN_CFG["hostname_mapping"]) > 0:
-                _building = get_site_from_mapping(device_name=panel["name"])
             if _building is None and _room is None and _rack is None:
                 if self.job.kwargs.get("debug"):
                     self.job.log_debug(
