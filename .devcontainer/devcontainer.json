@@ -4,9 +4,9 @@
         "../development/docker-compose.requirements.yml",
         "../development/docker-compose.base.yml",
         "../development/docker-compose.dev.yml",
-        "../development/docker-compose.debug.yml",
+        "../development/docker-compose.debug.yml"
     ],
-    "remoteEnv": {
+    "containerEnv": {
         "DJANGO_SETTINGS_MODULE": "nautobot.core.settings"
     },
     "service": "nautobot",
@@ -17,13 +17,13 @@
     ],
     "workspaceFolder": "/source/",
     "extensions": [
-		"ms-python.vscode-pylance",
-		"streetsidesoftware.code-spell-checker",
-		"eamodio.gitlens",
-		"ms-python.python",
-		"vivaxy.vscode-conventional-commits",
-		"njpwerner.autodocstring"
-	],
+        "ms-python.vscode-pylance",
+        "streetsidesoftware.code-spell-checker",
+        "eamodio.gitlens",
+        "ms-python.python",
+        "vivaxy.vscode-conventional-commits",
+        "njpwerner.autodocstring"
+    ],
     "settings": {
         "python.pythonPath": "/usr/local/bin/python",
         "python.analysis.extraPaths": [
