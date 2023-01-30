@@ -1,6 +1,8 @@
 """Tests of Nautobot utility methods."""
+from uuid import UUID
 from unittest.mock import MagicMock
 from nautobot.utilities.testing import TransactionTestCase
+from nautobot.dcim.models import Manufacturer
 from nautobot_ssot_device42.utils.nautobot import verify_platform, determine_vc_position
 
 
@@ -11,10 +13,10 @@ class TestNautobotUtils(TransactionTestCase):
 
     def test_verify_platform(self):
         dsync = MagicMock()
-        dsync.platform_map.return_value = {}
-        platform = verify_platform(diffsync=dsync, platform_name="cisco_ios", manu="Cisco")
-        print(platform)
-        # self.assertEqual(type(platform), UUID)
+        dsync.platform_map = {}
+        cisco_manu, _ = Manufacturer.objects.get_or_create(name="Cisco")
+        platform = verify_platform(diffsync=dsync, platform_name="cisco_ios", manu=cisco_manu.id)
+        self.assertEqual(type(platform), UUID)
 
     def test_determine_vc_position(self):
         vc_map = {
