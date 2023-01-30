@@ -216,6 +216,10 @@ class Device42Adapter(DiffSync):
             if len(_tags) > 1:
                 _tags.sort()
             if record.get("building"):
+                if record["building"] not in self.rack_elevations:
+                    self.rack_elevations[record["building"]] = {}
+                if record["name"] not in self.rack_elevations[record["building"]]:
+                    self.rack_elevations[record["building"]][record["name"]] = {}
                 room = self.room(
                     name=record["name"],
                     building=record["building"],
@@ -245,11 +249,11 @@ class Device42Adapter(DiffSync):
             if len(_tags) > 1:
                 _tags.sort()
             if record.get("building") and record.get("room"):
-                if slugify(record["building"]) not in self.rack_elevations:
-                    self.rack_elevations[slugify(record["building"])] = {}
-                if slugify(record["room"]) not in self.rack_elevations[slugify(record["building"])]:
-                    self.rack_elevations[slugify(record["building"])][slugify(record["room"])] = {}
-                self.rack_elevations[slugify(record["building"])][slugify(record["room"])][record["name"]] = {
+                if record["building"] not in self.rack_elevations:
+                    self.rack_elevations[record["building"]] = {}
+                if record["room"] not in self.rack_elevations[record["building"]]:
+                    self.rack_elevations[record["building"]][record["room"]] = {}
+                self.rack_elevations[record["building"]][record["room"]][record["name"]] = {
                     slot: [] for slot in range(1, record["size"] + 1)
                 }
                 rack = self.rack(
@@ -429,21 +433,25 @@ class Device42Adapter(DiffSync):
                     if _record.get("start_at"):
                         rack_position = int(_record["start_at"])
                         for slot in range(rack_position, rack_position + model_size + 1):
-                            if (
-                                slot
-                                not in self.rack_elevations[slugify(_building)][slugify(_record["room"])][
-                                    _record["rack"]
-                                ]
-                            ):
-                                self.rack_elevations[slugify(_building)][slugify(_record["room"])][_record["rack"]][
-                                    slot
-                                ] = []
-                            self.rack_elevations[slugify(_building)][slugify(_record["room"])][_record["rack"]][
-                                slot
-                            ].append(_record["name"][:64])
+                            if _building not in self.rack_elevations:
+                                self.rack_elevations[_building] = {}
+
+                            if _record["room"] not in self.rack_elevations[_building]:
+                                self.rack_elevations[_building][_record["room"]] = {}
+
+                            if _record["rack"] not in self.rack_elevations[_building][_record["room"]]:
+                                self.rack_elevations[_building][_record["room"]][_record["rack"]] = {}
+
+                            if slot not in self.rack_elevations[_building][_record["room"]][_record["rack"]]:
+                                self.rack_elevations[_building][_record["room"]][_record["rack"]][slot] = []
+
+                            self.rack_elevations[_building][_record["room"]][_record["rack"]][slot].append(
+                                _record["name"][:64]
+                            )
+
                         if (
                             len(
-                                self.rack_elevations[slugify(_building)][slugify(_record["room"])][_record["rack"]][
+                                self.rack_elevations[_building][_record["room"]][_record["rack"]][
                                     int(_record["start_at"])
                                 ]
                             )
