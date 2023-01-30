@@ -606,7 +606,7 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_pks_sent.json")
         responses.add(
             responses.GET,
-            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT np.port, np.netport_pk, np.hwaddress, d.name as device FROM view_netport_v1 np JOIN view_device_v1 d ON d.device_pk = np.device_fk WHERE port <> ''&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT+np.port%2C+np.netport_pk%2C+np.hwaddress%2C+d.name+as+device+FROM+view_netport_v1+np+JOIN+view_device_v1+d+ON+d.device_pk+%3D+np.device_fk&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )
