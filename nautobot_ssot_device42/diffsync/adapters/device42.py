@@ -578,7 +578,8 @@ class Device42Adapter(DiffSync):
                     self.add(new_port)
                     _dev.add_child(new_port)
 
-    def filter_ports(self, vlan_ports: List[dict], no_vlan_ports: List[dict]) -> List[dict]:
+    @staticmethod
+    def filter_ports(vlan_ports: List[dict], no_vlan_ports: List[dict]) -> List[dict]:
         """Method to combine lists of ports while removing duplicates.
 
         Args:
