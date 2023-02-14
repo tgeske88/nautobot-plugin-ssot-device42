@@ -509,74 +509,76 @@ class Device42Adapter(DiffSync):
         default_cfs = self.device42.get_port_default_custom_fields()
         _cfs = self.device42.get_port_custom_fields()
         for _port in merged_ports:
-            if _port.get("port_name") and _port.get("device_name"):
-                _tags = _port["tags"].split(",") if _port.get("tags") else []
-                if len(_tags) > 1:
-                    _tags.sort()
-                if _port.get("second_device_fk"):
-                    _device_name = self.d42_device_map[_port["second_device_fk"]]["name"]
-                else:
-                    _device_name = _port["device_name"]
+            if _port.get("second_device_fk"):
+                _device_name = self.d42_device_map[_port["second_device_fk"]]["name"]
+            else:
+                _device_name = _port["device_name"]
+            if _port.get("port_name"):
                 _port_name = _port["port_name"][:63].strip()
-                try:
-                    _dev = self.get(self.device, _device_name)
-                except ObjectNotFound:
-                    if self.job.kwargs.get("debug"):
-                        self.job.log_warning(
-                            message=f"Skipping loading of Port {_port_name} for Device {_device_name} as device was not loaded."
-                        )
-                    continue
+            else:
+                _port_name = _port["hwaddress"]
+            _tags = _port["tags"].split(",") if _port.get("tags") else []
+            if len(_tags) > 1:
+                _tags.sort()
+            try:
+                _dev = self.get(self.device, _device_name)
+            except ObjectNotFound:
                 if self.job.kwargs.get("debug"):
-                    self.job.log_info(message=f"Loading Port {_port_name} for Device {_device_name}")
-                if _port.get("up") and is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
-                    _status = "active"
-                elif _port.get("up") and not is_truthy(_port.get("up")) and not is_truthy(_port.get("up_admin")):
-                    _status = "decommissioned"
-                elif _port.get("up") and not is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
-                    _status = "failed"
-                elif is_truthy(_port.get("up_admin")):
-                    # this is for virtual interfaces that don't have an up status but do an up_admin
-                    _status = "active"
-                else:
-                    _status = "planned"
-                try:
-                    self.get(self.port, {"device": _device_name, "name": _port_name})
-                except ObjectNotFound:
-                    new_port = self.port(
-                        name=_port_name,
-                        device=_device_name,
-                        enabled=is_truthy(_port["up_admin"]),
-                        mtu=_port["mtu"] if _port.get("mtu") in range(1, 65537) else 1500,
-                        description=_port["description"],
-                        mac_addr=_port["hwaddress"][:13],
-                        type=get_intf_type(intf_record=_port),
-                        tags=_tags,
-                        mode="access",
-                        status=_status,
-                        custom_fields=None,
-                        uuid=None,
+                    self.job.log_warning(
+                        message=f"Skipping loading of Port {_port_name} for Device {_device_name} as device was not loaded."
                     )
-                    if _port.get("vlan_pks"):
-                        _tags = []
-                        for _pk in _port["vlan_pks"]:
-                            if _pk in self.d42_vlan_map and self.d42_vlan_map[_pk]["vid"] != 0:
-                                _tags.append(
-                                    {
-                                        "vlan_name": self.d42_vlan_map[_pk]["name"],
-                                        "vlan_id": str(self.d42_vlan_map[_pk]["vid"]),
-                                    }
-                                )
-                        _sorted_list = sorted(_tags, key=lambda k: k["vlan_id"])
-                        _vlans = [i for n, i in enumerate(_sorted_list) if i not in _sorted_list[n + 1 :]]  # noqa: E203
-                        new_port.vlans = _vlans
-                        if len(_vlans) > 1:
-                            new_port.mode = "tagged"
-                    if _device_name in _cfs and _cfs[_device_name].get(_port_name):
-                        new_port.custom_fields = sorted(_cfs[_device_name][_port_name], key=lambda d: d["key"])
-                    else:
-                        new_port.custom_fields = default_cfs
-                    self.add(new_port)
-                    _dev.add_child(new_port)
+                continue
+            if self.job.kwargs.get("debug"):
+                self.job.log_info(message=f"Loading Port {_port_name} for Device {_device_name}")
+            if _port.get("up") and is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
+                _status = "active"
+            elif _port.get("up") and not is_truthy(_port.get("up")) and not is_truthy(_port.get("up_admin")):
+                _status = "decommissioned"
+            elif _port.get("up") and not is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
+                _status = "failed"
+            elif is_truthy(_port.get("up_admin")):
+                # this is for virtual interfaces that don't have an up status but do an up_admin
+                _status = "active"
+            else:
+                _status = "planned"
+            try:
+                self.get(self.port, {"device": _device_name, "name": _port_name})
+            except ObjectNotFound:
+                new_port = self.port(
+                    name=_port_name,
+                    device=_device_name,
+                    enabled=is_truthy(_port["up_admin"]),
+                    mtu=_port["mtu"] if _port.get("mtu") in range(1, 65537) else 1500,
+                    description=_port["description"],
+                    mac_addr=_port["hwaddress"][:13],
+                    type=get_intf_type(intf_record=_port),
+                    tags=_tags,
+                    mode="access",
+                    status=_status,
+                    custom_fields=None,
+                    uuid=None,
+                )
+                if _port.get("vlan_pks"):
+                    _tags = []
+                    for _pk in _port["vlan_pks"]:
+                        if _pk in self.d42_vlan_map and self.d42_vlan_map[_pk]["vid"] != 0:
+                            _tags.append(
+                                {
+                                    "vlan_name": self.d42_vlan_map[_pk]["name"],
+                                    "vlan_id": str(self.d42_vlan_map[_pk]["vid"]),
+                                }
+                            )
+                    _sorted_list = sorted(_tags, key=lambda k: k["vlan_id"])
+                    _vlans = [i for n, i in enumerate(_sorted_list) if i not in _sorted_list[n + 1 :]]  # noqa: E203
+                    new_port.vlans = _vlans
+                    if len(_vlans) > 1:
+                        new_port.mode = "tagged"
+                if _device_name in _cfs and _cfs[_device_name].get(_port_name):
+                    new_port.custom_fields = sorted(_cfs[_device_name][_port_name], key=lambda d: d["key"])
+                else:
+                    new_port.custom_fields = default_cfs
+                self.add(new_port)
+                _dev.add_child(new_port)
 
     @staticmethod
     def filter_ports(vlan_ports: List[dict], no_vlan_ports: List[dict]) -> List[dict]:
@@ -665,22 +667,27 @@ class Device42Adapter(DiffSync):
             self.job.log_info(message="Retrieving IP Addresses from Device42.")
         default_cfs = self.device42.get_ipaddr_default_custom_fields()
         _cfs = self.device42.get_ipaddr_custom_fields()
-        devices = self.dict()["device"]
         for _ip in self.device42.get_ip_addrs():
             _ipaddr = f"{_ip['ip_address']}/{str(_ip['netmask'])}"
             try:
-                if _ip.get("second_device_fk") and self.d42_device_map[_ip["second_device_fk"]]["name"] in devices:
-                    _device_name = self.d42_device_map[_ip["second_device_fk"]]["name"]
-                elif _ip.get("device") and _ip["device"] in devices:
-                    _device_name = _ip["device"]
-                else:
-                    _device_name = ""
-                if _ip.get("port_name") and _device_name in devices:
-                    _port_name = _ip["port_name"]
-                else:
-                    _port_name = ""
+                _device_name, _port_name = "", ""
+                if _ip.get("netport_pk") and _ip["netport_pk"] in self.d42_port_map:
+                    port_pk = _ip["netport_pk"]
+                    if self.d42_port_map[port_pk].get("second_device_fk"):
+                        secondary_device_fk = self.d42_port_map[port_pk]["second_device_fk"]
+                        self.job.log_info(message=f"Second device {secondary_device_fk} found for {port_pk}.")
+                        _device_name = self.d42_device_map[secondary_device_fk]["name"]
+                        self.job.log_info(
+                            message=f"Second device is {self.d42_device_map[secondary_device_fk]['name']}"
+                        )
+                    else:
+                        _device_name = self.d42_port_map[port_pk]["device"]
+                    if self.d42_port_map[port_pk].get("port"):
+                        _port_name = self.d42_port_map[port_pk]["port"]
+                    else:
+                        _port_name = self.d42_port_map[port_pk]["hwaddress"]
                 _tags = _ip["tags"].split(",").sort() if _ip.get("tags") else []
-                self.job.log_info(message=f"Loading IP Address {_ipaddr}.")
+                self.job.log_info(message=f"Loading IP Address {_ipaddr} on {_device_name}'s {_port_name} port.")
                 new_ip = self.ipaddr(
                     address=_ipaddr,
                     available=_ip["available"],
@@ -958,7 +965,7 @@ class Device42Adapter(DiffSync):
                     _ip.device = dev_name
                     _ip.interface = mgmt_intf.name
                     _ip.primary = True
-                elif _ip.device == dev_name:
+                else:
                     _ip.primary = True
 
     def find_ipaddr(self, address: str):
@@ -975,13 +982,11 @@ class Device42Adapter(DiffSync):
                     return self.get(self.ipaddr, {"address": _addr, "vrf": _vrf.name})
                 except ObjectNotFound:
                     pass
-            else:
-                try:
-                    return self.get(self.ipaddr, {"address": _addr, "vrf": None})
-                except ObjectNotFound:
-                    bits = bits - 1
-        else:
-            return False
+            try:
+                return self.get(self.ipaddr, {"address": _addr, "vrf": None})
+            except ObjectNotFound:
+                bits = bits - 1
+        return False
 
     def add_ipaddr(self, address: str, dev_name: str, interface: str):
         """Method to add IPAddress DiffSyncModel object if one isn't found.
