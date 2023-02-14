@@ -19,7 +19,7 @@ cache:
 before_script:
   - "python -V" # Print out python version for debugging
   - "export POETRY_HOME=/opt/poetry"
-  - "python3 install-poetry.py --version 1.3.2"
+  - "curl -sSL https://install.python-poetry.org | python3 - --version 1.3.2"
   - "$POETRY_HOME/bin/poetry --version"
   - "poetry install"
   - "cp development/creds.example.env development/creds.env"
