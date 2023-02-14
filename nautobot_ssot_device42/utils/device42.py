@@ -450,7 +450,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             List[dict]: List of dicts with info about each IP address.
         """
-        query = "SELECT i.ip_address, i.available, i.label, i.tags, np.port AS port_name, np.hwaddress, s.network as subnet, s.mask_bits as netmask, v.name as vrf, d.name as device FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_device_v1 d ON d.device_pk = i.device_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0"
+        query = "SELECT i.ip_address, i.available, i.label, i.tags, np.netport_pk, s.network as subnet, s.mask_bits as netmask, v.name as vrf FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0"
         return self.doql_query(query=query)
 
     def get_ipaddr_default_custom_fields(self) -> List[dict]:
