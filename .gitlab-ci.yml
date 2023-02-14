@@ -27,9 +27,9 @@ before_script:
 test:
   stage: "test"
   script:
-    - "poetry run black ."
-    - "poetry run bandit --recursive . --configfile .bandit.yml"
-    - "poetry run pydocstyle --config=.pydocstyle.ini ."
-    - "poetry run flake8 ."
+    - "$POETRY_HOME/bin/poetry run black ."
+    - "$POETRY_HOME/bin/poetry run bandit --recursive . --configfile .bandit.yml"
+    - "$POETRY_HOME/bin/poetry run pydocstyle --config=.pydocstyle.ini ."
+    - "$POETRY_HOME/bin/poetry run flake8 ."
     # - "poetry run pylint --init-hook 'import nautobot; nautobot.setup()' --rcfile pyproject.toml nautobot_ssot_device42"
     # - "poetry run coverage run --module nautobot.core.cli test nautobot_ssot_device42 --failfast --buffer"
