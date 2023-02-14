@@ -27,7 +27,6 @@ before_script:
 test:
   stage: "test"
   script:
-    - "poetry install"
     - "poetry run black ."
     - "poetry run bandit --recursive . --configfile .bandit.yml"
     - "poetry run pydocstyle --config=.pydocstyle.ini ."
