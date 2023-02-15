@@ -27,6 +27,11 @@ before_script:
 test:
   stage: "test"
   script:
+<<<<<<< HEAD
+=======
+    - "pwd"
+    - "ls -lah"
+>>>>>>> ddce973 (ci: Correct flake8 to not point to file, show hidden files)
     - "$POETRY_HOME/bin/poetry run black ."
     - "$POETRY_HOME/bin/poetry run bandit --recursive . --configfile .bandit.yml"
     - "$POETRY_HOME/bin/poetry run pydocstyle --config=.pydocstyle.ini ."
