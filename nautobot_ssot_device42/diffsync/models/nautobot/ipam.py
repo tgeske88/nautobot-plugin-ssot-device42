@@ -4,7 +4,6 @@ import re
 from django.contrib.contenttypes.models import ContentType
 from django.forms import ValidationError
 from django.utils.text import slugify
-from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface as OrmInterface
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
