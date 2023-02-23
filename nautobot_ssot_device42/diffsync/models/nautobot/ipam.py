@@ -291,7 +291,7 @@ class NautobotIPAddress(IPAddress):
                 else:
                     intf = self.diffsync.port_map[self.device][attrs["interface"]]
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
-                _ipaddr.assigned_object_id = intf.id
+                _ipaddr.assigned_object_id = intf
             except KeyError as err:
                 if self.diffsync.job.kwargs.get("debug"):
                     self.diffsync.job.log_debug(
