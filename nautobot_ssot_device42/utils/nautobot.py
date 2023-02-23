@@ -4,7 +4,7 @@ from uuid import UUID
 
 import random
 from django.utils.text import slugify
-from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
+from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE, PYATS_LIB_MAPPER
 from taggit.managers import TaggableManager
 from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
@@ -62,23 +62,23 @@ def verify_platform(diffsync, platform_name: str, manu: UUID) -> UUID:
     Returns:
         UUID: UUID for found or created DeviceRole object.
     """
-    if ANSIBLE_LIB_MAPPER_REVERSE.get(platform_name):
-        _name = ANSIBLE_LIB_MAPPER_REVERSE[platform_name]
+    if platform_name == "f5":
+        platform_name = "bigip"
+    os_name = platform_name.strip("-")
+    if PYATS_LIB_MAPPER.get(os_name):
+        _slug = PYATS_LIB_MAPPER[os_name]
     else:
-        _name = platform_name
-    if platform_name in NAPALM_LIB_MAPPER_REVERSE:
-        napalm_driver = NAPALM_LIB_MAPPER_REVERSE[platform_name]
+        _slug = slugify(platform_name)
+    if _slug in NAPALM_LIB_MAPPER_REVERSE:
+        napalm_driver = NAPALM_LIB_MAPPER_REVERSE[_slug]
     else:
-        if "cisco_" in platform_name:
-            napalm_driver = platform_name.strip("cisco_")
-        else:
-            napalm_driver = platform_name
+        napalm_driver = platform_name
     try:
-        platform_obj = diffsync.platform_map[slugify(platform_name)]
+        platform_obj = diffsync.platform_map[_slug]
     except KeyError:
         platform_obj = Platform(
-            name=_name,
-            slug=slugify(platform_name),
+            name=ANSIBLE_LIB_MAPPER_REVERSE[_slug] if ANSIBLE_LIB_MAPPER_REVERSE.get(_slug) else platform_name,
+            slug=_slug,
             manufacturer_id=manu,
             napalm_driver=napalm_driver[:50],
         )

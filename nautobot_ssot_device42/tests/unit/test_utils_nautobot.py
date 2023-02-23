@@ -15,7 +15,7 @@ class TestNautobotUtils(TransactionTestCase):
         dsync = MagicMock()
         dsync.platform_map = {}
         cisco_manu, _ = Manufacturer.objects.get_or_create(name="Cisco")
-        platform = verify_platform(diffsync=dsync, platform_name="cisco_ios", manu=cisco_manu.id)
+        platform = verify_platform(diffsync=dsync, platform_name="ios", manu=cisco_manu.id)
         self.assertEqual(type(platform), UUID)
 
     def test_determine_vc_position(self):
