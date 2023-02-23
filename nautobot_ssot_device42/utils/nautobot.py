@@ -64,12 +64,12 @@ def verify_platform(diffsync, platform_name: str, manu: UUID) -> UUID:
     """
     if platform_name == "f5":
         platform_name = "bigip"
-    os_name = platform_name.strip("-")
+    os_name = platform_name.replace("-", "")
     if PYATS_LIB_MAPPER.get(os_name):
         _slug = PYATS_LIB_MAPPER[os_name]
     else:
         _slug = slugify(platform_name)
-    if _slug in NAPALM_LIB_MAPPER_REVERSE:
+    if NAPALM_LIB_MAPPER_REVERSE.get(_slug):
         napalm_driver = NAPALM_LIB_MAPPER_REVERSE[_slug]
     else:
         napalm_driver = platform_name
