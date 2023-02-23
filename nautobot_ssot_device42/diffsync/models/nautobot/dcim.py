@@ -372,7 +372,7 @@ class NautobotHardware(Hardware):
     def update(self, attrs):
         """Update DeviceType object in Nautobot."""
         _dt = OrmDeviceType.objects.get(id=self.uuid)
-        self.diffsync.job.log_debug(message=f"Updating DeviceType {_dt.name}.")
+        self.diffsync.job.log_debug(message=f"Updating DeviceType {_dt.model}.")
         if "manufacturer" in attrs:
             _dt.manufacturer = OrmManufacturer.objects.get(slug=slugify(attrs["manufacturer"]))
         if "part_number" in attrs:
