@@ -24,6 +24,7 @@ class NautobotVRFGroup(VRFGroup):
     def create(cls, diffsync, ids, attrs):
         """Create VRF object in Nautobot."""
         _vrf = OrmVRF(name=ids["name"], description=attrs["description"])
+        diffsync.job.log_info(message=f"Creating VRF {_vrf.name}.")
         if attrs.get("tags"):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
@@ -44,6 +45,7 @@ class NautobotVRFGroup(VRFGroup):
     def update(self, attrs):
         """Update VRF object in Nautobot."""
         _vrf = OrmVRF.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating VRF {_vrf.name}.")
         if "description" in attrs:
             _vrf.description = attrs["description"]
         if "tags" in attrs:
@@ -76,8 +78,7 @@ class NautobotVRFGroup(VRFGroup):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_warning(message=f"VRF {self.name} will be deleted.")
+            self.diffsync.job.log_info(message=f"VRF {self.name} will be deleted.")
             vrf = OrmVRF.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["vrf"].append(vrf)  # pylint: disable=protected-access
         return self
@@ -93,8 +94,10 @@ class NautobotSubnet(Subnet):
             vrf_name = ids["vrf"]
         else:
             vrf_name = "unknown"
+        prefix = f"{ids['network']}/{ids['mask_bits']}"
+        diffsync.job.log_info(message=f"Creating Prefix {prefix} in VRF {vrf_name}.")
         _pf = OrmPrefix(
-            prefix=f"{ids['network']}/{ids['mask_bits']}",
+            prefix=prefix,
             vrf_id=diffsync.vrf_map[vrf_name],
             description=attrs["description"],
             status_id=diffsync.status_map["active"],
@@ -121,6 +124,7 @@ class NautobotSubnet(Subnet):
     def update(self, attrs):
         """Update Prefix object in Nautobot."""
         _pf = OrmPrefix.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Prefix {_pf.prefix}.")
         if "description" in attrs:
             _pf.description = attrs["description"]
         if "tags" in attrs:
@@ -153,8 +157,7 @@ class NautobotSubnet(Subnet):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_debug(message=f"Subnet {self.network} will be deleted.")
+            self.diffsync.job.log_info(message=f"Prefix {self.network} will be deleted.")
             subnet = OrmPrefix.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
         return self
@@ -190,6 +193,7 @@ class NautobotIPAddress(IPAddress):
         )
         if attrs.get("device") and attrs.get("interface"):
             try:
+                diffsync.job.log_info(message=f"Creating IPAddress {_address}.")
                 intf = diffsync.port_map[attrs["device"]][attrs["interface"]]
                 _ip.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ip.assigned_object_id = intf
@@ -239,6 +243,9 @@ class NautobotIPAddress(IPAddress):
                     message="IP Address passed to update but can't be found. This shouldn't happen. Why is this happening?!?!"
                 )
             return
+        self.diffsync.job.log_info(
+            message=f"Updating IPAddress {_ipaddr.address} for {_ipaddr.vrf.name if _ipaddr.vrf else ''}"
+        )
         if "available" in attrs:
             _ipaddr.status = (
                 OrmStatus.objects.get(name="Active")
@@ -321,7 +328,7 @@ class NautobotIPAddress(IPAddress):
             _ipaddr.validated_save()
             return super().update(attrs)
         except ValidationError as err:
-            print(f"Unable to update IP Address {self.address} with {attrs} {err}")
+            self.diffsync.job.log_warning(message=f"Unable to update IP Address {self.address} with {attrs}. {err}")
             return None
 
     def delete(self):
@@ -333,8 +340,7 @@ class NautobotIPAddress(IPAddress):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_debug(message=f"IP Address {self.address} will be deleted. {self}")
+            self.diffsync.job.log_info(message=f"IP Address {self.address} will be deleted.")
             ipaddr = OrmIPAddress.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["ipaddr"].append(ipaddr)  # pylint: disable=protected-access
         return self
@@ -396,6 +402,7 @@ class NautobotVLAN(VLAN):
     def update(self, attrs):
         """Update VLAN object in Nautobot."""
         _vlan = OrmVLAN.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating VLAN {_vlan.vlan} {_vlan.vid}.")
         if "description" in attrs:
             _vlan.description = attrs["description"] if attrs.get("description") else ""
         if attrs.get("custom_fields"):
@@ -420,8 +427,7 @@ class NautobotVLAN(VLAN):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_debug(message=f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted.")
+            self.diffsync.job.log_info(message=f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted.")
             vlan = OrmVLAN.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["vlan"].append(vlan)  # pylint: disable=protected-access
         return self
