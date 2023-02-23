@@ -17,19 +17,7 @@ class TestNautobotUtils(TransactionTestCase):
         dsync.platform_map = {}
         dsync.objects_to_create = {"platforms": []}
         cisco_manu, _ = Manufacturer.objects.get_or_create(name="Cisco")
-        platform = verify_platform(diffsync=dsync, platform_name="ios", manu=cisco_manu.id)
-        self.assertEqual(type(platform), UUID)
-        self.assertEqual(dsync.objects_to_create["platforms"][0].name, "cisco.ios.ios")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].slug, "cisco_ios")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].napalm_driver, "ios")
-
-    def test_verify_platform_iosxe(self):
-        """Test the verify_platform method with IOS-XE."""
-        dsync = MagicMock()
-        dsync.platform_map = {}
-        dsync.objects_to_create = {"platforms": []}
-        cisco_manu, _ = Manufacturer.objects.get_or_create(name="Cisco")
-        platform = verify_platform(diffsync=dsync, platform_name="ios-xe", manu=cisco_manu.id)
+        platform = verify_platform(diffsync=dsync, platform_name="cisco_ios", manu=cisco_manu.id)
         self.assertEqual(type(platform), UUID)
         self.assertEqual(dsync.objects_to_create["platforms"][0].name, "cisco.ios.ios")
         self.assertEqual(dsync.objects_to_create["platforms"][0].slug, "cisco_ios")
@@ -41,11 +29,23 @@ class TestNautobotUtils(TransactionTestCase):
         dsync.platform_map = {}
         dsync.objects_to_create = {"platforms": []}
         cisco_manu, _ = Manufacturer.objects.get_or_create(name="Cisco")
-        platform = verify_platform(diffsync=dsync, platform_name="ios-xr", manu=cisco_manu.id)
+        platform = verify_platform(diffsync=dsync, platform_name="cisco_xr", manu=cisco_manu.id)
         self.assertEqual(type(platform), UUID)
         self.assertEqual(dsync.objects_to_create["platforms"][0].name, "cisco.iosxr.iosxr")
         self.assertEqual(dsync.objects_to_create["platforms"][0].slug, "cisco_xr")
         self.assertEqual(dsync.objects_to_create["platforms"][0].napalm_driver, "iosxr")
+
+    def test_verify_platform_junos(self):
+        """Test the verify_platform method with JunOS."""
+        dsync = MagicMock()
+        dsync.platform_map = {}
+        dsync.objects_to_create = {"platforms": []}
+        juniper_manu, _ = Manufacturer.objects.get_or_create(name="Juniper")
+        platform = verify_platform(diffsync=dsync, platform_name="juniper_junos", manu=juniper_manu.id)
+        self.assertEqual(type(platform), UUID)
+        self.assertEqual(dsync.objects_to_create["platforms"][0].name, "junipernetworks.junos.junos")
+        self.assertEqual(dsync.objects_to_create["platforms"][0].slug, "juniper_junos")
+        self.assertEqual(dsync.objects_to_create["platforms"][0].napalm_driver, "junos")
 
     def test_verify_platform_f5(self):
         """Test the verify_platform method with F5 BIG-IP."""
@@ -53,11 +53,11 @@ class TestNautobotUtils(TransactionTestCase):
         dsync.platform_map = {}
         dsync.objects_to_create = {"platforms": []}
         f5_manu, _ = Manufacturer.objects.get_or_create(name="F5")
-        platform = verify_platform(diffsync=dsync, platform_name="f5", manu=f5_manu.id)
+        platform = verify_platform(diffsync=dsync, platform_name="f5_tmsh", manu=f5_manu.id)
         self.assertEqual(type(platform), UUID)
-        self.assertEqual(dsync.objects_to_create["platforms"][0].name, "bigip")
+        self.assertEqual(dsync.objects_to_create["platforms"][0].name, "f5_tmsh")
         self.assertEqual(dsync.objects_to_create["platforms"][0].slug, "f5_tmsh")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].napalm_driver, "bigip")
+        self.assertEqual(dsync.objects_to_create["platforms"][0].napalm_driver, "f5_tmsh")
 
     def test_determine_vc_position(self):
         vc_map = {

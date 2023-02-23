@@ -118,6 +118,8 @@ def get_netmiko_platform(network_os: str) -> str:
         str: Netmiko platform name or original if no match.
     """
     if network_os:
+        if network_os == "f5":
+            network_os = "bigip"
         net_os = network_os.replace("-", "")
         if net_os in PYATS_LIB_MAPPER:
             return PYATS_LIB_MAPPER[net_os]

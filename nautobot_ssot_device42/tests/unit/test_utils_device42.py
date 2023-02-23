@@ -158,7 +158,9 @@ class TestUtilsDevice42(TestCase):
         ("asa", "asa", "cisco_asa"),
         ("ios", "ios", "cisco_ios"),
         ("iosxe", "iosxe", "cisco_ios"),
+        ("iosxr", "iosxr", "cisco_xr"),
         ("nxos", "nxos", "cisco_nxos"),
+        ("bigip", "f5", "f5_tmsh"),
         ("junos", "junos", "juniper_junos"),
         ("dell", "dell", "dell"),
     ]
