@@ -213,8 +213,7 @@ class NautobotAdapter(DiffSync):
         #     Cable.objects.bulk_create(self.objects_to_create["cables"], batch_size=250)
 
         if len(self.objects_to_create["device_primary_ip"]) > 0:
-            if self.job.kwargs.get("debug"):
-                self.job.log_info(message="Performing bulk update of device management IP addresses in Nautobot.")
+            self.job.log_info(message="Performing bulk update of device management IP addresses in Nautobot.")
             device_primary_ip4_objs = []
             device_primary_ip6_objs = []
             for d in self.objects_to_create["device_primary_ip"]:
