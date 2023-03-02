@@ -697,13 +697,19 @@ class NautobotDevice(Device):
             _dev.status_id = _status
         if "serial_no" in attrs:
             _dev.serial = attrs["serial_no"]
+        if _dev.device_role.name == "Unknown" and self.tags:
+            _dev.device_role_id = nautobot.verify_device_role(
+                diffsync=self.diffsync, role_name=device42.find_device_role_from_tags(tag_list=self.tags)
+            )
         if "tags" in attrs:
             if attrs.get("tags") and len(attrs["tags"]) > 0:
-                _dev.role = nautobot.verify_device_role(
+                _dev.device_role_id = nautobot.verify_device_role(
                     diffsync=self.diffsync, role_name=device42.find_device_role_from_tags(tag_list=attrs["tags"])
                 )
             else:
-                _dev.role = nautobot.verify_device_role(diffsync=self.diffsync, role_name=DEFAULTS.get("device_role"))
+                _dev.device_role_id = nautobot.verify_device_role(
+                    diffsync=self.diffsync, role_name=DEFAULTS.get("device_role")
+                )
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _dev.tags.add(_tag)
         if attrs.get("custom_fields"):
