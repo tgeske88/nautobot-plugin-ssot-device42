@@ -167,24 +167,23 @@ def get_tag_strings(list_tags: TaggableManager) -> List[str]:
     return _strings
 
 
-def get_custom_field_dicts(cfields: OrderedDict) -> List[dict]:
-    """Creates list of CustomField dicts with CF key, value, and description.
+def get_custom_field_dict(cfields: OrderedDict) -> dict:
+    """Creates dictionary of CustomField with CF key, value, and description.
 
     Args:
         cfields (OrderedDict): List of CustomFields with their value.
 
     Returns:
-        cf_list (List[dict]): Return a list of CustomField dicts with key, value, and note (description).
+        cf_dict (dict): Return a dict of CustomField with key, value, and note (description).
     """
-    cf_list = []
+    cf_dict = {}
     for _cf, _cf_value in cfields.items():
-        custom_field = {
+        cf_dict[_cf.label] = {
             "key": _cf.label,
             "value": _cf_value,
             "notes": _cf.description if _cf.description != "" else None,
         }
-        cf_list.append(custom_field)
-    return sorted(cf_list, key=lambda d: d["key"])
+    return cf_dict
 
 
 def verify_circuit_type(circuit_type: str) -> CircuitType:

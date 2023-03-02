@@ -153,6 +153,26 @@ def get_facility(tags: List[str], diffsync=None):  # pylint: disable=inconsisten
             return re.sub(PLUGIN_CFG.get("facility_prepend"), "", _tag)
 
 
+def get_custom_field_dict(cfields: List[dict]) -> dict:
+    """Creates dictionary of CustomField with CF key, value, and description.
+
+    Args:
+        cfields (List[dict]): List of Custom Fields with their value and notes.
+
+    Returns:
+        cf_dict (dict): Return a dict of CustomField with key, value, and note (description).
+    """
+    cf_dict = {}
+    for cfield in cfields:
+        for _cf, _cf_value in cfield.items():
+            cf_dict[_cf.label] = {
+                "key": _cf.label,
+                "value": _cf_value,
+                "notes": _cf.description if _cf.description != "" else None,
+            }
+    return cf_dict
+
+
 class Device42API:  # pylint: disable=too-many-public-methods
     """Device42 API class."""
 
@@ -410,40 +430,39 @@ class Device42API:  # pylint: disable=too-many-public-methods
         query = "SELECT s.name, s.network, s.mask_bits, s.tags, v.name as vrf FROM view_subnet_v1 s JOIN view_vrfgroup_v1 v ON s.vrfgroup_fk = v.vrfgroup_pk"
         return self.doql_query(query=query)
 
-    def get_subnet_default_custom_fields(self) -> List[dict]:
+    def get_subnet_default_custom_fields(self) -> dict:
         """Method to retrieve the default CustomFields for Subnets from Device42.
 
         This is needed to ensure all Subnets have same CustomFields to match Nautobot.
 
         Returns:
-            List[dict]: List of dictionaries of CustomFields matching D42 format from the API without values.
+            dict: Dictionary of CustomFields matching D42 format from the API without values.
         """
         query = "SELECT cf.key, cf.value, cf.notes FROM view_subnet_custom_fields_v1 cf"
         results = self.doql_query(query=query)
-        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
+        return self.get_all_custom_fields(results)
 
-    def get_subnet_custom_fields(self) -> List[dict]:
+    def get_subnet_custom_fields(self) -> dict:
         """Method to retrieve custom fields for Subnets from Device42.
 
         Returns:
-            List[dict]: List of dictionaries of CustomFields matching D42 format from the API.
+            dict: Dictionary of dictionaries of CustomFields matching D42 format from the API.
         """
         query = "SELECT cf.key, cf.value, cf.notes, s.name AS subnet_name, s.network, s.mask_bits FROM view_subnet_custom_fields_v1 cf LEFT JOIN view_subnet_v1 s ON s.subnet_pk = cf.subnet_fk"
         results = self.doql_query(query=query)
+
+        default_cfs = self.get_subnet_default_custom_fields()
+
         _fields = {}
         for _cf in results:
-            _fields[f"{_cf['network']}/{_cf['mask_bits']}"] = []
+            _fields[f"{_cf['network']}/{_cf['mask_bits']}"] = default_cfs
+
         for _cf in results:
-            _field = {
+            _fields[f"{_cf['network']}/{_cf['mask_bits']}"][_cf["key"]] = {
                 "key": _cf["key"],
                 "value": _cf["value"],
                 "notes": _cf["notes"],
             }
-            _fields[f"{_cf['network']}/{_cf['mask_bits']}"].append(_field)
-
-        for _, cfields in _fields.items():
-            cfields = sorted(cfields, key=lambda d: d["key"])
-
         return _fields
 
     def get_ip_addrs(self) -> List[dict]:
@@ -455,23 +474,23 @@ class Device42API:  # pylint: disable=too-many-public-methods
         query = "SELECT i.ip_address, i.available, i.label, i.tags, np.netport_pk, s.network as subnet, s.mask_bits as netmask, v.name as vrf FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0"
         return self.doql_query(query=query)
 
-    def get_ipaddr_default_custom_fields(self) -> List[dict]:
+    def get_ipaddr_default_custom_fields(self) -> dict:
         """Method to retrieve the default CustomFields for IP Addresses from Device42.
 
         This is needed to ensure all IPAddresses have same CustomFields to match Nautobot.
 
         Returns:
-            List[dict]: List of dictionaries of CustomFields matching D42 format from the API without values.
+            dict: Dictionary of CustomFields with label as key and remaining info as value.
         """
         query = "SELECT cf.key, cf.value, cf.notes FROM view_ipaddress_custom_fields_v1 cf"
         results = self.doql_query(query=query)
-        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
+        return self.get_all_custom_fields(results)
 
-    def get_ipaddr_custom_fields(self) -> List[dict]:
+    def get_ipaddr_custom_fields(self) -> dict:
         """Method to retrieve the CustomFields for IP Addresses from Device42.
 
         Returns:
-            List[dict]: List of dictionaries of CustomFields matching D42 format from the API with values.
+            dict: Dictionary of CustomFields from D42 matched to IP Addressmatching D42 format from the API with values.
         """
         query = "SELECT cf.key, cf.value, cf.notes, i.ip_address, s.mask_bits FROM view_ipaddress_custom_fields_v1 cf LEFT JOIN view_ipaddress_v1 i ON i.ipaddress_pk = cf.ipaddress_fk LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk"
         results = self.doql_query(query=query)
@@ -480,24 +499,18 @@ class Device42API:  # pylint: disable=too-many-public-methods
 
         _fields = {}
         for _cf in results:
-            _fields[f"{_cf['ip_address']}/{_cf['mask_bits']}"] = default_cfs
-
-        for _cf in results:
-            _field = {
+            addr = f"{_cf['ip_address']}/{_cf['mask_bits']}"
+            if addr not in _fields:
+                _fields[addr] = default_cfs
+            _fields[addr][_cf["key"]] = {
                 "key": _cf["key"],
                 "value": _cf["value"],
                 "notes": _cf["notes"],
             }
-            _fields[f"{_cf['ip_address']}/{_cf['mask_bits']}"].append(_field)
-
-        for _ip, _item in _fields.items():
-            _fields[_ip] = list({x["key"]: x for x in _item}.values())
-        for _ip, cfields in _fields.items():
-            _fields[_ip] = sorted(cfields, key=lambda d: d["key"])
         return _fields
 
     @staticmethod
-    def get_all_custom_fields(custom_fields: List[dict]) -> List[dict]:
+    def get_all_custom_fields(custom_fields: List[dict]) -> dict:
         """Get all Custom Fields for object.
 
         As Device42 only returns CustomFields with values in them when using DOQL, we need to compile a list of all Custom Fields on an object to match Nautobot method.
@@ -506,17 +519,16 @@ class Device42API:  # pylint: disable=too-many-public-methods
             custom_fields (List[dict]): List of Custom Fields for an object.
 
         Returns:
-            List[dict]: List of all Custom Fields nulled.
+            dict: List of all Custom Fields nulled.
         """
-        _cfs = []
+        _cfs = {}
         for _cf in custom_fields:
-            _field = {
+            _cfs[_cf["key"]] = {
                 "key": _cf["key"],
                 "value": None,
                 "notes": None,
             }
-            _cfs.append(_field)
-        return list({x["key"]: x for x in _cfs}.values())
+        return _cfs
 
     def get_vlans_with_location(self) -> List[dict]:
         """Method to get all VLANs with Building and Customer info to attach to find Site.
@@ -539,15 +551,14 @@ class Device42API:  # pylint: disable=too-many-public-methods
         vlans_cfs = self.doql_query(query=cfields_query)
         vlan_dict = {str(x["vlan_pk"]): {"name": x["name"], "vid": x["vid"]} for x in doql_vlans}
         for _cf in vlans_cfs:
-            if str(_cf["vlan_pk"]) in vlan_dict.keys():
-                vlan_dict[str(_cf["vlan_pk"])]["custom_fields"] = []
+            if str(_cf["vlan_pk"]) in vlan_dict:
+                vlan_dict[str(_cf["vlan_pk"])]["custom_fields"] = {}
         for _cf in vlans_cfs:
-            _field = {
+            vlan_dict[str(_cf["vlan_pk"])]["custom_fields"][_cf["key"]] = {
                 "key": _cf["key"],
                 "value": _cf["value"],
                 "notes": _cf["notes"],
             }
-            vlan_dict[str(_cf["vlan_pk"])]["custom_fields"].append(_field)
         return vlan_dict
 
     def get_device_pks(self) -> dict:
