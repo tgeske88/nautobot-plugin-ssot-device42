@@ -2,19 +2,24 @@
 
 import re
 from decimal import Decimal
-from typing import Union, List
+from typing import List, Union
 
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from django.utils.text import slugify
+from nautobot.core.settings_funcs import is_truthy
+from netutils.bandwidth import name_to_bits
+from netutils.dns import fqdn_to_ip, is_fqdn_resolvable
+
 from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.models.base import assets, circuits, dcim, ipam
-from nautobot_ssot_device42.utils.device42 import get_facility, get_intf_type, get_netmiko_platform
+from nautobot_ssot_device42.utils.device42 import (
+    get_facility,
+    get_intf_type,
+    get_netmiko_platform,
+    get_custom_field_dict,
+)
 from nautobot_ssot_device42.utils.nautobot import determine_vc_position
-from netutils.bandwidth import name_to_bits
-from netutils.dns import is_fqdn_resolvable, fqdn_to_ip
-
-from nautobot.core.settings_funcs import is_truthy
 
 
 def sanitize_string(san_str: str):
@@ -194,7 +199,7 @@ class Device42Adapter(DiffSync):
                 contact_name=record["contact_name"] if record.get("contact_name") else "",
                 contact_phone=record["contact_phone"] if record.get("contact_phone") else "",
                 rooms=record["rooms"] if record.get("rooms") else [],
-                custom_fields=sorted(record["custom_fields"], key=lambda d: d["key"]),
+                custom_fields=get_custom_field_dict(record["custom_fields"]),
                 tags=_tags,
                 uuid=None,
             )
@@ -224,7 +229,7 @@ class Device42Adapter(DiffSync):
                     name=record["name"],
                     building=record["building"],
                     notes=record["notes"] if record.get("notes") else "",
-                    custom_fields=sorted(record["custom_fields"], key=lambda d: d["key"]),
+                    custom_fields=get_custom_field_dict(record["custom_fields"]),
                     tags=_tags,
                     uuid=None,
                 )
@@ -262,7 +267,7 @@ class Device42Adapter(DiffSync):
                     room=record["room"],
                     height=record["size"] if record.get("size") else 1,
                     numbering_start_from_bottom=record["numbering_start_from_bottom"],
-                    custom_fields=sorted(record["custom_fields"], key=lambda d: d["key"]),
+                    custom_fields=get_custom_field_dict(record["custom_fields"]),
                     tags=_tags,
                     uuid=None,
                 )
@@ -289,7 +294,7 @@ class Device42Adapter(DiffSync):
                 self.job.log_info(message=f"Loading vendor {_vendor['name']} from Device42.")
             vendor = self.vendor(
                 name=_vendor["name"],
-                custom_fields=_vendor["custom_fields"],
+                custom_fields=get_custom_field_dict(record["custom_fields"]),
                 uuid=None,
             )
             self.add(vendor)
@@ -306,9 +311,7 @@ class Device42Adapter(DiffSync):
                     size=float(round(_model["size"])) if _model.get("size") else 1.0,
                     depth=_model["depth"] if _model.get("depth") else "Half Depth",
                     part_number=_model["part_no"] if _model.get("part_no") else "",
-                    custom_fields=sorted(_model["custom_fields"], key=lambda d: d["key"])
-                    if _model.get("custom_fields")
-                    else [],
+                    custom_fields=get_custom_field_dict(_model["custom_fields"]),
                     uuid=None,
                 )
                 try:
@@ -359,7 +362,7 @@ class Device42Adapter(DiffSync):
                 name=cluster_info["name"][:64],
                 members=_clus["members"],
                 tags=_tags,
-                custom_fields=sorted(cluster_info["custom_fields"], key=lambda d: d["key"]),
+                custom_fields=get_custom_field_dict(cluster_info["custom_fields"]),
                 uuid=None,
             )
             self.add(_cluster)
@@ -378,7 +381,7 @@ class Device42Adapter(DiffSync):
                 cluster_host=cluster_info["name"][:64],
                 master_device=True,
                 serial_no="",
-                custom_fields=sorted(cluster_info["custom_fields"], key=lambda d: d["key"]),
+                custom_fields=get_custom_field_dict(cluster_info["custom_fields"]),
                 rack_position=None,
                 os_version="",
                 vc_position=1,
@@ -472,7 +475,7 @@ class Device42Adapter(DiffSync):
                     serial_no=_record["serial_no"],
                     master_device=False,
                     tags=_tags,
-                    custom_fields=sorted(_record["custom_fields"], key=lambda d: d["key"]),
+                    custom_fields=get_custom_field_dict(_record["custom_fields"]),
                     cluster_host=None,
                     vc_position=None,
                     uuid=None,
@@ -555,7 +558,7 @@ class Device42Adapter(DiffSync):
                     tags=_tags,
                     mode="access",
                     status=_status,
-                    custom_fields=None,
+                    custom_fields=default_cfs,
                     uuid=None,
                 )
                 if _port.get("vlan_pks"):
@@ -574,9 +577,7 @@ class Device42Adapter(DiffSync):
                     if len(_vlans) > 1:
                         new_port.mode = "tagged"
                 if _device_name in _cfs and _cfs[_device_name].get(_port_name):
-                    new_port.custom_fields = sorted(_cfs[_device_name][_port_name], key=lambda d: d["key"])
-                else:
-                    new_port.custom_fields = default_cfs
+                    new_port.custom_fields = get_custom_field_dict(_port["custom_fields"])
                 self.add(new_port)
                 _dev.add_child(new_port)
 
@@ -613,7 +614,7 @@ class Device42Adapter(DiffSync):
                     name=_grp["name"],
                     description=_grp["description"],
                     tags=_tags,
-                    custom_fields=sorted(_grp["custom_fields"], key=lambda d: d["key"]),
+                    custom_fields=get_custom_field_dict(_grp["custom_fields"]),
                     uuid=None,
                 )
                 self.add(new_vrf)
@@ -626,7 +627,7 @@ class Device42Adapter(DiffSync):
         """Load Device42 Subnets."""
         if self.job.kwargs.get("debug"):
             self.job.log_info(message="Retrieving Subnets from Device42.")
-        default_cfs = self.device42.get_port_default_custom_fields()
+        default_cfs = self.device42.get_subnet_default_custom_fields()
         _cfs = self.device42.get_subnet_custom_fields()
         for _pf in self.device42.get_subnets():
             _tags = _pf["tags"].split(",") if _pf.get("tags") else []
@@ -640,15 +641,11 @@ class Device42Adapter(DiffSync):
                         description=_pf["name"],
                         vrf=_pf["vrf"],
                         tags=_tags,
-                        custom_fields=None,
+                        custom_fields=default_cfs,
                         uuid=None,
                     )
-                    if f"{_pf['network']}/{_pf['mask_bits']}" in _cfs:
-                        new_pf.custom_fields = sorted(
-                            _cfs[f"{_pf['network']}/{_pf['mask_bits']}"], key=lambda d: d["key"]
-                        )
-                    else:
-                        new_pf.custom_fields = default_cfs
+                    if _cfs.get(f"{_pf['network']}/{_pf['mask_bits']}"):
+                        new_pf.custom_fields = _cfs[f"{_pf['network']}/{_pf['mask_bits']}"]
                     self.add(new_pf)
                 except ObjectAlreadyExists as err:
                     if self.job.kwargs.get("debug"):
@@ -687,7 +684,8 @@ class Device42Adapter(DiffSync):
                     else:
                         _port_name = self.d42_port_map[port_pk]["hwaddress"]
                 _tags = _ip["tags"].split(",").sort() if _ip.get("tags") else []
-                self.job.log_info(message=f"Loading IP Address {_ipaddr} on {_device_name}'s {_port_name} port.")
+                if self.job.kwargs.get("debug"):
+                    self.job.log_info(message=f"Loading IP Address {_ipaddr} on {_device_name}'s {_port_name} port.")
                 new_ip = self.ipaddr(
                     address=_ipaddr,
                     available=_ip["available"],
@@ -700,8 +698,7 @@ class Device42Adapter(DiffSync):
                     custom_fields=default_cfs,
                     uuid=None,
                 )
-                if _ipaddr in _cfs:
-                    print(f"{_ipaddr} found in _cfs. CustomFields being added.")
+                if _cfs.get(_ipaddr):
                     new_ip.custom_fields = _cfs[_ipaddr]
                 self.add(new_ip)
             except ObjectAlreadyExists as err:
@@ -735,14 +732,14 @@ class Device42Adapter(DiffSync):
                     self.job.log_warning(message=f"VLAN {_vlan_name} already exists. {err}")
             except ObjectNotFound:
                 if _info["vlan_pk"] in self.d42_vlan_map and self.d42_vlan_map[_info["vlan_pk"]].get("custom_fields"):
-                    _cfs = sorted(self.d42_vlan_map[_info["vlan_pk"]]["custom_fields"], key=lambda d: d["key"])
+                    _cfs = get_custom_field_dict(self.d42_vlan_map[_info["vlan_pk"]]["custom_fields"])
                 else:
-                    _cfs = None
+                    _cfs = {}
                 new_vlan = self.vlan(
                     name=_vlan_name,
                     vlan_id=int(_info["vid"]),
                     description=_info["description"] if _info.get("description") else "",
-                    custom_fields=_cfs if _cfs else [],
+                    custom_fields=get_custom_field_dict(_cfs),
                     building=None,
                     uuid=None,
                 )
