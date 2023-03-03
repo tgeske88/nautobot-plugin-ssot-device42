@@ -22,6 +22,7 @@ from nautobot.dcim.models import (
     Site,
     VirtualChassis,
 )
+from nautobot.extras.jobs import Job
 from nautobot.extras.models import Relationship, RelationshipAssociation, Status
 from nautobot.ipam.models import VLAN, VRF, IPAddress, Prefix
 from nautobot_ssot_device42.constant import PLUGIN_CFG
@@ -101,11 +102,11 @@ class NautobotAdapter(DiffSync):
     softwarelcm_map = {}
     relationship_map = {}
 
-    def __init__(self, *args, job=None, sync=None, **kwargs):
+    def __init__(self, *args, job: Job, sync=None, **kwargs):
         """Initialize the Nautobot DiffSync adapter.
 
         Args:
-            job (object, optional): Nautobot job. Defaults to None.
+            job (Job): Nautobot Job.
             sync (object, optional): Nautobot DiffSync. Defaults to None.
         """
         super().__init__(*args, **kwargs)

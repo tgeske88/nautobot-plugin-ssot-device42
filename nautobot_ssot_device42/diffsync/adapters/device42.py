@@ -10,7 +10,7 @@ from django.utils.text import slugify
 from nautobot.core.settings_funcs import is_truthy
 from netutils.bandwidth import name_to_bits
 from netutils.dns import fqdn_to_ip, is_fqdn_resolvable
-
+from nautobot.extras.jobs import Job
 from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.models.base import assets, circuits, dcim, ipam
 from nautobot_ssot_device42.utils.device42 import (
@@ -122,11 +122,11 @@ class Device42Adapter(DiffSync):
         "conn",
     ]
 
-    def __init__(self, *args, job=None, sync=None, client, **kwargs):
+    def __init__(self, *args, job: Job, sync=None, client, **kwargs):
         """Initialize Device42Adapter.
 
         Args:
-            job (object, optional): Nautobot job. Defaults to None.
+            job (Job): Nautobot Job.
             sync (object, optional): Nautobot DiffSync. Defaults to None.
             client (object): Device42API client connection object.
         """
