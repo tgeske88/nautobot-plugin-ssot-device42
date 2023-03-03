@@ -7,5 +7,14 @@
         "os": "nxos",
         "customer": "DFW",
         "tags": ""
+    },
+    {
+        "cluster": "stack01.testexample.com",
+        "members": "stack01.testexample.com - Switch 1",
+        "hardware": "WS-C2960S-48TS-L",
+        "network_device": true,
+        "os": "ios",
+        "customer": "AUS",
+        "tags": ""
     }
 ]

@@ -391,10 +391,8 @@ class Device42Adapter(DiffSync):
 
     def load_devices_and_clusters(self):
         """Load Device42 devices."""
-        # Get all Devices from Device42
-        if self.job.kwargs.get("debug"):
-            self.job.log_info(message="Retrieving devices from Device42.")
-        _devices = self.device42.api_call(path="api/1.0/devices/all/?is_it_switch=yes")["Devices"]
+        self.job.log_info(message="Retrieving devices from Device42.")
+        _devices = self.device42.get_devices()
 
         # Add all Clusters first
         if self.job.kwargs.get("debug"):

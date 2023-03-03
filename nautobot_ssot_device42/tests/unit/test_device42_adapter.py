@@ -29,6 +29,8 @@ SUBNET_DEFAULT_CFS_FIXTURE = load_json(
 )
 SUBNET_CFS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnet_custom_fields_recv.json")
 SUBNET_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnets.json")
+DEVICE_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_devices_recv.json")
+CLUSTER_MEMBER_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_cluster_members_recv.json")
 
 
 class Device42AdapterTestCase(TransactionTestCase):
@@ -50,6 +52,8 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.d42_client.get_subnet_default_custom_fields.return_value = SUBNET_DEFAULT_CFS_FIXTURE
         self.d42_client.get_subnet_custom_fields.return_value = SUBNET_CFS_FIXTURE
         self.d42_client.get_subnets.return_value = SUBNET_FIXTURE
+        self.d42_client.get_devices.return_value = DEVICE_FIXTURE
+        self.d42_client.get_cluster_members.return_value = CLUSTER_MEMBER_FIXTURE
 
         self.job = Device42DataSource()
         self.job.job_result = JobResult.objects.create(
@@ -99,6 +103,11 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {f"{net['network']}__{net['mask_bits']}__{net['vrf']}" for net in SUBNET_FIXTURE},
             {net.get_unique_id() for net in self.device42.get_all("subnet")},
+        )
+        self.device42.load_devices_and_clusters()
+        self.assertEqual(
+            {dev["name"] for dev in DEVICE_FIXTURE},
+            {dev.get_unique_id() for dev in self.device42.get_all("device")},
         )
 
     statuses = [
