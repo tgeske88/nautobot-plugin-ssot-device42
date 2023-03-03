@@ -624,8 +624,7 @@ class Device42Adapter(DiffSync):
 
     def load_subnets(self):
         """Load Device42 Subnets."""
-        if self.job.kwargs.get("debug"):
-            self.job.log_info(message="Retrieving Subnets from Device42.")
+        self.job.log_info(message="Loading Subnets from Device42.")
         default_cfs = self.device42.get_subnet_default_custom_fields()
         _cfs = self.device42.get_subnet_custom_fields()
         for _pf in self.device42.get_subnets():
@@ -659,8 +658,7 @@ class Device42Adapter(DiffSync):
 
     def load_ip_addresses(self):
         """Load Device42 IP Addresses."""
-        if self.job.kwargs.get("debug"):
-            self.job.log_info(message="Retrieving IP Addresses from Device42.")
+        self.job.log_info(message="Loading IP Addresses from Device42.")
         default_cfs = self.device42.get_ipaddr_default_custom_fields()
         _cfs = self.device42.get_ipaddr_custom_fields()
         for _ip in self.device42.get_ip_addrs():
@@ -683,8 +681,6 @@ class Device42Adapter(DiffSync):
                     else:
                         _port_name = self.d42_port_map[port_pk]["hwaddress"]
                 _tags = _ip["tags"].split(",").sort() if _ip.get("tags") else []
-                if self.job.kwargs.get("debug"):
-                    self.job.log_info(message=f"Loading IP Address {_ipaddr} on {_device_name}'s {_port_name} port.")
                 new_ip = self.ipaddr(
                     address=_ipaddr,
                     available=_ip["available"],
