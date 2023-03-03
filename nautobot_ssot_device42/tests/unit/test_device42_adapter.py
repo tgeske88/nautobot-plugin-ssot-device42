@@ -23,6 +23,7 @@ RACK_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_racks_recv
 VENDOR_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vendors_recv.json")
 HARDWARE_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_hardware_models_recv.json")
 VRFGROUP_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vrfgroups_recv.json")
+VLAN_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vlans_with_location.json")
 
 
 class Device42AdapterTestCase(TransactionTestCase):
@@ -40,6 +41,7 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.d42_client.get_vendors.return_value = VENDOR_FIXTURE
         self.d42_client.get_hardware_models.return_value = HARDWARE_FIXTURE
         self.d42_client.get_vrfgroups.return_value = VRFGROUP_FIXTURE
+        self.d42_client.get_vlans_with_location.return_value = VLAN_FIXTURE
 
         self.job = Device42DataSource()
         self.job.job_result = JobResult.objects.create(
@@ -79,6 +81,11 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {vrf["name"] for vrf in VRFGROUP_FIXTURE},
             {vrf.get_unique_id() for vrf in self.device42.get_all("vrf")},
+        )
+        self.device42.load_vlans()
+        self.assertEqual(
+            {f"{vlan['vlan_name']}__{vlan['vid']}__{vlan['building']}" for vlan in VLAN_FIXTURE},
+            {vlan.get_unique_id() for vlan in self.device42.get_all("vlan")},
         )
 
     statuses = [
