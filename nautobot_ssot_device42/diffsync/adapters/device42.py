@@ -294,7 +294,7 @@ class Device42Adapter(DiffSync):
                 self.job.log_info(message=f"Loading vendor {_vendor['name']} from Device42.")
             vendor = self.vendor(
                 name=_vendor["name"],
-                custom_fields=get_custom_field_dict(record["custom_fields"]),
+                custom_fields=get_custom_field_dict(_vendor["custom_fields"]),
                 uuid=None,
             )
             self.add(vendor)

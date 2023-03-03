@@ -198,6 +198,19 @@ class TestUtilsDevice42(TestCase):
         # restore setting to what it was before
         configs["facility_prepend"] = original
 
+    def test_get_custom_field_dict(self):
+        """Test the get_custom_field_dict method."""
+        expected = {
+            "Test": {
+                "key": "Test",
+                "value": None,
+                "notes": None,
+            }
+        }
+        mock_custom_fields = [{"key": "Test", "value": None, "notes": None}]
+        actual = device42.get_custom_field_dict(cfields=mock_custom_fields)
+        self.assertEqual(actual, expected)
+
 
 class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
     """Test Base Device42 API Client and Calls."""
@@ -428,10 +441,10 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
             json=test_query,
             status=200,
         )
-        expected = [
-            {"key": "EOL Date", "value": None, "notes": None},
-            {"key": "Software Version", "value": None, "notes": None},
-        ]
+        expected = {
+            "EOL Date": {"key": "EOL Date", "value": None, "notes": None},
+            "Software Version": {"key": "Software Version", "value": None, "notes": None},
+        }
         response = self.dev42.get_port_default_custom_fields()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
@@ -491,10 +504,16 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
             json=test_query,
             status=200,
         )
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT cf.key, cf.value, cf.notes FROM view_subnet_custom_fields_v1 cf&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
         expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnet_custom_fields_recv.json")
         response = self.dev42.get_subnet_custom_fields()
         self.assertEqual(response, expected)
-        self.assertTrue(len(responses.calls) == 1)
+        self.assertTrue(len(responses.calls) == 2)
 
     @responses.activate
     def test_get_ip_addrs(self):

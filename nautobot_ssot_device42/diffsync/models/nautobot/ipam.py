@@ -29,7 +29,7 @@ class NautobotVRFGroup(VRFGroup):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -57,7 +57,7 @@ class NautobotVRFGroup(VRFGroup):
                 for _tag in tags_to_remove:
                     _vrf.tags.remove(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -106,7 +106,7 @@ class NautobotSubnet(Subnet):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _pf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -136,7 +136,7 @@ class NautobotSubnet(Subnet):
                 for _tag in tags_to_remove:
                     _pf.tags.remove(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -214,7 +214,7 @@ class NautobotIPAddress(IPAddress):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _ip.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -315,7 +315,7 @@ class NautobotIPAddress(IPAddress):
             else:
                 _ipaddr.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -380,7 +380,7 @@ class NautobotVLAN(VLAN):
         if _site:
             _vlan.site_id = _site
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -406,7 +406,7 @@ class NautobotVLAN(VLAN):
         if "description" in attrs:
             _vlan.description = attrs["description"] if attrs.get("description") else ""
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,

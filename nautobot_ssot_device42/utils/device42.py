@@ -164,12 +164,7 @@ def get_custom_field_dict(cfields: List[dict]) -> dict:
     """
     cf_dict = {}
     for cfield in cfields:
-        for _cf, _cf_value in cfield.items():
-            cf_dict[_cf.label] = {
-                "key": _cf.label,
-                "value": _cf_value,
-                "notes": _cf.description if _cf.description != "" else None,
-            }
+        cf_dict[cfield["key"]] = cfield
     return cf_dict
 
 
@@ -397,7 +392,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         """
         query = "SELECT cf.key, cf.value, cf.notes FROM view_netport_custom_fields_v1 cf"
         results = self.doql_query(query=query)
-        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
+        return self.get_all_custom_fields(results)
 
     def get_port_custom_fields(self) -> dict:
         """Method to retrieve custom fields for Ports from Device42.
@@ -411,14 +406,13 @@ class Device42API:  # pylint: disable=too-many-public-methods
         for _cf in results:
             _fields[_cf["device_name"]] = {}
         for _cf in results:
-            _fields[_cf["device_name"]][_cf["port_name"]] = []
+            _fields[_cf["device_name"]][_cf["port_name"]] = {}
         for _cf in results:
-            _field = {
+            _fields[_cf["device_name"]][_cf["port_name"]][_cf["key"]] = {
                 "key": _cf["key"],
                 "value": _cf["value"],
                 "notes": _cf["notes"],
             }
-            _fields[_cf["device_name"]][_cf["port_name"]].append(_field)
         return _fields
 
     def get_subnets(self) -> List[dict]:

@@ -71,7 +71,7 @@ class NautobotBuilding(Building):
             if _facility:
                 new_site.facility = _facility.upper()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -110,7 +110,7 @@ class NautobotBuilding(Building):
                 if _facility:
                     _site.facility = _facility.upper()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -151,7 +151,7 @@ class NautobotRoom(Room):
             description=attrs["notes"] if attrs.get("notes") else "",
         )
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -173,7 +173,7 @@ class NautobotRoom(Room):
         if "notes" in attrs:
             _rg.description = attrs["notes"]
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -216,7 +216,7 @@ class NautobotRack(Rack):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 new_rack.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -250,7 +250,7 @@ class NautobotRack(Rack):
                 for _tag in tags_to_remove:
                     _rack.tags.remove(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -292,7 +292,7 @@ class NautobotVendor(Vendor):
                 slug=slugify(ids["name"]),
             )
             if attrs.get("custom_fields"):
-                for _cf in attrs["custom_fields"]:
+                for _cf in attrs["custom_fields"].values():
                     _cf_dict = {
                         "name": slugify(_cf["key"]),
                         "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -356,7 +356,7 @@ class NautobotHardware(Hardware):
                 is_full_depth=bool(attrs.get("depth") == "Full Depth"),
             )
             if attrs.get("custom_fields"):
-                for _cf in attrs["custom_fields"]:
+                for _cf in attrs["custom_fields"].values():
                     _cf_dict = {
                         "name": slugify(_cf["key"]),
                         "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -385,7 +385,7 @@ class NautobotHardware(Hardware):
         if "depth" in attrs:
             _dt.is_full_depth = bool(attrs["depth"] == "Full Depth")
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -430,7 +430,7 @@ class NautobotCluster(Cluster):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 new_vc.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -486,7 +486,7 @@ class NautobotCluster(Cluster):
                 for _tag in tags_to_remove:
                     _vc.tags.remove(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -598,7 +598,7 @@ class NautobotDevice(Device):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 new_device.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -713,7 +713,7 @@ class NautobotDevice(Device):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _dev.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -840,7 +840,7 @@ class NautobotPort(Port):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 new_intf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -907,7 +907,7 @@ class NautobotPort(Port):
                 for _tag in tags_to_remove:
                     _port.tags.remove(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
