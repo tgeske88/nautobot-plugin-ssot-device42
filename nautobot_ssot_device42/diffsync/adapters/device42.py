@@ -478,29 +478,36 @@ class Device42Adapter(DiffSync):
                     vc_position=None,
                     uuid=None,
                 )
-                cluster_host = self.get_cluster_host(_record["name"])
-                if cluster_host:
-                    if is_truthy(self.device42_clusters[cluster_host]["is_network"]) is False:
-                        if self.job.kwargs.get("debug"):
-                            self.job.log_warning(
-                                message=f"{cluster_host} has network device members but isn't marked as network. This should be corrected in Device42."
-                            )
-                    _device.cluster_host = cluster_host
-                    if _device.name == cluster_host:
-                        _device.master_device = True
-                        _device.vc_position = 1
-                    else:
-                        _device.vc_position = determine_vc_position(
-                            vc_map=self.device42_clusters, virtual_chassis=cluster_host, device_name=_record["name"]
-                        )
-                if self.job.kwargs.get("debug"):
-                    self.job.log_info(message=f"Device {_record['name']} being added.")
+                self.assign_cluster_host(_record, _device)
                 try:
                     self.add(_device)
                 except ObjectAlreadyExists as err:
-                    if self.job.kwargs.get("debug"):
-                        self.job.log_warning(message=f"Device already added. {err}")
+                    self.job.log_warning(message=f"Duplicate device attempting to be added. {err}")
                     continue
+            elif _record.get("type") != "cluster" and not _record.get("hw_model"):
+                self.job.log_warning(message=f"Device {_record['name']}'s hardware isn't specified so won't be loaded.")
+
+    def assign_cluster_host(self, _record, _device):
+        """Assign cluster host to loaded Device if found.
+
+        Args:
+            _record (dict): Device record from Device42 API.
+            _device (NautobotDevice): NautobotDevice DiffSync model.
+        """
+        cluster_host = self.get_cluster_host(_record["name"])
+        if cluster_host:
+            if not is_truthy(self.device42_clusters[cluster_host]["is_network"]):
+                self.job.log_warning(
+                    message=f"{cluster_host} has network device members but isn't marked as network device. This should be corrected in Device42."
+                )
+            _device.cluster_host = cluster_host
+            if _device.name == cluster_host:
+                _device.master_device = True
+                _device.vc_position = 1
+            else:
+                _device.vc_position = determine_vc_position(
+                    vc_map=self.device42_clusters, virtual_chassis=cluster_host, device_name=_record["name"]
+                )
 
     def load_ports(self):
         """Load Device42 ports."""
