@@ -415,6 +415,14 @@ class Device42API:  # pylint: disable=too-many-public-methods
             }
         return _fields
 
+    def get_vrfgroups(self) -> dict:
+        """Method to retrieve VRF Groups from Device42.
+
+        Returns:
+            dict: Response from Device42 containing VRFGroups.
+        """
+        return self.api_call(path="api/1.0/vrfgroup/")["vrfgroup"]
+
     def get_subnets(self) -> List[dict]:
         """Method to get all subnets and associated data from Device42.
 

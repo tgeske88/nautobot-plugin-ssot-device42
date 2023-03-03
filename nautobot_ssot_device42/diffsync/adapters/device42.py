@@ -603,9 +603,8 @@ class Device42Adapter(DiffSync):
 
     def load_vrfgroups(self):
         """Load Device42 VRFGroups."""
-        for _grp in self.device42.api_call(path="api/1.0/vrfgroup/")["vrfgroup"]:
-            if self.job.kwargs.get("debug"):
-                self.job.log_info(message=f"Retrieving VRF group {_grp['name']} from Device42.")
+        for _grp in self.device42.get_vrfgroups():
+            self.job.log_info(message=f"Loading VRF group {_grp['name']} from Device42.")
             try:
                 _tags = _grp["tags"] if _grp.get("tags") else []
                 if len(_tags) > 1:
