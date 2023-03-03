@@ -738,7 +738,7 @@ class Device42Adapter(DiffSync):
                     name=_vlan_name,
                     vlan_id=int(_info["vid"]),
                     description=_info["description"] if _info.get("description") else "",
-                    custom_fields=get_custom_field_dict(_cfs),
+                    custom_fields=_cfs,
                     building=None,
                     uuid=None,
                 )
