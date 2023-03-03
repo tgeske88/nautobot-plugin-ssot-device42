@@ -24,6 +24,11 @@ VENDOR_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vendors_
 HARDWARE_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_hardware_models_recv.json")
 VRFGROUP_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vrfgroups_recv.json")
 VLAN_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vlans_with_location.json")
+SUBNET_DEFAULT_CFS_FIXTURE = load_json(
+    "./nautobot_ssot_device42/tests/fixtures/get_subnet_default_custom_fields_recv.json"
+)
+SUBNET_CFS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnet_custom_fields_recv.json")
+SUBNET_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnets.json")
 
 
 class Device42AdapterTestCase(TransactionTestCase):
@@ -42,6 +47,9 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.d42_client.get_hardware_models.return_value = HARDWARE_FIXTURE
         self.d42_client.get_vrfgroups.return_value = VRFGROUP_FIXTURE
         self.d42_client.get_vlans_with_location.return_value = VLAN_FIXTURE
+        self.d42_client.get_subnet_default_custom_fields.return_value = SUBNET_DEFAULT_CFS_FIXTURE
+        self.d42_client.get_subnet_custom_fields.return_value = SUBNET_CFS_FIXTURE
+        self.d42_client.get_subnets.return_value = SUBNET_FIXTURE
 
         self.job = Device42DataSource()
         self.job.job_result = JobResult.objects.create(
@@ -86,6 +94,11 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {f"{vlan['vlan_name']}__{vlan['vid']}__{vlan['building']}" for vlan in VLAN_FIXTURE},
             {vlan.get_unique_id() for vlan in self.device42.get_all("vlan")},
+        )
+        self.device42.load_subnets()
+        self.assertEqual(
+            {f"{net['network']}__{net['mask_bits']}__{net['vrf']}" for net in SUBNET_FIXTURE},
+            {net.get_unique_id() for net in self.device42.get_all("subnet")},
         )
 
     statuses = [
