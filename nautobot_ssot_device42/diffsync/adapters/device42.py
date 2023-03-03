@@ -385,40 +385,38 @@ class Device42Adapter(DiffSync):
         _devices = self.device42.get_devices()
 
         # Add all Clusters first
-        if self.job.kwargs.get("debug"):
-            self.job.log_info(message="Loading clusters...")
         for _record in _devices:
-            if _record.get("type") == "cluster" and _record.get("name") in self.device42_clusters.keys():
-                if self.job.kwargs.get("debug"):
-                    self.job.log_info(message=f"Attempting to load cluster {_record['name']}")
+            if _record.get("type") == "cluster" and _record.get("name") in self.device42_clusters:
                 self.load_cluster(_record)
 
-        # Then iterate through again and add Devices and if are part of a cluster, add to Cluster
+        # Then iterate through again and add Devices
         for _record in _devices:
+            rack_position, model = None, None
+            self.job.log_info(message=f"Device {_record['name']} being loaded.")
+            _building = self.get_building_for_device(dev_record=_record)
+            # only consider devices that have a Building
+            if _building == "":
+                self.job.log_warning(
+                    message=f"Device {_record['name']} can't be loaded as we're unable to find associated Building."
+                )
+                continue
             if _record.get("type") != "cluster" and _record.get("hw_model"):
-                _tags = _record["tags"] if _record.get("tags") else []
-                if PLUGIN_CFG.get("ignore_tag") and PLUGIN_CFG["ignore_tag"] in _tags:
-                    continue
-                if len(_tags) > 1:
-                    _tags.sort()
-                _building = self.get_building_for_device(dev_record=_record)
-                # only consider devices that have a Building
-                if _building == "":
-                    if self.job.kwargs.get("debug"):
-                        self.job.log_debug(
-                            message=f"Device {_record['name']} is not being added. Unable to find Building."
-                        )
-                    continue
-                # Get size of model to ensure appropriate number of rack Us are filled
-                rack_position, model = None, None
                 try:
                     model = self.get(self.hardware, sanitize_string(_record["hw_model"]))
                 except ObjectNotFound as err:
-                    if self.job.kwargs.get("debug"):
-                        self.job.log_warning(
-                            message=f"Unable to find hardware model {_record['hw_model']} for {_record['name']} {err}"
-                        )
-                        continue
+                    self.job.log_warning(
+                        message=f"Unable to find hardware model {_record['hw_model']} for {_record['name']} so it will not be loaded. {err}"
+                    )
+                    continue
+                _tags = _record["tags"] if _record.get("tags") else []
+                if PLUGIN_CFG.get("ignore_tag") and PLUGIN_CFG["ignore_tag"] in _tags:
+                    self.job.log_warning(
+                        message=f"Skipping loading {_record['name']} as it has the specified ignore tag."
+                    )
+                    continue
+                if len(_tags) > 1:
+                    _tags.sort()
+                # Get size of model to ensure appropriate number of rack Us are filled
                 if model:
                     model_size = int(model.size)
                     if _record.get("start_at"):
