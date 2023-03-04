@@ -152,66 +152,66 @@ class NautobotAdapter(DiffSync):
 
         if len(self.objects_to_create["sites"]) > 0:
             self.job.log_info(message="Performing bulk create of Sites in Nautobot")
-            Site.objects.bulk_create(self.objects_to_create["sites"], batch_size=250)
+            Site.objects.bulk_create(self.objects_to_create["sites"], batch_size=50)
         if len(self.objects_to_create["sites"]) > 0:
             self.job.log_info(message="Performing creation of RackGroups in Nautobot")
             for room in self.objects_to_create["rooms"]:
                 room.validated_save()
         if len(self.objects_to_create["racks"]) > 0:
             self.job.log_info(message="Performing bulk create of Racks in Nautobot")
-            Rack.objects.bulk_create(self.objects_to_create["racks"], batch_size=250)
+            Rack.objects.bulk_create(self.objects_to_create["racks"], batch_size=50)
         if len(self.objects_to_create["vendors"]) > 0:
             self.job.log_info(message="Performing bulk create of Manufacturers in Nautobot")
-            Manufacturer.objects.bulk_create(self.objects_to_create["vendors"], batch_size=250)
+            Manufacturer.objects.bulk_create(self.objects_to_create["vendors"], batch_size=50)
         if len(self.objects_to_create["devicetypes"]) > 0:
             self.job.log_info(message="Performing bulk create of DeviceTypes in Nautobot")
-            DeviceType.objects.bulk_create(self.objects_to_create["devicetypes"], batch_size=250)
+            DeviceType.objects.bulk_create(self.objects_to_create["devicetypes"], batch_size=50)
         if len(self.objects_to_create["deviceroles"]) > 0:
             self.job.log_info(message="Performing bulk create of DeviceRoles in Nautobot")
-            DeviceRole.objects.bulk_create(self.objects_to_create["deviceroles"], batch_size=250)
+            DeviceRole.objects.bulk_create(self.objects_to_create["deviceroles"], batch_size=50)
         if len(self.objects_to_create["platforms"]) > 0:
             self.job.log_info(message="Performing bulk create of Platforms in Nautobot")
-            Platform.objects.bulk_create(self.objects_to_create["platforms"], batch_size=250)
+            Platform.objects.bulk_create(self.objects_to_create["platforms"], batch_size=50)
 
         if len(self.objects_to_create["clusters"]) > 0:
             self.job.log_info(message="Performing bulk create of Virtual Chassis in Nautobot")
-            VirtualChassis.objects.bulk_create(self.objects_to_create["clusters"], batch_size=250)
+            VirtualChassis.objects.bulk_create(self.objects_to_create["clusters"], batch_size=50)
         if len(self.objects_to_create["devices"]) > 0:
             self.job.log_info(message="Performing bulk create of Devices in Nautobot")
-            Device.objects.bulk_create(self.objects_to_create["devices"], batch_size=250)
+            Device.objects.bulk_create(self.objects_to_create["devices"], batch_size=50)
         if len(self.objects_to_create["ports"]) > 0:
             self.job.log_info(message="Performing bulk create of Interfaces in Nautobot")
-            Interface.objects.bulk_create(self.objects_to_create["ports"], batch_size=250)
+            Interface.objects.bulk_create(self.objects_to_create["ports"], batch_size=50)
         if len(self.objects_to_create["rear_ports"]) > 0:
             self.job.log_info(message="Performing bulk create of Rear Ports in Nautobot")
-            RearPort.objects.bulk_create(self.objects_to_create["rear_ports"], batch_size=250)
+            RearPort.objects.bulk_create(self.objects_to_create["rear_ports"], batch_size=50)
         if len(self.objects_to_create["front_ports"]) > 0:
             self.job.log_info(message="Performing bulk create of Front Ports in Nautobot")
-            FrontPort.objects.bulk_create(self.objects_to_create["front_ports"], batch_size=250)
+            FrontPort.objects.bulk_create(self.objects_to_create["front_ports"], batch_size=50)
 
         if len(self.objects_to_create["vrfs"]) > 0:
             self.job.log_info(message="Performing bulk create of VRFs in Nautobot")
-            VRF.objects.bulk_create(self.objects_to_create["vrfs"], batch_size=250)
+            VRF.objects.bulk_create(self.objects_to_create["vrfs"], batch_size=50)
         if len(self.objects_to_create["vlans"]) > 0:
             self.job.log_info(message="Performing bulk create of VLANs in Nautobot")
-            VLAN.objects.bulk_create(self.objects_to_create["vlans"], batch_size=250)
+            VLAN.objects.bulk_create(self.objects_to_create["vlans"], batch_size=50)
         if len(self.objects_to_create["prefixes"]) > 0:
-            self.job.log_info(message="Performing bulk create of VRFs in Nautobot")
-            Prefix.objects.bulk_create(self.objects_to_create["prefixes"], batch_size=250)
+            self.job.log_info(message="Performing bulk create of Prefixes in Nautobot")
+            Prefix.objects.bulk_create(self.objects_to_create["prefixes"], batch_size=50)
         if len(self.objects_to_create["ipaddrs"]) > 0:
             self.job.log_info(message="Performing bulk create of IP Addresses in Nautobot")
-            IPAddress.objects.bulk_create(self.objects_to_create["ipaddrs"], batch_size=250)
+            IPAddress.objects.bulk_create(self.objects_to_create["ipaddrs"], batch_size=50)
 
         if len(self.objects_to_create["providers"]) > 0:
             self.job.log_info(message="Performing bulk create of Providers in Nautobot")
-            Provider.objects.bulk_create(self.objects_to_create["providers"], batch_size=250)
+            Provider.objects.bulk_create(self.objects_to_create["providers"], batch_size=50)
         if len(self.objects_to_create["circuits"]) > 0:
             self.job.log_info(message="Performing bulk create of Circuits in Nautobot")
-            Circuit.objects.bulk_create(self.objects_to_create["circuits"], batch_size=250)
+            Circuit.objects.bulk_create(self.objects_to_create["circuits"], batch_size=50)
 
         # if len(self.objects_to_create["cables"]) > 0:
         #     self.job.log_info(message="Performing bulk create of Cables in Nautobot")
-        #     Cable.objects.bulk_create(self.objects_to_create["cables"], batch_size=250)
+        #     Cable.objects.bulk_create(self.objects_to_create["cables"], batch_size=50)
 
         if len(self.objects_to_create["device_primary_ip"]) > 0:
             self.job.log_info(message="Performing bulk update of device management IP addresses in Nautobot.")
@@ -226,16 +226,16 @@ class NautobotAdapter(DiffSync):
                 else:
                     dev.primary_ip6_id = d[1]
                     device_primary_ip6_objs.append(dev)
-            Device.objects.bulk_update(device_primary_ip4_objs, ["primary_ip4_id"], batch_size=250)
-            Device.objects.bulk_update(device_primary_ip6_objs, ["primary_ip6_id"], batch_size=250)
+            Device.objects.bulk_update(device_primary_ip4_objs, ["primary_ip4_id"], batch_size=50)
+            Device.objects.bulk_update(device_primary_ip6_objs, ["primary_ip6_id"], batch_size=50)
 
         if LIFECYCLE_MGMT:
             if len(self.objects_to_create["softwarelcms"]) > 0:
                 self.job.log_info(message="Performing bulk creation of Software Versions in Device Lifecycle plugin.")
-                SoftwareLCM.objects.bulk_create(self.objects_to_create["softwarelcms"], batch_size=250)
+                SoftwareLCM.objects.bulk_create(self.objects_to_create["softwarelcms"], batch_size=50)
             if len(self.objects_to_create["relationshipasscs"]) > 0:
                 self.job.log_info(message="Creating Relationships between Devices and Software Versions.")
-                RelationshipAssociation.objects.bulk_create(self.objects_to_create["relationshipasscs"], batch_size=250)
+                RelationshipAssociation.objects.bulk_create(self.objects_to_create["relationshipasscs"], batch_size=50)
         return super().sync_complete(source, *args, **kwargs)
 
     def load_sites(self):
