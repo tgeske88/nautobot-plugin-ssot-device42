@@ -153,7 +153,7 @@ class NautobotAdapter(DiffSync):
         if len(self.objects_to_create["sites"]) > 0:
             self.job.log_info(message="Performing bulk create of Sites in Nautobot")
             Site.objects.bulk_create(self.objects_to_create["sites"], batch_size=50)
-        if len(self.objects_to_create["sites"]) > 0:
+        if len(self.objects_to_create["rooms"]) > 0:
             self.job.log_info(message="Performing creation of RackGroups in Nautobot")
             for room in self.objects_to_create["rooms"]:
                 room.validated_save()
