@@ -738,6 +738,7 @@ class NautobotDevice(Device):
             try:
                 _vc = self.diffsync.cluster_map[_clus_host]
                 _dev.virtual_chassis_id = _vc
+                _dev.vc_position = self.vc_position
                 if attrs.get("master_device"):
                     for vc in self.diffsync.objects_to_create["clusters"]:
                         if vc.name == attrs["cluster_host"]:
