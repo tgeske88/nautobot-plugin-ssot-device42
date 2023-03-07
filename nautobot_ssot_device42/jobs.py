@@ -137,11 +137,12 @@ class Device42DataSource(DataSource, Job):
 
     def post_run(self):
         """Execute sync after Job is complete so the transactions are not atomic."""
-        self.log_info(message=f"Beginning synchronization of data from Device42 into Nautobot.")
-        if self.source_adapter is not None and self.target_adapter is not None:
-            self.source_adapter.sync_to(self.target_adapter, flags=self.diffsync_flags)
-        else:
-            self.log_warning(message="Not both adapters were properly initialized prior to synchronization.")
+        if self.commit:
+            self.log_info(message=f"Beginning synchronization of data from Device42 into Nautobot.")
+            if self.source_adapter is not None and self.target_adapter is not None:
+                self.source_adapter.sync_to(self.target_adapter, flags=self.diffsync_flags)
+            else:
+                self.log_warning(message="Not both adapters were properly initialized prior to synchronization.")
 
 
 jobs = [Device42DataSource]
