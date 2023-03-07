@@ -50,12 +50,9 @@ class NautobotVRFGroup(VRFGroup):
             _vrf.description = attrs["description"]
         if "tags" in attrs:
             if attrs.get("tags"):
-                tags_to_add = list(set(attrs["tags"]).difference(list(_vrf.tags.names())))
-                for _tag in nautobot.get_tags(tags_to_add):
-                    _vrf.tags.add(_tag)
-                tags_to_remove = list(set(_vrf.tags.names()).difference(attrs["tags"]))
-                for _tag in tags_to_remove:
-                    _vrf.tags.remove(_tag)
+                nautobot.update_tags(tagged_obj=_vrf, update_tags=attrs["tags"])
+            else:
+                _vrf.tags.clear()
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
@@ -129,12 +126,9 @@ class NautobotSubnet(Subnet):
             _pf.description = attrs["description"]
         if "tags" in attrs:
             if attrs.get("tags"):
-                tags_to_add = list(set(attrs["tags"]).difference(list(_pf.tags.names())))
-                for _tag in nautobot.get_tags(tags_to_add):
-                    _pf.tags.add(_tag)
-                tags_to_remove = list(set(_pf.tags.names()).difference(attrs["tags"]))
-                for _tag in tags_to_remove:
-                    _pf.tags.remove(_tag)
+                nautobot.update_tags(tagged_obj=_pf, update_tags=attrs["tags"])
+            else:
+                _pf.tags.clear()
         if attrs.get("custom_fields"):
             for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
@@ -306,12 +300,7 @@ class NautobotIPAddress(IPAddress):
                     )
         if "tags" in attrs:
             if attrs.get("tags"):
-                tags_to_add = list(set(attrs["tags"]).difference(list(_ipaddr.tags.names())))
-                for _tag in nautobot.get_tags(tags_to_add):
-                    _ipaddr.tags.add(_tag)
-                tags_to_remove = list(set(_ipaddr.tags.names()).difference(attrs["tags"]))
-                for _tag in tags_to_remove:
-                    _ipaddr.tags.remove(_tag)
+                nautobot.update_tags(tagged_obj=_ipaddr, update_tags=attrs["tags"])
             else:
                 _ipaddr.tags.clear()
         if attrs.get("custom_fields"):

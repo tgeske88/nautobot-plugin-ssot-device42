@@ -60,12 +60,7 @@ class NautobotProvider(Provider):
         if "vendor_contact2" in attrs:
             _prov.admin_contact = attrs["vendor_contact2"]
         if "tags" in attrs:
-            tags_to_add = list(set(attrs["tags"]).difference(list(_prov.tags.names())))
-            for _tag in nautobot.get_tags(tags_to_add):
-                _prov.tags.add(_tag)
-            tags_to_remove = list(set(_prov.tags.names()).difference(attrs["tags"]))
-            for _tag in tags_to_remove:
-                _prov.tags.remove(_tag)
+            nautobot.update_tags(tagged_obj=_prov, update_tags=attrs["tags"])
         _prov.validated_save()
         return super().update(attrs)
 
@@ -162,12 +157,7 @@ class NautobotCircuit(Circuit):
                 circuit=_circuit,
             )
         if "tags" in attrs:
-            tags_to_add = list(set(attrs["tags"]).difference(list(_circuit.tags.names())))
-            for _tag in nautobot.get_tags(tags_to_add):
-                _circuit.tags.add(_tag)
-            tags_to_remove = list(set(_circuit.tags.names()).difference(attrs["tags"]))
-            for _tag in tags_to_remove:
-                _circuit.tags.remove(_tag)
+            nautobot.update_tags(tagged_obj=_circuit, update_tags=attrs["tags"])
         _circuit.validated_save()
         return super().update(attrs)
 
