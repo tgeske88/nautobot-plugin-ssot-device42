@@ -131,16 +131,17 @@ class Device42DataSource(DataSource, Job):
             self.log_info(message="Loading data from Nautobot...")
         self.target_adapter.load()
 
-    # TODO: Remove custom diff class as it doesn't appear to be needed any longer?
-    # def execute_sync(self):
-    #     """Execute the synchronization of data from Device42 to Nautobot."""
-    #     if not self.kwargs["dry_run"]:
-    #         self.log_info(message="Performing data synchronization from Device42.")
-    #         self.target_adapter.sync_from(
-    #             self.source_adapter, flags=DiffSyncFlags.CONTINUE_ON_FAILURE, diff_class=CustomOrderingDiff
-    #         )
-    #     else:
-    #         self.log_warning(message=f"Dry run is enabled so skipping sync.")
+    def execute_sync(self):
+        """Execute the synchronization of data from Device42 to Nautobot."""
+        pass
+
+    def post_run(self):
+        """Execute sync after Job is complete so the transactions are not atomic."""
+        self.log_info(message=f"Beginning synchronization of data from Device42 into Nautobot.")
+        if self.source_adapter is not None and self.target_adapter is not None:
+            self.source_adapter.sync_to(self.target_adapter, flags=self.diffsync_flags)
+        else:
+            self.log_warning(message="Not both adapters were properly initialized prior to synchronization.")
 
 
 jobs = [Device42DataSource]
