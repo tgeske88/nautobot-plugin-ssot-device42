@@ -1094,6 +1094,6 @@ class Device42Adapter(DiffSync):
         self.load_ip_addresses()
         if is_truthy(PLUGIN_CFG.get("use_dns")):
             self.check_dns()
-        self.load_connections()
         self.load_providers_and_circuits()
         self.load_patch_panels_and_ports()
+        # self.load_connections()
