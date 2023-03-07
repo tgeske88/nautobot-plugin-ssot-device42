@@ -631,6 +631,13 @@ class NautobotDevice(Device):
             _dev.position = int(attrs["rack_position"]) if attrs["rack_position"] else None
         if "rack_orientation" in attrs:
             _dev.face = attrs["rack_orientation"]
+        if "rack" in attrs:
+            try:
+                _dev.rack = OrmRack.objects.get(name=attrs["rack"], group__name=self.room)
+            except OrmRack.DoesNotExist as err:
+                self.diffsync.job.log_warning(
+                    message=f"Unable to find rack {attrs['rack']} in {self.room} {err}"
+                )
         if "rack" in attrs and "room" in attrs:
             try:
                 _dev.rack = OrmRack.objects.get(name=attrs["rack"], group__name=attrs["room"])
