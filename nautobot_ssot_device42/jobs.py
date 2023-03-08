@@ -19,6 +19,7 @@ class Device42DataSource(DataSource, Job):
     """Device42 SSoT Data Source."""
 
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
+    bulk_import = BooleanVar(description="Enable using bulk create option for object creation.", default=False)
 
     class Meta:
         """Meta data for Device42."""
