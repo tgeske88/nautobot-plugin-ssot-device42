@@ -663,7 +663,7 @@ class NautobotDevice(Device):
                     self.diffsync.job.log_info(message=f"Didn't find Device in VC position: {attrs['vc_position']}.")
             except OrmVC.DoesNotExist as err:
                 self.diffsync.job.log_warning(
-                    message=f"Unable to find Virtual Chassis {attrs['cluster_host'] if attrs.get('cluster_host') else self.cluster_host}"
+                    message=f"Unable to find Virtual Chassis {attrs['cluster_host'] if attrs.get('cluster_host') else self.cluster_host}. {err}"
                 )
             _dev.vc_position = attrs["vc_position"]
         try:

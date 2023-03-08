@@ -134,12 +134,11 @@ class Device42DataSource(DataSource, Job):
 
     def execute_sync(self):
         """Execute the synchronization of data from Device42 to Nautobot."""
-        pass
 
     def post_run(self):
         """Execute sync after Job is complete so the transactions are not atomic."""
         if not self.kwargs["dry_run"]:
-            self.log_info(message=f"Beginning synchronization of data from Device42 into Nautobot.")
+            self.log_info(message="Beginning synchronization of data from Device42 into Nautobot.")
             if self.source_adapter is not None and self.target_adapter is not None:
                 self.source_adapter.sync_to(self.target_adapter, flags=self.diffsync_flags)
             else:
