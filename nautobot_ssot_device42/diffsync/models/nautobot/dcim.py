@@ -549,7 +549,8 @@ class NautobotDevice(Device):
                 if attrs.get("master_device") and attrs["master_device"]:
                     for vc in diffsync.objects_to_create["clusters"]:
                         if vc.name == attrs["cluster_host"]:
-                            vc.master = new_device
+                            diffsync.objects_to_create["master_devices"].append(_vc, new_device.id)
+                            # vc.master = new_device
             except KeyError:
                 diffsync.job.log_warning(message=f"Unable to find Virtual Chassis {attrs['cluster_host']}")
         if attrs.get("vc_position"):

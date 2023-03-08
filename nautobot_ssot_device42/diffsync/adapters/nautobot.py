@@ -396,6 +396,19 @@ class NautobotAdapter(DiffSync):
                             dev.primary_ip6_id = dev_ip[1]
                         dev.validated_save()
 
+        if len(self.objects_to_create["master_devices"]) > 0:
+            master_devices = []
+            self.job.log_info(message="Performing assignment of master devices to Virtual Chassis in Nautobot")
+            for item in self.objects_to_create["master_devices"]:
+                new_vc = VirtualChassis.objects.get(id=item[0])
+                new_vc.master = Device.objects.get(id=item[1])
+                if self.job.kwargs["bulk_import"]:
+                    master_devices.append(new_vc)
+                else:
+                    new_vc.validated_save()
+            if self.job.kwargs["bulk_import"]:
+                VirtualChassis.objects.bulk_update(master_devices, ["master"], batch_size=50)
+
         if LIFECYCLE_MGMT:
             if len(self.objects_to_create["softwarelcms"]) > 0:
                 if self.job.kwargs["bulk_import"]:
