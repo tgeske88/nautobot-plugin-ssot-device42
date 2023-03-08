@@ -1,11 +1,12 @@
 """DiffSync adapter class for Nautobot as source-of-truth."""
 
-from collections import defaultdict
 import ipaddress
+from collections import defaultdict
+
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
+from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
-
 from nautobot.circuits.models import Circuit, CircuitTermination, Provider
 from nautobot.dcim.models import (
     Cable,
@@ -25,10 +26,11 @@ from nautobot.dcim.models import (
 from nautobot.extras.jobs import Job
 from nautobot.extras.models import Relationship, RelationshipAssociation, Status
 from nautobot.ipam.models import VLAN, VRF, IPAddress, Prefix
+from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
+
 from nautobot_ssot_device42.constant import PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.models.nautobot import assets, circuits, dcim, ipam
 from nautobot_ssot_device42.utils import nautobot
-from netutils.lib_mapper import ANSIBLE_LIB_MAPPER
 
 try:
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
