@@ -60,7 +60,7 @@ class NautobotProvider(Provider):
         if "vendor_contact2" in attrs:
             _prov.admin_contact = attrs["vendor_contact2"]
         if "tags" in attrs:
-            nautobot.update_tags(tagged_obj=_prov, update_tags=attrs["tags"])
+            nautobot.update_tags(tagged_obj=_prov, new_tags=attrs["tags"])
         _prov.validated_save()
         return super().update(attrs)
 
@@ -157,7 +157,7 @@ class NautobotCircuit(Circuit):
                 circuit=_circuit,
             )
         if "tags" in attrs:
-            nautobot.update_tags(tagged_obj=_circuit, update_tags=attrs["tags"])
+            nautobot.update_tags(tagged_obj=_circuit, new_tags=attrs["tags"])
         _circuit.validated_save()
         return super().update(attrs)
 

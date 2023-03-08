@@ -50,7 +50,7 @@ class NautobotVRFGroup(VRFGroup):
             _vrf.description = attrs["description"]
         if "tags" in attrs:
             if attrs.get("tags"):
-                nautobot.update_tags(tagged_obj=_vrf, update_tags=attrs["tags"])
+                nautobot.update_tags(tagged_obj=_vrf, new_tags=attrs["tags"])
             else:
                 _vrf.tags.clear()
         if attrs.get("custom_fields"):
@@ -118,7 +118,7 @@ class NautobotSubnet(Subnet):
             _pf.description = attrs["description"]
         if "tags" in attrs:
             if attrs.get("tags"):
-                nautobot.update_tags(tagged_obj=_pf, update_tags=attrs["tags"])
+                nautobot.update_tags(tagged_obj=_pf, new_tags=attrs["tags"])
             else:
                 _pf.tags.clear()
         if attrs.get("custom_fields"):
@@ -189,8 +189,7 @@ class NautobotIPAddress(IPAddress):
             if re.search(r"[Ll]oopback", attrs["interface"]):
                 _ip.role = "loopback"
         if attrs.get("tags"):
-            for _tag in nautobot.get_tags(attrs["tags"]):
-                _ip.tags.add(_tag)
+            nautobot.update_tags(tagged_obj=_ip, new_tags=attrs["tags"])
         if attrs.get("custom_fields"):
             nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_ip)
         diffsync.objects_to_create["ipaddrs"].append(_ip)
@@ -276,7 +275,7 @@ class NautobotIPAddress(IPAddress):
                     )
         if "tags" in attrs:
             if attrs.get("tags"):
-                nautobot.update_tags(tagged_obj=_ipaddr, update_tags=attrs["tags"])
+                nautobot.update_tags(tagged_obj=_ipaddr, new_tags=attrs["tags"])
             else:
                 _ipaddr.tags.clear()
         if attrs.get("custom_fields"):

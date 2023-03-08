@@ -152,19 +152,19 @@ def get_tags(tag_list: List[str]) -> List[Tag]:
     return [get_or_create_tag(x) for x in tag_list if x != ""]
 
 
-def update_tags(tagged_obj: object, update_tags: List[str]):
+def update_tags(tagged_obj: object, new_tags: List[str]):
     """Update tags on Nautobot object to match what is provided in new tags.
 
     Args:
         tagged_obj (object): Nautobot object with Tags attached.
-        update_tags (List[str]): List of updated Tags.
+        new_tags (List[str]): List of updated Tags.
     """
     current_tags = tagged_obj.tags.names()
-    for tag in update_tags:
+    for tag in new_tags:
         if tag not in current_tags:
             tagged_obj.tags.add(tag)
     for tag in current_tags:
-        if tag not in update_tags:
+        if tag not in new_tags:
             tagged_obj.tags.remove(tag)
 
 

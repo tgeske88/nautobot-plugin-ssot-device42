@@ -99,7 +99,7 @@ class NautobotBuilding(Building):
             _site.contact_phone = attrs["contact_phone"]
         if "tags" in attrs:
             if attrs.get("tags"):
-                nautobot.update_tags(tagged_obj=_site, update_tags=attrs["tags"])
+                nautobot.update_tags(tagged_obj=_site, new_tags=attrs["tags"])
                 _facility = device42.get_facility(tags=attrs["tags"], diffsync=self.diffsync)
                 if _facility:
                     _site.facility = _facility.upper()
@@ -223,7 +223,7 @@ class NautobotRack(Rack):
             _rack.desc_units = not (is_truthy(attrs["numbering_start_from_bottom"]))
         if "tags" in attrs:
             if attrs.get("tags"):
-                nautobot.update_tags(tagged_obj=_rack, update_tags=attrs["tags"])
+                nautobot.update_tags(tagged_obj=_rack, new_tags=attrs["tags"])
             else:
                 _rack.tags.clear()
         if attrs.get("custom_fields"):
@@ -402,7 +402,7 @@ class NautobotCluster(Cluster):
         self.diffsync.job.log_debug(message=f"Updating VirtualChassis {_vc.name}.")
         if "tags" in attrs:
             if attrs.get("tags"):
-                nautobot.update_tags(tagged_obj=_vc, update_tags=attrs["tags"])
+                nautobot.update_tags(tagged_obj=_vc, new_tags=attrs["tags"])
             else:
                 _vc.tags.clear()
         if attrs.get("custom_fields"):
@@ -628,7 +628,7 @@ class NautobotDevice(Device):
                 _dev.device_role_id = nautobot.verify_device_role(
                     diffsync=self.diffsync, role_name=DEFAULTS.get("device_role")
                 )
-            nautobot.update_tags(tagged_obj=_dev, update_tags=attrs["tags"])
+            nautobot.update_tags(tagged_obj=_dev, new_tags=attrs["tags"])
         if attrs.get("custom_fields"):
             nautobot.update_custom_fields(new_cfields=attrs["custmo_fields"], update_obj=_dev)
         # ensure that VC Master Device is set to that
@@ -827,7 +827,7 @@ class NautobotPort(Port):
             _port.status_id = self.diffsync.status_map[attrs["status"]]
         if "tags" in attrs:
             if attrs.get("tags"):
-                nautobot.update_tags(tagged_obj=_port, update_tags=attrs["tags"])
+                nautobot.update_tags(tagged_obj=_port, new_tags=attrs["tags"])
             else:
                 _port.tags.clear()
         if attrs.get("custom_fields"):
