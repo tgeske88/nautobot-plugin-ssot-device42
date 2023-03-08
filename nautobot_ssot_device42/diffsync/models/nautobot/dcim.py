@@ -1,6 +1,5 @@
 """DiffSyncModel DCIM subclasses for Nautobot Device42 data sync."""
 
-import re
 from decimal import Decimal
 from typing import Optional
 from uuid import UUID
@@ -441,36 +440,6 @@ class NautobotCluster(Cluster):
         """Update Virtual Chassis object in Nautobot."""
         _vc = OrmVC.objects.get(id=self.uuid)
         self.diffsync.job.log_debug(message=f"Updating VirtualChassis {_vc.name}.")
-        if "members" in attrs:
-            for _member in attrs["members"]:
-                position = 1
-                try:
-                    device = OrmDevice.objects.get(name=_member)
-                    switch_pos = re.search(r".+-\s([sS]witch)\s?(?P<pos>\d+)", _member)
-                    node_pos = re.search(r".+-\s([nN]ode)\s?(?P<pos>\d+)", _member)
-                    if switch_pos or node_pos:
-                        if switch_pos:
-                            position = int(switch_pos.group("pos"))
-                        if node_pos:
-                            position = int(node_pos.group("pos")) + 1
-                    else:
-                        position = len(OrmDevice.objects.filter(virtual_chassis__name=self.name))
-                    try:
-                        dev = OrmDevice.objects.get(virtual_chassis=_vc, vc_position=position + 1)
-                        dev.virtual_chassis = None
-                        dev.vc_position = None
-                        dev.validated_save()
-                    except OrmDevice.DoesNotExist:
-                        pass
-                    device.virtual_chassis = _vc
-                    device.vc_position = position + 1
-                    device.validated_save()
-                except OrmDevice.DoesNotExist as err:
-                    if self.diffsync.job.kwargs.get("debug"):
-                        self.diffsync.job.log_warning(
-                            message=f"Unable to find {_member} to add to VC {self.name} {err}"
-                        )
-                    continue
         if "tags" in attrs:
             if attrs.get("tags"):
                 nautobot.update_tags(tagged_obj=_vc, update_tags=attrs["tags"])

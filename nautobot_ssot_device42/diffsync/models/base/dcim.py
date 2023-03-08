@@ -90,7 +90,7 @@ class Cluster(DiffSyncModel):
 
     _modelname = "cluster"
     _identifiers = ("name",)
-    _attributes = ("members", "tags", "custom_fields")
+    _attributes = ("tags", "custom_fields")
     _children = {}
     name: str
     members: Optional[List[str]]
