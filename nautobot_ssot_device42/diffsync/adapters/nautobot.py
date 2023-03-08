@@ -251,6 +251,8 @@ class NautobotAdapter(DiffSync):
                         dev.validated_save()
                 except ValidationError as err:
                     self.job.log_warning(message=f"Error with creating device. {err}")
+                except VirtualChassis.DoesNotExist as err:
+                    self.job.log_warning(message=f"Error with creating device as VirtualChassis doesn't exist. {err}")
         if len(self.objects_to_create["ports"]) > 0:
             if self.job.kwargs["bulk_import"]:
                 self.job.log_info(message="Performing bulk create of Interfaces in Nautobot")
@@ -262,6 +264,8 @@ class NautobotAdapter(DiffSync):
                         port.validated_save()
                 except ValidationError as err:
                     self.job.log_warning(message=f"Error with creating interface. {err}")
+                except Device.DoesNotExist as err:
+                    self.job.log_warning(message=f"Error with creating interface as Device doesn't exist. {err}")
         if len(self.objects_to_create["rear_ports"]) > 0:
             if self.job.kwargs["bulk_import"]:
                 self.job.log_info(message="Performing bulk create of Rear Ports in Nautobot")
