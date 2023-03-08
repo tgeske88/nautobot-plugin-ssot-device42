@@ -106,15 +106,7 @@ class NautobotBuilding(Building):
             else:
                 _site.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmSite).id)
-                _site.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_site)
         _site.validated_save()
         return super().update(attrs)
 
@@ -169,15 +161,7 @@ class NautobotRoom(Room):
         if "notes" in attrs:
             _rg.description = attrs["notes"]
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmRackGroup).id)
-                _rg.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_rg)
         _rg.validated_save()
         return super().update(attrs)
 
@@ -243,15 +227,7 @@ class NautobotRack(Rack):
             else:
                 _rack.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmRack).id)
-                _rack.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_rack)
         _rack.validated_save()
         return super().update(attrs)
 
@@ -303,15 +279,7 @@ class NautobotVendor(Vendor):
         _manu = OrmManufacturer.objects.get(id=self.uuid)
         self.diffsync.job.log_info(message=f"Updating Manufacturer {_manu.name}.")
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmManufacturer).id)
-                _manu.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_manu)
         _manu.validated_save()
         return super().update(attrs)
 
@@ -378,15 +346,7 @@ class NautobotHardware(Hardware):
         if "depth" in attrs:
             _dt.is_full_depth = bool(attrs["depth"] == "Full Depth")
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmDeviceType).id)
-                _dt.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_dt)
         _dt.validated_save()
         return super().update(attrs)
 
@@ -446,15 +406,7 @@ class NautobotCluster(Cluster):
             else:
                 _vc.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVC).id)
-                _vc.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vc)
         _vc.validated_save()
         return super().update(attrs)
 
@@ -678,15 +630,7 @@ class NautobotDevice(Device):
                 )
             nautobot.update_tags(tagged_obj=_dev, update_tags=attrs["tags"])
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmDevice).id)
-                _dev.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custmo_fields"], update_obj=_dev)
         # ensure that VC Master Device is set to that
         if "cluster_host" in attrs or "master_device" in attrs:
             if attrs.get("cluster_host"):
@@ -887,15 +831,7 @@ class NautobotPort(Port):
             else:
                 _port.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmInterface).id)
-                _port.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_port)
         if "vlans" in attrs:
             if attrs.get("mode"):
                 _mode = attrs["mode"]

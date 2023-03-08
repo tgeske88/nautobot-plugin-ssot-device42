@@ -54,15 +54,7 @@ class NautobotVRFGroup(VRFGroup):
             else:
                 _vrf.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVRF).id)
-                _vrf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vrf)
         _vrf.validated_save()
         return super().update(attrs)
 
@@ -130,15 +122,7 @@ class NautobotSubnet(Subnet):
             else:
                 _pf.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmPrefix).id)
-                _pf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_pf)
         _pf.validated_save()
         return super().update(attrs)
 
@@ -208,15 +192,7 @@ class NautobotIPAddress(IPAddress):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _ip.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmIPAddress).id)
-                _ip.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_ip)
         diffsync.objects_to_create["ipaddrs"].append(_ip)
         if ids.get("vrf"):
             vrf_name = ids["vrf"]
@@ -304,15 +280,7 @@ class NautobotIPAddress(IPAddress):
             else:
                 _ipaddr.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmIPAddress).id)
-                _ipaddr.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_ipaddr)
         try:
             _ipaddr.validated_save()
             return super().update(attrs)
@@ -369,15 +337,7 @@ class NautobotVLAN(VLAN):
         if _site:
             _vlan.site_id = _site
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVLAN).id)
-                _vlan.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vlan)
         diffsync.objects_to_create["vlans"].append(_vlan)
         if ids["building"]:
             _site_name = slugify(ids["building"])
@@ -395,15 +355,7 @@ class NautobotVLAN(VLAN):
         if "description" in attrs:
             _vlan.description = attrs["description"] if attrs.get("description") else ""
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVLAN).id)
-                _vlan.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vlan)
         _vlan.validated_save()
         return super().update(attrs)
 

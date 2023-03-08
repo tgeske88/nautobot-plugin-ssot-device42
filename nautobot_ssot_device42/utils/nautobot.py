@@ -3,12 +3,14 @@ from typing import List, OrderedDict
 from uuid import UUID
 
 import random
+from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
 from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
-from nautobot.extras.models import Tag, Relationship
+from nautobot.extras.choices import CustomFieldTypeChoices
+from nautobot.extras.models import Tag, Relationship, CustomField
 
 try:
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
@@ -200,6 +202,32 @@ def get_custom_field_dict(cfields: OrderedDict) -> dict:
             "notes": _cf.description if _cf.description != "" else None,
         }
     return cf_dict
+
+
+def update_custom_fields(new_cfields: dict, update_obj: object):
+    """Update passed object's CustomFields.
+
+    Args:
+        new_cfields (OrderedDict): Dictionary of CustomFields on object to be updated to match.
+        update_obj (object): Object to be updated with CustomFields.
+    """
+    obj_contenttype = ContentType.objects.get_for_model(type(update_obj))
+    current_cf = get_custom_field_dict(update_obj.get_custom_fields())
+    for old_cf, old_cf_dict in current_cf.items():
+        if old_cf not in new_cfields:
+            removed_cf = CustomField.objects.get(label=old_cf_dict["key"], content_types=obj_contenttype)
+            removed_cf.delete()
+            print(update_obj.get_custom_fields())
+    for new_cf, new_cf_dict in new_cfields.items():
+        if new_cf not in current_cf:
+            _cf_dict = {
+                "name": slugify(new_cf_dict["key"]),
+                "type": CustomFieldTypeChoices.TYPE_TEXT,
+                "label": new_cf_dict["key"],
+            }
+            field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+            field.content_types.add(obj_contenttype.id)
+            update_obj.custom_field_data.update({_cf_dict["name"]: new_cf_dict["value"]})
 
 
 def verify_circuit_type(circuit_type: str) -> CircuitType:

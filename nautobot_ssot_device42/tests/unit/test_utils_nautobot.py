@@ -1,9 +1,12 @@
 """Tests of Nautobot utility methods."""
 from uuid import UUID
 from unittest.mock import MagicMock
+from django.contrib.contenttypes.models import ContentType
 from nautobot.utilities.testing import TransactionTestCase
-from nautobot.dcim.models import Manufacturer
-from nautobot_ssot_device42.utils.nautobot import verify_platform, determine_vc_position
+from nautobot.dcim.models import Manufacturer, Site, Region
+from nautobot.extras.choices import CustomFieldTypeChoices
+from nautobot.extras.models import CustomField
+from nautobot_ssot_device42.utils.nautobot import verify_platform, determine_vc_position, update_custom_fields
 
 
 class TestNautobotUtils(TransactionTestCase):
@@ -94,3 +97,34 @@ class TestNautobotUtils(TransactionTestCase):
             vc_map=vc_map, virtual_chassis="firewall_pair_example", device_name="firewall - FTX123456AB"
         )
         self.assertEqual(fw_pos, 2)
+
+    def test_update_custom_fields_add_cf(self):
+        """Test the update_custom_fields method adds a CustomField."""
+        test_site = Site.objects.create(name="Test", slug="test")
+        self.assertEqual(len(test_site.get_custom_fields()), 0)
+        mock_cfs = {
+            "Test Custom Field": {"key": "Test Custom Field", "value": None, "notes": None},
+        }
+        update_custom_fields(new_cfields=mock_cfs, update_obj=test_site)
+        self.assertEqual(len(test_site.get_custom_fields()), 1)
+        self.assertEqual(test_site.custom_field_data["test-custom-field"], None)
+
+    def test_update_custom_fields_remove_cf(self):
+        """Test the update_custom_fields method removes a CustomField."""
+        test_region = Region.objects.create(name="Test", slug="test")
+        _cf_dict = {
+            "name": "department",
+            "type": CustomFieldTypeChoices.TYPE_TEXT,
+            "label": "Department",
+        }
+        field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+        field.content_types.add(ContentType.objects.get_for_model(Region).id)
+        test_region.custom_field_data.update({_cf_dict["name"]: "IT"})
+        mock_cfs = {
+            "Test Custom Field": {"key": "Test Custom Field", "value": None, "notes": None},
+        }
+        update_custom_fields(new_cfields=mock_cfs, update_obj=test_region)
+        test_region.refresh_from_db()
+        self.assertFalse(
+            test_region.custom_field_data.get("department"), "department should not exist in the dictionary"
+        )
