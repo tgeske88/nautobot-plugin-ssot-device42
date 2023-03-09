@@ -1024,8 +1024,8 @@ class Device42Adapter(DiffSync):
                     manufacturer=panel["vendor"],
                     size=panel["size"] if panel.get("size") else 1.0,
                     depth="Half Depth" if panel["depth"] == 2 else "Full Depth",
-                    part_number=None,
-                    custom_fields=None,
+                    part_number="",
+                    custom_fields={},
                     uuid=None,
                 )
                 self.add(new_hw)
