@@ -128,3 +128,19 @@ class TestNautobotUtils(TransactionTestCase):
         self.assertFalse(
             test_region.custom_field_data.get("department"), "department should not exist in the dictionary"
         )
+
+    def test_update_custom_fields_updates_cf(self):
+        """Test the update_custom_fields method updates a CustomField."""
+        test_region = Region.objects.create(name="Test", slug="test")
+        _cf_dict = {
+            "name": "department",
+            "type": CustomFieldTypeChoices.TYPE_TEXT,
+            "label": "Department",
+        }
+        field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+        field.content_types.add(ContentType.objects.get_for_model(Region).id)
+        mock_cfs = {
+            "Department": {"key": "Department", "value": "IT", "notes": None},
+        }
+        update_custom_fields(new_cfields=mock_cfs, update_obj=test_region)
+        self.assertEqual(test_region.custom_field_data["department"], "IT")

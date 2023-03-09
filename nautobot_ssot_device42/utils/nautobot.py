@@ -217,7 +217,6 @@ def update_custom_fields(new_cfields: dict, update_obj: object):
         if old_cf not in new_cfields:
             removed_cf = CustomField.objects.get(label=old_cf_dict["key"], content_types=obj_contenttype)
             removed_cf.delete()
-            print(update_obj.get_custom_fields())
     for new_cf, new_cf_dict in new_cfields.items():
         if new_cf not in current_cf:
             _cf_dict = {
@@ -227,7 +226,7 @@ def update_custom_fields(new_cfields: dict, update_obj: object):
             }
             field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
             field.content_types.add(obj_contenttype.id)
-            update_obj.custom_field_data.update({_cf_dict["name"]: new_cf_dict["value"]})
+        update_obj.custom_field_data.update({slugify(new_cf_dict["key"]): new_cf_dict["value"]})
 
 
 def verify_circuit_type(circuit_type: str) -> CircuitType:
