@@ -158,7 +158,9 @@ class TestUtilsDevice42(TestCase):
         ("asa", "asa", "cisco_asa"),
         ("ios", "ios", "cisco_ios"),
         ("iosxe", "iosxe", "cisco_ios"),
+        ("iosxr", "iosxr", "cisco_xr"),
         ("nxos", "nxos", "cisco_nxos"),
+        ("bigip", "f5", "f5_tmsh"),
         ("junos", "junos", "juniper_junos"),
         ("dell", "dell", "dell"),
     ]
@@ -195,6 +197,19 @@ class TestUtilsDevice42(TestCase):
         dsync.log_failure.assert_called_once_with(message="The `facility_prepend` setting is missing or invalid.")
         # restore setting to what it was before
         configs["facility_prepend"] = original
+
+    def test_get_custom_field_dict(self):
+        """Test the get_custom_field_dict method."""
+        expected = {
+            "Test": {
+                "key": "Test",
+                "value": None,
+                "notes": None,
+            }
+        }
+        mock_custom_fields = [{"key": "Test", "value": None, "notes": None}]
+        actual = device42.get_custom_field_dict(cfields=mock_custom_fields)
+        self.assertEqual(actual, expected)
 
 
 class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
@@ -365,6 +380,21 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         self.assertTrue(len(responses.calls) == 1)
 
     @responses.activate
+    def test_get_devices(self):
+        """Test get_devices success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_devices_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/api/1.0/devices/all/?is_it_switch=yes&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_devices_recv.json")
+        response = self.dev42.get_devices()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
     def test_get_cluster_members(self):
         """Test get_cluster_members success."""
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_cluster_members_sent.json")
@@ -426,10 +456,10 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
             json=test_query,
             status=200,
         )
-        expected = [
-            {"key": "EOL Date", "value": None, "notes": None},
-            {"key": "Software Version", "value": None, "notes": None},
-        ]
+        expected = {
+            "EOL Date": {"key": "EOL Date", "value": None, "notes": None},
+            "Software Version": {"key": "Software Version", "value": None, "notes": None},
+        }
         response = self.dev42.get_port_default_custom_fields()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
@@ -446,6 +476,21 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         )
         expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_custom_fields_recv.json")
         response = self.dev42.get_port_custom_fields()
+        self.assertEqual(response, expected)
+        self.assertTrue(len(responses.calls) == 1)
+
+    @responses.activate
+    def test_get_vrfgroups(self):
+        """Test get_vrfgroups success."""
+        test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_vrfgroups_sent.json")
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/api/1.0/vrfgroup/?_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
+        expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_vrfgroups_recv.json")
+        response = self.dev42.get_vrfgroups()
         self.assertEqual(response, expected)
         self.assertTrue(len(responses.calls) == 1)
 
@@ -489,10 +534,16 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
             json=test_query,
             status=200,
         )
+        responses.add(
+            responses.GET,
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT cf.key, cf.value, cf.notes FROM view_subnet_custom_fields_v1 cf&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            json=test_query,
+            status=200,
+        )
         expected = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnet_custom_fields_recv.json")
         response = self.dev42.get_subnet_custom_fields()
         self.assertEqual(response, expected)
-        self.assertTrue(len(responses.calls) == 1)
+        self.assertTrue(len(responses.calls) == 2)
 
     @responses.activate
     def test_get_ip_addrs(self):
@@ -500,7 +551,7 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_ip_addrs.json")
         responses.add(
             responses.GET,
-            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT i.ip_address, i.available, i.label, i.tags, np.port AS port_name, s.network as subnet, s.mask_bits as netmask, v.name as vrf, d.name as device FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_device_v1 d ON d.device_pk = i.device_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT i.ip_address, i.available, i.label, i.tags, np.netport_pk, s.network as subnet, s.mask_bits as netmask, v.name as vrf FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )
@@ -606,7 +657,7 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_pks_sent.json")
         responses.add(
             responses.GET,
-            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT np.port, np.netport_pk, np.hwaddress, d.name as device FROM view_netport_v1 np JOIN view_device_v1 d ON d.device_pk = np.device_fk WHERE port <> ''&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT np.port, np.netport_pk, np.hwaddress, np.second_device_fk, d.name as device FROM view_netport_v1 np JOIN view_device_v1 d ON d.device_pk = np.device_fk&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )

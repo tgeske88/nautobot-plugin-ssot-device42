@@ -50,8 +50,7 @@ class NautobotPatchPanel(PatchPanel):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Patch Panel Device in Nautobot."""
-        if diffsync.job.kwargs.get("debug"):
-            diffsync.job.log_debug(message=f"Creating patch panel {ids['name']}.")
+        diffsync.job.log_info(message=f"Creating Patch Panel {ids['name']} Device.")
         try:
             diffsync.device_map[ids["name"]]
         except KeyError:
@@ -88,6 +87,7 @@ class NautobotPatchPanel(PatchPanel):
     def update(self, attrs):
         """Update Patch Panel object in Nautobot."""
         ppanel = Device.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Patch Panel {ppanel.name} Device.")
         if "in_service" in attrs:
             if attrs["in_service"] is True:
                 ppanel.status_id = self.diffsync.status_map["active"]
@@ -95,10 +95,10 @@ class NautobotPatchPanel(PatchPanel):
                 ppanel.status_id = self.diffsync.status_map["offline"]
         if "vendor" in attrs and "model" in attrs:
             ppanel.device_type = DeviceType.objects.get(model=attrs["model"])
-            if attrs.get("size"):
-                ppanel.device_type.u_height = int(attrs["size"])
-            if attrs.get("depth"):
-                ppanel.device_type.is_full_depth = bool(attrs["depth"] == "Full Depth")
+        if attrs.get("size"):
+            ppanel.device_type.u_height = int(attrs["size"])
+        if attrs.get("depth"):
+            ppanel.device_type.is_full_depth = bool(attrs["depth"] == "Full Depth")
         if "orientation" in attrs:
             ppanel.face = attrs["orientation"]
         if "position" in attrs:
@@ -130,8 +130,7 @@ class NautobotPatchPanel(PatchPanel):
             ppanel.validated_save()
             return super().update(attrs)
         except ValidationError as err:
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_warning(message=f"Unable to update {self.name} patch panel. {err}")
+            self.diffsync.job.log_warning(message=f"Unable to update {self.name} patch panel. {err}")
             return None
 
     def delete(self):
@@ -143,8 +142,7 @@ class NautobotPatchPanel(PatchPanel):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_warning(message=f"Patch panel {self.name} will be deleted.")
+            self.diffsync.job.log_info(message=f"Patch panel {self.name} will be deleted.")
             _pp = Device.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["patchpanel"].append(_pp)  # pylint: disable=protected-access
         return self
@@ -156,8 +154,7 @@ class NautobotPatchPanelRearPort(PatchPanelRearPort):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Patch Panel Port in Nautobot."""
-        if diffsync.job.kwargs.get("debug"):
-            diffsync.job.log_debug(message=f"Creating patch panel port {ids['name']} for {ids['patchpanel']}.")
+        diffsync.job.log_info(message=f"Creating patch panel port {ids['name']} for {ids['patchpanel']}.")
         try:
             diffsync.rp_map[ids["patchpanel"]][ids["name"]]
         except KeyError:
@@ -181,22 +178,21 @@ class NautobotPatchPanelRearPort(PatchPanelRearPort):
     def update(self, attrs):
         """Update RearPort object in Nautobot."""
         port = RearPort.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating patch panel port {port.name} for {self.patchpanel}.")
         if "type" in attrs:
             port.type = attrs["type"]
         try:
             port.validated_save()
             return super().update(attrs)
         except ValidationError as err:
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_warning(message=f"Unable to update {self.name} RearPort. {err}")
+            self.diffsync.job.log_warning(message=f"Unable to update {self.name} RearPort. {err}")
             return None
 
     def delete(self):
         """Delete RearPort object from Nautobot."""
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_warning(message=f"RearPort {self.name} for {self.patchpanel} will be deleted.")
+            self.diffsync.job.log_info(message=f"RearPort {self.name} for {self.patchpanel} will be deleted.")
             port = RearPort.objects.get(id=self.uuid)
             port.delete()
         return self
@@ -208,8 +204,7 @@ class NautobotPatchPanelFrontPort(PatchPanelFrontPort):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Patch Panel FrontPort in Nautobot."""
-        if diffsync.job.kwargs.get("debug"):
-            diffsync.job.log_debug(message=f"Creating patch panel front port {ids['name']} for {ids['patchpanel']}.")
+        diffsync.job.log_info(message=f"Creating patch panel front port {ids['name']} for {ids['patchpanel']}.")
         try:
             diffsync.fp_map[ids["patchpanel"]][ids["name"]]
         except KeyError:
@@ -227,29 +222,27 @@ class NautobotPatchPanelFrontPort(PatchPanelFrontPort):
                 diffsync.fp_map[ids["patchpanel"]][ids["name"]] = front_port.id
                 return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
             except ValidationError as err:
-                if diffsync.job.kwargs.get("debug"):
-                    diffsync.job.log_debug(message=f"Unable to create patch panel front port {ids['name']}. {err}")
+                diffsync.job.log_debug(message=f"Unable to create patch panel front port {ids['name']}. {err}")
                 return None
 
     def update(self, attrs):
         """Update FrontPort object in Nautobot."""
         port = FrontPort.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating patch panel front port {self.name} for {self.patchpanel}.")
         if "type" in attrs:
             port.type = attrs["type"]
         try:
             port.validated_save()
             return super().update(attrs)
         except ValidationError as err:
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_warning(message=f"Unable to update {self.name} FrontPort. {err}")
+            self.diffsync.job.log_warning(message=f"Unable to update {self.name} FrontPort. {err}")
             return None
 
     def delete(self):
         """Delete FrontPort object from Nautobot."""
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_warning(message=f"FrontPort {self.name} for {self.patchpanel} will be deleted.")
+            self.diffsync.job.log_info(message=f"FrontPort {self.name} for {self.patchpanel} will be deleted.")
             port = FrontPort.objects.get(id=self.uuid)
             port.delete()
         return self

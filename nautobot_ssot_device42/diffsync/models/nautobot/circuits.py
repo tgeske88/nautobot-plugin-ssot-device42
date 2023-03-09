@@ -20,6 +20,7 @@ class NautobotProvider(Provider):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Provider object in Nautobot."""
+        diffsync.job.log_info(message=f"Creating Provider {ids['name']}.")
         try:
             _provider = diffsync.provider_map[slugify(ids["name"])]
         except KeyError:
@@ -47,6 +48,7 @@ class NautobotProvider(Provider):
     def update(self, attrs):
         """Update Provider object in Nautobot."""
         _prov = OrmProvider.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Provider {_prov.name}.")
         if "notes" in attrs:
             _prov.comments = attrs["notes"]
         if "vendor_url" in attrs:
@@ -58,12 +60,7 @@ class NautobotProvider(Provider):
         if "vendor_contact2" in attrs:
             _prov.admin_contact = attrs["vendor_contact2"]
         if "tags" in attrs:
-            tags_to_add = list(set(attrs["tags"]).difference(list(_prov.tags.names())))
-            for _tag in nautobot.get_tags(tags_to_add):
-                _prov.tags.add(_tag)
-            tags_to_remove = list(set(_prov.tags.names()).difference(attrs["tags"]))
-            for _tag in tags_to_remove:
-                _prov.tags.remove(_tag)
+            nautobot.update_tags(tagged_obj=_prov, new_tags=attrs["tags"])
         _prov.validated_save()
         return super().update(attrs)
 
@@ -75,7 +72,7 @@ class NautobotProvider(Provider):
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         if PLUGIN_CFG.get("delete_on_sync"):
-            self.diffsync.job.log_warning(message=f"Provider {self.name} will be deleted.")
+            self.diffsync.job.log_info(message=f"Provider {self.name} will be deleted.")
             super().delete()
             provider = OrmProvider.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["provider"].append(provider)  # pylint: disable=protected-access
@@ -88,6 +85,7 @@ class NautobotCircuit(Circuit):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Circuit object in Nautobot."""
+        diffsync.job.log_info(message=f"Creating Circuit {ids['circuit_id']}.")
         try:
             diffsync.circuit_map[ids["circuit_id"]]
         except KeyError:
@@ -131,6 +129,7 @@ class NautobotCircuit(Circuit):
     def update(self, attrs):
         """Update Circuit object in Nautobot."""
         _circuit = OrmCircuit.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Circuit {_circuit.cid}.")
         if "notes" in attrs:
             _circuit.comments = attrs["notes"]
         if "type" in attrs:
@@ -158,12 +157,7 @@ class NautobotCircuit(Circuit):
                 circuit=_circuit,
             )
         if "tags" in attrs:
-            tags_to_add = list(set(attrs["tags"]).difference(list(_circuit.tags.names())))
-            for _tag in nautobot.get_tags(tags_to_add):
-                _circuit.tags.add(_tag)
-            tags_to_remove = list(set(_circuit.tags.names()).difference(attrs["tags"]))
-            for _tag in tags_to_remove:
-                _circuit.tags.remove(_tag)
+            nautobot.update_tags(tagged_obj=_circuit, new_tags=attrs["tags"])
         _circuit.validated_save()
         return super().update(attrs)
 
@@ -216,7 +210,7 @@ class NautobotCircuit(Circuit):
         in the correct order. This is used in the Nautobot adapter sync_complete function.
         """
         if PLUGIN_CFG.get("delete_on_sync"):
-            self.diffsync.job.log_warning(message=f"Circuit {self.circuit_id} will be deleted.")
+            self.diffsync.job.log_info(message=f"Circuit {self.circuit_id} will be deleted.")
             super().delete()
             circuit = OrmCircuit.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["circuit"].append(circuit)  # pylint: disable=protected-access

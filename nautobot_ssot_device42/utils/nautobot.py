@@ -3,12 +3,14 @@ from typing import List, OrderedDict
 from uuid import UUID
 
 import random
+from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
 from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
-from nautobot.extras.models import Tag, Relationship
+from nautobot.extras.choices import CustomFieldTypeChoices
+from nautobot.extras.models import Tag, Relationship, CustomField
 
 try:
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
@@ -66,13 +68,10 @@ def verify_platform(diffsync, platform_name: str, manu: UUID) -> UUID:
         _name = ANSIBLE_LIB_MAPPER_REVERSE[platform_name]
     else:
         _name = platform_name
-    if platform_name in NAPALM_LIB_MAPPER_REVERSE:
+    if NAPALM_LIB_MAPPER_REVERSE.get(platform_name):
         napalm_driver = NAPALM_LIB_MAPPER_REVERSE[platform_name]
     else:
-        if "cisco_" in platform_name:
-            napalm_driver = platform_name.strip("cisco_")
-        else:
-            napalm_driver = platform_name
+        napalm_driver = platform_name
     try:
         platform_obj = diffsync.platform_map[slugify(platform_name)]
     except KeyError:
@@ -153,6 +152,22 @@ def get_tags(tag_list: List[str]) -> List[Tag]:
     return [get_or_create_tag(x) for x in tag_list if x != ""]
 
 
+def update_tags(tagged_obj: object, new_tags: List[str]):
+    """Update tags on Nautobot object to match what is provided in new tags.
+
+    Args:
+        tagged_obj (object): Nautobot object with Tags attached.
+        new_tags (List[str]): List of updated Tags.
+    """
+    current_tags = tagged_obj.tags.names()
+    for tag in new_tags:
+        if tag not in current_tags:
+            tagged_obj.tags.add(tag)
+    for tag in current_tags:
+        if tag not in new_tags:
+            tagged_obj.tags.remove(tag)
+
+
 def get_tag_strings(list_tags: TaggableManager) -> List[str]:
     """Gets string values of all Tags in a list.
 
@@ -170,24 +185,48 @@ def get_tag_strings(list_tags: TaggableManager) -> List[str]:
     return _strings
 
 
-def get_custom_field_dicts(cfields: OrderedDict) -> List[dict]:
-    """Creates list of CustomField dicts with CF key, value, and description.
+def get_custom_field_dict(cfields: OrderedDict) -> dict:
+    """Creates dictionary of CustomField with CF key, value, and description.
 
     Args:
         cfields (OrderedDict): List of CustomFields with their value.
 
     Returns:
-        cf_list (List[dict]): Return a list of CustomField dicts with key, value, and note (description).
+        cf_dict (dict): Return a dict of CustomField with key, value, and note (description).
     """
-    cf_list = []
+    cf_dict = {}
     for _cf, _cf_value in cfields.items():
-        custom_field = {
+        cf_dict[_cf.label] = {
             "key": _cf.label,
             "value": _cf_value,
             "notes": _cf.description if _cf.description != "" else None,
         }
-        cf_list.append(custom_field)
-    return sorted(cf_list, key=lambda d: d["key"])
+    return cf_dict
+
+
+def update_custom_fields(new_cfields: dict, update_obj: object):
+    """Update passed object's CustomFields.
+
+    Args:
+        new_cfields (OrderedDict): Dictionary of CustomFields on object to be updated to match.
+        update_obj (object): Object to be updated with CustomFields.
+    """
+    obj_contenttype = ContentType.objects.get_for_model(type(update_obj))
+    current_cf = get_custom_field_dict(update_obj.get_custom_fields())
+    for old_cf, old_cf_dict in current_cf.items():
+        if old_cf not in new_cfields:
+            removed_cf = CustomField.objects.get(label=old_cf_dict["key"], content_types=obj_contenttype)
+            removed_cf.delete()
+    for new_cf, new_cf_dict in new_cfields.items():
+        if new_cf not in current_cf:
+            _cf_dict = {
+                "name": slugify(new_cf_dict["key"]),
+                "type": CustomFieldTypeChoices.TYPE_TEXT,
+                "label": new_cf_dict["key"],
+            }
+            field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
+            field.content_types.add(obj_contenttype.id)
+        update_obj.custom_field_data.update({slugify(new_cf_dict["key"]): new_cf_dict["value"]})
 
 
 def verify_circuit_type(circuit_type: str) -> CircuitType:

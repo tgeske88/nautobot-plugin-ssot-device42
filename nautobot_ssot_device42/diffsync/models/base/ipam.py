@@ -16,7 +16,7 @@ class VRFGroup(DiffSyncModel):
     name: str
     description: Optional[str]
     tags: Optional[List[str]]
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -36,7 +36,7 @@ class Subnet(DiffSyncModel):
     description: Optional[str]
     vrf: Optional[str]
     tags: Optional[List[str]]
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -56,7 +56,7 @@ class IPAddress(DiffSyncModel):
     primary: Optional[bool]
     vrf: Optional[str]
     tags: Optional[List[str]]
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -76,5 +76,5 @@ class VLAN(DiffSyncModel):
     vlan_id: int
     description: Optional[str]
     building: Optional[str]
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]

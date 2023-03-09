@@ -118,6 +118,8 @@ def get_netmiko_platform(network_os: str) -> str:
         str: Netmiko platform name or original if no match.
     """
     if network_os:
+        if network_os == "f5":
+            network_os = "bigip"
         net_os = network_os.replace("-", "")
         if net_os in PYATS_LIB_MAPPER:
             return PYATS_LIB_MAPPER[net_os]
@@ -149,6 +151,21 @@ def get_facility(tags: List[str], diffsync=None):  # pylint: disable=inconsisten
     for _tag in tags:
         if re.search(PLUGIN_CFG.get("facility_prepend"), _tag):
             return re.sub(PLUGIN_CFG.get("facility_prepend"), "", _tag)
+
+
+def get_custom_field_dict(cfields: List[dict]) -> dict:
+    """Creates dictionary of CustomField with CF key, value, and description.
+
+    Args:
+        cfields (List[dict]): List of Custom Fields with their value and notes.
+
+    Returns:
+        cf_dict (dict): Return a dict of CustomField with key, value, and note (description).
+    """
+    cf_dict = {}
+    for cfield in cfields:
+        cf_dict[cfield["key"]] = cfield
+    return cf_dict
 
 
 class Device42API:  # pylint: disable=too-many-public-methods
@@ -324,6 +341,10 @@ class Device42API:  # pylint: disable=too-many-public-methods
         """Method to get all Hardware Models from Device42."""
         return self.api_call(path="api/1.0/hardwares")["models"]
 
+    def get_devices(self) -> List[dict]:
+        """Method to get all Network Devices from Device42."""
+        return self.api_call(path="api/1.0/devices/all/?is_it_switch=yes")["Devices"]
+
     def get_cluster_members(self) -> dict:
         """Method to get all member devices of a cluster from Device42.
 
@@ -375,7 +396,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         """
         query = "SELECT cf.key, cf.value, cf.notes FROM view_netport_custom_fields_v1 cf"
         results = self.doql_query(query=query)
-        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
+        return self.get_all_custom_fields(results)
 
     def get_port_custom_fields(self) -> dict:
         """Method to retrieve custom fields for Ports from Device42.
@@ -389,15 +410,22 @@ class Device42API:  # pylint: disable=too-many-public-methods
         for _cf in results:
             _fields[_cf["device_name"]] = {}
         for _cf in results:
-            _fields[_cf["device_name"]][_cf["port_name"]] = []
+            _fields[_cf["device_name"]][_cf["port_name"]] = {}
         for _cf in results:
-            _field = {
+            _fields[_cf["device_name"]][_cf["port_name"]][_cf["key"]] = {
                 "key": _cf["key"],
                 "value": _cf["value"],
                 "notes": _cf["notes"],
             }
-            _fields[_cf["device_name"]][_cf["port_name"]].append(_field)
         return _fields
+
+    def get_vrfgroups(self) -> dict:
+        """Method to retrieve VRF Groups from Device42.
+
+        Returns:
+            dict: Response from Device42 containing VRFGroups.
+        """
+        return self.api_call(path="api/1.0/vrfgroup/")["vrfgroup"]
 
     def get_subnets(self) -> List[dict]:
         """Method to get all subnets and associated data from Device42.
@@ -408,40 +436,39 @@ class Device42API:  # pylint: disable=too-many-public-methods
         query = "SELECT s.name, s.network, s.mask_bits, s.tags, v.name as vrf FROM view_subnet_v1 s JOIN view_vrfgroup_v1 v ON s.vrfgroup_fk = v.vrfgroup_pk"
         return self.doql_query(query=query)
 
-    def get_subnet_default_custom_fields(self) -> List[dict]:
+    def get_subnet_default_custom_fields(self) -> dict:
         """Method to retrieve the default CustomFields for Subnets from Device42.
 
         This is needed to ensure all Subnets have same CustomFields to match Nautobot.
 
         Returns:
-            List[dict]: List of dictionaries of CustomFields matching D42 format from the API without values.
+            dict: Dictionary of CustomFields matching D42 format from the API without values.
         """
         query = "SELECT cf.key, cf.value, cf.notes FROM view_subnet_custom_fields_v1 cf"
         results = self.doql_query(query=query)
-        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
+        return self.get_all_custom_fields(results)
 
-    def get_subnet_custom_fields(self) -> List[dict]:
+    def get_subnet_custom_fields(self) -> dict:
         """Method to retrieve custom fields for Subnets from Device42.
 
         Returns:
-            List[dict]: List of dictionaries of CustomFields matching D42 format from the API.
+            dict: Dictionary of dictionaries of CustomFields matching D42 format from the API.
         """
         query = "SELECT cf.key, cf.value, cf.notes, s.name AS subnet_name, s.network, s.mask_bits FROM view_subnet_custom_fields_v1 cf LEFT JOIN view_subnet_v1 s ON s.subnet_pk = cf.subnet_fk"
         results = self.doql_query(query=query)
+
+        default_cfs = self.get_subnet_default_custom_fields()
+
         _fields = {}
         for _cf in results:
-            _fields[f"{_cf['network']}/{_cf['mask_bits']}"] = []
+            _fields[f"{_cf['network']}/{_cf['mask_bits']}"] = default_cfs
+
         for _cf in results:
-            _field = {
+            _fields[f"{_cf['network']}/{_cf['mask_bits']}"][_cf["key"]] = {
                 "key": _cf["key"],
                 "value": _cf["value"],
                 "notes": _cf["notes"],
             }
-            _fields[f"{_cf['network']}/{_cf['mask_bits']}"].append(_field)
-
-        for _, cfields in _fields.items():
-            cfields = sorted(cfields, key=lambda d: d["key"])
-
         return _fields
 
     def get_ip_addrs(self) -> List[dict]:
@@ -450,26 +477,26 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             List[dict]: List of dicts with info about each IP address.
         """
-        query = "SELECT i.ip_address, i.available, i.label, i.tags, np.port AS port_name, s.network as subnet, s.mask_bits as netmask, v.name as vrf, d.name as device FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_device_v1 d ON d.device_pk = i.device_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0"
+        query = "SELECT i.ip_address, i.available, i.label, i.tags, np.netport_pk, s.network as subnet, s.mask_bits as netmask, v.name as vrf FROM view_ipaddress_v1 i LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk LEFT JOIN view_netport_v1 np ON np.netport_pk = i.netport_fk LEFT JOIN view_vrfgroup_v1 v ON v.vrfgroup_pk = s.vrfgroup_fk WHERE s.mask_bits <> 0"
         return self.doql_query(query=query)
 
-    def get_ipaddr_default_custom_fields(self) -> List[dict]:
+    def get_ipaddr_default_custom_fields(self) -> dict:
         """Method to retrieve the default CustomFields for IP Addresses from Device42.
 
         This is needed to ensure all IPAddresses have same CustomFields to match Nautobot.
 
         Returns:
-            List[dict]: List of dictionaries of CustomFields matching D42 format from the API without values.
+            dict: Dictionary of CustomFields with label as key and remaining info as value.
         """
         query = "SELECT cf.key, cf.value, cf.notes FROM view_ipaddress_custom_fields_v1 cf"
         results = self.doql_query(query=query)
-        return sorted(self.get_all_custom_fields(results), key=lambda d: d["key"])
+        return self.get_all_custom_fields(results)
 
-    def get_ipaddr_custom_fields(self) -> List[dict]:
+    def get_ipaddr_custom_fields(self) -> dict:
         """Method to retrieve the CustomFields for IP Addresses from Device42.
 
         Returns:
-            List[dict]: List of dictionaries of CustomFields matching D42 format from the API with values.
+            dict: Dictionary of CustomFields from D42 matched to IP Addressmatching D42 format from the API with values.
         """
         query = "SELECT cf.key, cf.value, cf.notes, i.ip_address, s.mask_bits FROM view_ipaddress_custom_fields_v1 cf LEFT JOIN view_ipaddress_v1 i ON i.ipaddress_pk = cf.ipaddress_fk LEFT JOIN view_subnet_v1 s ON s.subnet_pk = i.subnet_fk"
         results = self.doql_query(query=query)
@@ -478,24 +505,18 @@ class Device42API:  # pylint: disable=too-many-public-methods
 
         _fields = {}
         for _cf in results:
-            _fields[f"{_cf['ip_address']}/{_cf['mask_bits']}"] = default_cfs
-
-        for _cf in results:
-            _field = {
+            addr = f"{_cf['ip_address']}/{_cf['mask_bits']}"
+            if addr not in _fields:
+                _fields[addr] = default_cfs
+            _fields[addr][_cf["key"]] = {
                 "key": _cf["key"],
                 "value": _cf["value"],
                 "notes": _cf["notes"],
             }
-            _fields[f"{_cf['ip_address']}/{_cf['mask_bits']}"].append(_field)
-
-        for _ip, _item in _fields.items():
-            _fields[_ip] = list({x["key"]: x for x in _item}.values())
-        for _ip, cfields in _fields.items():
-            _fields[_ip] = sorted(cfields, key=lambda d: d["key"])
         return _fields
 
     @staticmethod
-    def get_all_custom_fields(custom_fields: List[dict]) -> List[dict]:
+    def get_all_custom_fields(custom_fields: List[dict]) -> dict:
         """Get all Custom Fields for object.
 
         As Device42 only returns CustomFields with values in them when using DOQL, we need to compile a list of all Custom Fields on an object to match Nautobot method.
@@ -504,17 +525,16 @@ class Device42API:  # pylint: disable=too-many-public-methods
             custom_fields (List[dict]): List of Custom Fields for an object.
 
         Returns:
-            List[dict]: List of all Custom Fields nulled.
+            dict: List of all Custom Fields nulled.
         """
-        _cfs = []
+        _cfs = {}
         for _cf in custom_fields:
-            _field = {
+            _cfs[_cf["key"]] = {
                 "key": _cf["key"],
                 "value": None,
                 "notes": None,
             }
-            _cfs.append(_field)
-        return list({x["key"]: x for x in _cfs}.values())
+        return _cfs
 
     def get_vlans_with_location(self) -> List[dict]:
         """Method to get all VLANs with Building and Customer info to attach to find Site.
@@ -537,15 +557,14 @@ class Device42API:  # pylint: disable=too-many-public-methods
         vlans_cfs = self.doql_query(query=cfields_query)
         vlan_dict = {str(x["vlan_pk"]): {"name": x["name"], "vid": x["vid"]} for x in doql_vlans}
         for _cf in vlans_cfs:
-            if str(_cf["vlan_pk"]) in vlan_dict.keys():
-                vlan_dict[str(_cf["vlan_pk"])]["custom_fields"] = []
+            if str(_cf["vlan_pk"]) in vlan_dict:
+                vlan_dict[str(_cf["vlan_pk"])]["custom_fields"] = {}
         for _cf in vlans_cfs:
-            _field = {
+            vlan_dict[str(_cf["vlan_pk"])]["custom_fields"][_cf["key"]] = {
                 "key": _cf["key"],
                 "value": _cf["value"],
                 "notes": _cf["notes"],
             }
-            vlan_dict[str(_cf["vlan_pk"])]["custom_fields"].append(_field)
         return vlan_dict
 
     def get_device_pks(self) -> dict:
@@ -564,7 +583,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             dict: Dict of ports where key is the primary key of the Port with the port name.
         """
-        query = "SELECT np.port, np.netport_pk, np.hwaddress, d.name as device FROM view_netport_v1 np JOIN view_device_v1 d ON d.device_pk = np.device_fk"
+        query = "SELECT np.port, np.netport_pk, np.hwaddress, np.second_device_fk, d.name as device FROM view_netport_v1 np JOIN view_device_v1 d ON d.device_pk = np.device_fk"
         _ports = self.doql_query(query=query)
         for _port in _ports:
             if not _port["port"] and _port.get("hwaddress"):

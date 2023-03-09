@@ -22,6 +22,15 @@ ROOM_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_rooms_recv
 RACK_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_racks_recv.json")
 VENDOR_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vendors_recv.json")
 HARDWARE_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_hardware_models_recv.json")
+VRFGROUP_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vrfgroups_recv.json")
+VLAN_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_vlans_with_location.json")
+SUBNET_DEFAULT_CFS_FIXTURE = load_json(
+    "./nautobot_ssot_device42/tests/fixtures/get_subnet_default_custom_fields_recv.json"
+)
+SUBNET_CFS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnet_custom_fields_recv.json")
+SUBNET_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnets.json")
+DEVICE_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_devices_recv.json")
+CLUSTER_MEMBER_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_cluster_members_recv.json")
 
 
 class Device42AdapterTestCase(TransactionTestCase):
@@ -38,6 +47,13 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.d42_client.get_racks.return_value = RACK_FIXTURE
         self.d42_client.get_vendors.return_value = VENDOR_FIXTURE
         self.d42_client.get_hardware_models.return_value = HARDWARE_FIXTURE
+        self.d42_client.get_vrfgroups.return_value = VRFGROUP_FIXTURE
+        self.d42_client.get_vlans_with_location.return_value = VLAN_FIXTURE
+        self.d42_client.get_subnet_default_custom_fields.return_value = SUBNET_DEFAULT_CFS_FIXTURE
+        self.d42_client.get_subnet_custom_fields.return_value = SUBNET_CFS_FIXTURE
+        self.d42_client.get_subnets.return_value = SUBNET_FIXTURE
+        self.d42_client.get_devices.return_value = DEVICE_FIXTURE
+        self.d42_client.get_cluster_members.return_value = CLUSTER_MEMBER_FIXTURE
 
         self.job = Device42DataSource()
         self.job.job_result = JobResult.objects.create(
@@ -72,6 +88,26 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {model["name"] for model in HARDWARE_FIXTURE},
             {model.get_unique_id() for model in self.device42.get_all("hardware")},
+        )
+        self.device42.load_vrfgroups()
+        self.assertEqual(
+            {vrf["name"] for vrf in VRFGROUP_FIXTURE},
+            {vrf.get_unique_id() for vrf in self.device42.get_all("vrf")},
+        )
+        self.device42.load_vlans()
+        self.assertEqual(
+            {f"{vlan['vlan_name']}__{vlan['vid']}__{vlan['building']}" for vlan in VLAN_FIXTURE},
+            {vlan.get_unique_id() for vlan in self.device42.get_all("vlan")},
+        )
+        self.device42.load_subnets()
+        self.assertEqual(
+            {f"{net['network']}__{net['mask_bits']}__{net['vrf']}" for net in SUBNET_FIXTURE},
+            {net.get_unique_id() for net in self.device42.get_all("subnet")},
+        )
+        self.device42.load_devices_and_clusters()
+        self.assertEqual(
+            {dev["name"] for dev in DEVICE_FIXTURE},
+            {dev.get_unique_id() for dev in self.device42.get_all("device")},
         )
 
     statuses = [

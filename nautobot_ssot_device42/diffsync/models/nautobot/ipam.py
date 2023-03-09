@@ -4,7 +4,6 @@ import re
 from django.contrib.contenttypes.models import ContentType
 from django.forms import ValidationError
 from django.utils.text import slugify
-from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface as OrmInterface
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
@@ -25,11 +24,12 @@ class NautobotVRFGroup(VRFGroup):
     def create(cls, diffsync, ids, attrs):
         """Create VRF object in Nautobot."""
         _vrf = OrmVRF(name=ids["name"], description=attrs["description"])
+        diffsync.job.log_info(message=f"Creating VRF {_vrf.name}.")
         if attrs.get("tags"):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -45,26 +45,16 @@ class NautobotVRFGroup(VRFGroup):
     def update(self, attrs):
         """Update VRF object in Nautobot."""
         _vrf = OrmVRF.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating VRF {_vrf.name}.")
         if "description" in attrs:
             _vrf.description = attrs["description"]
         if "tags" in attrs:
             if attrs.get("tags"):
-                tags_to_add = list(set(attrs["tags"]).difference(list(_vrf.tags.names())))
-                for _tag in nautobot.get_tags(tags_to_add):
-                    _vrf.tags.add(_tag)
-                tags_to_remove = list(set(_vrf.tags.names()).difference(attrs["tags"]))
-                for _tag in tags_to_remove:
-                    _vrf.tags.remove(_tag)
+                nautobot.update_tags(tagged_obj=_vrf, new_tags=attrs["tags"])
+            else:
+                _vrf.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVRF).id)
-                _vrf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vrf)
         _vrf.validated_save()
         return super().update(attrs)
 
@@ -77,8 +67,7 @@ class NautobotVRFGroup(VRFGroup):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_warning(message=f"VRF {self.name} will be deleted.")
+            self.diffsync.job.log_info(message=f"VRF {self.name} will be deleted.")
             vrf = OrmVRF.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["vrf"].append(vrf)  # pylint: disable=protected-access
         return self
@@ -94,8 +83,10 @@ class NautobotSubnet(Subnet):
             vrf_name = ids["vrf"]
         else:
             vrf_name = "unknown"
+        prefix = f"{ids['network']}/{ids['mask_bits']}"
+        diffsync.job.log_info(message=f"Creating Prefix {prefix} in VRF {vrf_name}.")
         _pf = OrmPrefix(
-            prefix=f"{ids['network']}/{ids['mask_bits']}",
+            prefix=prefix,
             vrf_id=diffsync.vrf_map[vrf_name],
             description=attrs["description"],
             status_id=diffsync.status_map["active"],
@@ -104,7 +95,7 @@ class NautobotSubnet(Subnet):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _pf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
+            for _cf in attrs["custom_fields"].values():
                 _cf_dict = {
                     "name": slugify(_cf["key"]),
                     "type": CustomFieldTypeChoices.TYPE_TEXT,
@@ -122,26 +113,16 @@ class NautobotSubnet(Subnet):
     def update(self, attrs):
         """Update Prefix object in Nautobot."""
         _pf = OrmPrefix.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Prefix {_pf.prefix}.")
         if "description" in attrs:
             _pf.description = attrs["description"]
         if "tags" in attrs:
             if attrs.get("tags"):
-                tags_to_add = list(set(attrs["tags"]).difference(list(_pf.tags.names())))
-                for _tag in nautobot.get_tags(tags_to_add):
-                    _pf.tags.add(_tag)
-                tags_to_remove = list(set(_pf.tags.names()).difference(attrs["tags"]))
-                for _tag in tags_to_remove:
-                    _pf.tags.remove(_tag)
+                nautobot.update_tags(tagged_obj=_pf, new_tags=attrs["tags"])
+            else:
+                _pf.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmPrefix).id)
-                _pf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_pf)
         _pf.validated_save()
         return super().update(attrs)
 
@@ -154,8 +135,7 @@ class NautobotSubnet(Subnet):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_debug(message=f"Subnet {self.network} will be deleted.")
+            self.diffsync.job.log_info(message=f"Prefix {self.network} will be deleted.")
             subnet = OrmPrefix.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
         return self
@@ -191,6 +171,7 @@ class NautobotIPAddress(IPAddress):
         )
         if attrs.get("device") and attrs.get("interface"):
             try:
+                diffsync.job.log_info(message=f"Creating IPAddress {_address}.")
                 intf = diffsync.port_map[attrs["device"]][attrs["interface"]]
                 _ip.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ip.assigned_object_id = intf
@@ -208,18 +189,9 @@ class NautobotIPAddress(IPAddress):
             if re.search(r"[Ll]oopback", attrs["interface"]):
                 _ip.role = "loopback"
         if attrs.get("tags"):
-            for _tag in nautobot.get_tags(attrs["tags"]):
-                _ip.tags.add(_tag)
+            nautobot.update_tags(tagged_obj=_ip, new_tags=attrs["tags"])
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmIPAddress).id)
-                _ip.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_ip)
         diffsync.objects_to_create["ipaddrs"].append(_ip)
         if ids.get("vrf"):
             vrf_name = ids["vrf"]
@@ -240,6 +212,9 @@ class NautobotIPAddress(IPAddress):
                     message="IP Address passed to update but can't be found. This shouldn't happen. Why is this happening?!?!"
                 )
             return
+        self.diffsync.job.log_info(
+            message=f"Updating IPAddress {_ipaddr.address} for {_ipaddr.vrf.name if _ipaddr.vrf else ''}"
+        )
         if "available" in attrs:
             _ipaddr.status = (
                 OrmStatus.objects.get(name="Active")
@@ -248,7 +223,7 @@ class NautobotIPAddress(IPAddress):
             )
         if "label" in attrs:
             _ipaddr.description = attrs["label"] if attrs.get("label") else ""
-        if ("device" in attrs and attrs["device"] != "") and ("interface" in attrs and attrs["interface"] != ""):
+        if attrs.get("device") and attrs.get("interface"):
             _device = attrs["device"]
             try:
                 intf = OrmInterface.objects.get(device__name=_device, name=attrs["interface"])
@@ -264,17 +239,15 @@ class NautobotIPAddress(IPAddress):
                     self.diffsync.job.log_debug(
                         message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
                     )
-        elif "device" in attrs and attrs["device"] == "":
+        elif attrs.get("device"):
             try:
                 intf = OrmInterface.objects.get(device=_ipaddr.assigned_object.device, name=self.interface)
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
-                _dev = None
+                _dev = _ipaddr.assigned_object.device
                 if hasattr(_ipaddr, "primary_ip4_for"):
-                    _dev = OrmDevice.objects.get(name=_ipaddr.primary_ip4_for)
                     _dev.primary_ip4 = None
                 elif hasattr(_ipaddr, "primary_ip6_for"):
-                    _dev = OrmDevice.objects.get(name=_ipaddr.primary_ip6_for)
                     _dev.primary_ip6 = None
                 if _dev:
                     _dev.validated_save()
@@ -283,7 +256,7 @@ class NautobotIPAddress(IPAddress):
                     self.diffsync.job.log_debug(
                         message=f"Unable to find Interface {attrs['interface']} for {str(_ipaddr.assigned_object.device)} {err}"
                     )
-        elif "interface" in attrs and attrs["interface"] == "":
+        elif attrs.get("interface"):
             try:
                 if attrs.get("device") and attrs["device"] in self.diffsync.port_map:
                     intf = self.diffsync.port_map[attrs["device"]][attrs["interface"]]
@@ -293,58 +266,25 @@ class NautobotIPAddress(IPAddress):
                         )
                 else:
                     intf = self.diffsync.port_map[self.device][attrs["interface"]]
-                _ipaddr.assigned_object_type_id = ContentType.objects.get(app_label="dcim", model="interface")
+                _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf
             except KeyError as err:
                 if self.diffsync.job.kwargs.get("debug"):
                     self.diffsync.job.log_debug(
                         message=f"Unable to find Interface {self.interface} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
                     )
-        elif "device" in attrs and attrs["device"] != "":
-            intf = None
-            if self.interface or attrs.get("interface"):
-                try:
-                    intf = self.diffsync.port_map[attrs["device"]][self.interface]
-                except KeyError as err:
-                    if self.diffsync.job.kwargs.get("debug"):
-                        self.diffsync.job.log_debug(
-                            message=f"Unable to find Interface {self.interface} for {attrs['device']}. {err}"
-                        )
-            elif self.label or attrs.get("label"):
-                try:
-                    intf = self.diffsync.port_map[attrs["device"]][self.label]
-                except KeyError as err:
-                    if self.diffsync.job.kwargs.get("debug"):
-                        self.diffsync.job.log_debug(
-                            message=f"Unable to find Interface {self.interface} for {attrs['device']} with label {self.label}. {err}"
-                        )
-            if intf:
-                _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
-                _ipaddr.assigned_object_id = intf
-
         if "tags" in attrs:
             if attrs.get("tags"):
-                tags_to_add = list(set(attrs["tags"]).difference(list(_ipaddr.tags.names())))
-                for _tag in nautobot.get_tags(tags_to_add):
-                    _ipaddr.tags.add(_tag)
-                tags_to_remove = list(set(_ipaddr.tags.names()).difference(attrs["tags"]))
-                for _tag in tags_to_remove:
-                    _ipaddr.tags.remove(_tag)
+                nautobot.update_tags(tagged_obj=_ipaddr, new_tags=attrs["tags"])
+            else:
+                _ipaddr.tags.clear()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmIPAddress).id)
-                _ipaddr.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_ipaddr)
         try:
             _ipaddr.validated_save()
             return super().update(attrs)
         except ValidationError as err:
-            print(f"Unable to update IP Address {self.address} with {attrs} {err}")
+            self.diffsync.job.log_warning(message=f"Unable to update IP Address {self.address} with {attrs}. {err}")
             return None
 
     def delete(self):
@@ -356,8 +296,7 @@ class NautobotIPAddress(IPAddress):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_debug(message=f"IP Address {self.address} will be deleted. {self}")
+            self.diffsync.job.log_info(message=f"IP Address {self.address} will be deleted.")
             ipaddr = OrmIPAddress.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["ipaddr"].append(ipaddr)  # pylint: disable=protected-access
         return self
@@ -397,15 +336,7 @@ class NautobotVLAN(VLAN):
         if _site:
             _vlan.site_id = _site
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVLAN).id)
-                _vlan.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vlan)
         diffsync.objects_to_create["vlans"].append(_vlan)
         if ids["building"]:
             _site_name = slugify(ids["building"])
@@ -419,18 +350,11 @@ class NautobotVLAN(VLAN):
     def update(self, attrs):
         """Update VLAN object in Nautobot."""
         _vlan = OrmVLAN.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating VLAN {_vlan.vlan} {_vlan.vid}.")
         if "description" in attrs:
             _vlan.description = attrs["description"] if attrs.get("description") else ""
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"]:
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVLAN).id)
-                _vlan.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vlan)
         _vlan.validated_save()
         return super().update(attrs)
 
@@ -443,8 +367,7 @@ class NautobotVLAN(VLAN):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_debug(message=f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted.")
+            self.diffsync.job.log_info(message=f"VLAN {self.name} {self.vlan_id} {self.building} will be deleted.")
             vlan = OrmVLAN.objects.get(id=self.uuid)
             self.diffsync.objects_to_delete["vlan"].append(vlan)  # pylint: disable=protected-access
         return self

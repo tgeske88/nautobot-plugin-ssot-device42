@@ -21,7 +21,7 @@ class Building(DiffSyncModel):
     contact_phone: Optional[str]
     rooms: List["Room"] = list()
     tags: Optional[List[str]]
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -36,7 +36,7 @@ class Room(DiffSyncModel):
     building: str
     notes: Optional[str]
     racks: List["Rack"] = list()
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -53,7 +53,7 @@ class Rack(DiffSyncModel):
     height: int
     numbering_start_from_bottom: str
     tags: Optional[List[str]]
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -65,7 +65,7 @@ class Vendor(DiffSyncModel):
     _attributes = ("custom_fields",)
     _children = {}
     name: str
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -81,7 +81,7 @@ class Hardware(DiffSyncModel):
     size: float
     depth: Optional[str]
     part_number: Optional[str]
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -90,12 +90,12 @@ class Cluster(DiffSyncModel):
 
     _modelname = "cluster"
     _identifiers = ("name",)
-    _attributes = ("members", "tags", "custom_fields")
+    _attributes = ("tags", "custom_fields")
     _children = {}
     name: str
     members: Optional[List[str]]
     tags: Optional[List[str]]
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -138,7 +138,7 @@ class Device(DiffSyncModel):
     cluster_host: Optional[str]
     master_device: bool
     vc_position: Optional[int]
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
@@ -171,7 +171,7 @@ class Port(DiffSyncModel):
     mode: Optional[str]
     status: str
     vlans: List[dict] = list()
-    custom_fields: Optional[List[dict]]
+    custom_fields: Optional[dict]
     uuid: Optional[UUID]
 
 
