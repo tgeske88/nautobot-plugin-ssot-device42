@@ -229,6 +229,39 @@ class NautobotAdapter(DiffSync):
                         platform.validated_save()
                 except ValidationError as err:
                     self.job.log_warning(message=f"Error with creating platform. {err}")
+        if len(self.objects_to_create["vrfs"]) > 0:
+            if self.job.kwargs["bulk_import"]:
+                self.job.log_info(message="Performing bulk create of VRFs in Nautobot")
+                VRF.objects.bulk_create(self.objects_to_create["vrfs"], batch_size=50)
+            else:
+                self.job.log_info(message="Performing creation of VRFs in Nautobot")
+                try:
+                    for vrf in self.objects_to_create["vrfs"]:
+                        vrf.validated_save()
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Error with creating VRF. {err}")
+        if len(self.objects_to_create["vlans"]) > 0:
+            if self.job.kwargs["bulk_import"]:
+                self.job.log_info(message="Performing bulk create of VLANs in Nautobot")
+                VLAN.objects.bulk_create(self.objects_to_create["vlans"], batch_size=50)
+            else:
+                self.job.log_info(message="Performing creation of VLANs in Nautobot")
+                try:
+                    for vlan in self.objects_to_create["vlans"]:
+                        vlan.validated_save()
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Error with creating VLAN. {err}")
+        if len(self.objects_to_create["prefixes"]) > 0:
+            if self.job.kwargs["bulk_import"]:
+                self.job.log_info(message="Performing bulk create of Prefixes in Nautobot")
+                Prefix.objects.bulk_create(self.objects_to_create["prefixes"], batch_size=50)
+            else:
+                self.job.log_info(message="Performing creation of Prefixes in Nautobot")
+                try:
+                    for prefix in self.objects_to_create["prefixes"]:
+                        prefix.validated_save()
+                except ValidationError as err:
+                    self.job.log_warning(message=f"Error with creating VRF. {err}")
         if len(self.objects_to_create["clusters"]) > 0:
             if self.job.kwargs["bulk_import"]:
                 self.job.log_info(message="Performing bulk create of Virtual Chassis in Nautobot")
@@ -288,39 +321,6 @@ class NautobotAdapter(DiffSync):
                         port.validated_save()
                 except ValidationError as err:
                     self.job.log_warning(message=f"Error with creating front port. {err}")
-        if len(self.objects_to_create["vrfs"]) > 0:
-            if self.job.kwargs["bulk_import"]:
-                self.job.log_info(message="Performing bulk create of VRFs in Nautobot")
-                VRF.objects.bulk_create(self.objects_to_create["vrfs"], batch_size=50)
-            else:
-                self.job.log_info(message="Performing creation of VRFs in Nautobot")
-                try:
-                    for vrf in self.objects_to_create["vrfs"]:
-                        vrf.validated_save()
-                except ValidationError as err:
-                    self.job.log_warning(message=f"Error with creating VRF. {err}")
-        if len(self.objects_to_create["vlans"]) > 0:
-            if self.job.kwargs["bulk_import"]:
-                self.job.log_info(message="Performing bulk create of VLANs in Nautobot")
-                VLAN.objects.bulk_create(self.objects_to_create["vlans"], batch_size=50)
-            else:
-                self.job.log_info(message="Performing creation of VLANs in Nautobot")
-                try:
-                    for vlan in self.objects_to_create["vlans"]:
-                        vlan.validated_save()
-                except ValidationError as err:
-                    self.job.log_warning(message=f"Error with creating VLAN. {err}")
-        if len(self.objects_to_create["prefixes"]) > 0:
-            if self.job.kwargs["bulk_import"]:
-                self.job.log_info(message="Performing bulk create of Prefixes in Nautobot")
-                Prefix.objects.bulk_create(self.objects_to_create["prefixes"], batch_size=50)
-            else:
-                self.job.log_info(message="Performing creation of Prefixes in Nautobot")
-                try:
-                    for prefix in self.objects_to_create["prefixes"]:
-                        prefix.validated_save()
-                except ValidationError as err:
-                    self.job.log_warning(message=f"Error with creating VRF. {err}")
         if len(self.objects_to_create["ipaddrs"]) > 0:
             if self.job.kwargs["bulk_import"]:
                 self.job.log_info(message="Performing bulk create of IP Addresses in Nautobot")
