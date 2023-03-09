@@ -1031,7 +1031,7 @@ class Device42Adapter(DiffSync):
                     name=panel["model_name"],
                     manufacturer=panel["vendor"],
                     size=panel["size"] if panel.get("size") else 1.0,
-                    depth="Half Depth" if panel["depth"] == 2 else "Full Depth",
+                    depth="Full Depth" if panel["depth"] == 1 else "Half Depth",
                     part_number="",
                     custom_fields={},
                     uuid=None,
