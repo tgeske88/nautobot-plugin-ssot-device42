@@ -630,7 +630,7 @@ class NautobotDevice(Device):
                 )
             nautobot.update_tags(tagged_obj=_dev, new_tags=attrs["tags"])
         if attrs.get("custom_fields"):
-            nautobot.update_custom_fields(new_cfields=attrs["custmo_fields"], update_obj=_dev)
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_dev)
         # ensure that VC Master Device is set to that
         if "cluster_host" in attrs or "master_device" in attrs:
             if attrs.get("cluster_host"):
