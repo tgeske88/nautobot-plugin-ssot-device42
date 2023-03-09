@@ -156,6 +156,8 @@ class Device42Adapter(DiffSync):
         self.d42_port_map = self.device42.get_port_pks()
         # mapping of Vendor PK to Vendor info
         self.d42_vendor_map = self.device42.get_vendor_pks()
+        # default custom fields for IP Address
+        self.d42_ipaddr_default_cfs = self.device42.get_ipaddr_default_custom_fields()
 
     def get_building_for_device(self, dev_record: dict) -> str:
         """Method to determine the Building (Site) for a Device.
@@ -652,7 +654,6 @@ class Device42Adapter(DiffSync):
     def load_ip_addresses(self):
         """Load Device42 IP Addresses."""
         self.job.log_info(message="Loading IP Addresses from Device42.")
-        default_cfs = self.device42.get_ipaddr_default_custom_fields()
         _cfs = self.device42.get_ipaddr_custom_fields()
         for _ip in self.device42.get_ip_addrs():
             _ipaddr = f"{_ip['ip_address']}/{str(_ip['netmask'])}"
@@ -680,7 +681,7 @@ class Device42Adapter(DiffSync):
                     primary=False,
                     vrf=_ip["vrf"],
                     tags=_tags,
-                    custom_fields=default_cfs,
+                    custom_fields=self.d42_ipaddr_default_cfs,
                     uuid=None,
                 )
                 if _cfs.get(_ipaddr):
@@ -981,10 +982,10 @@ class Device42Adapter(DiffSync):
             device=dev_name,
             interface=interface,
             primary=True,
-            label=None,
+            label="",
             vrf=None,
-            tags=None,
-            custom_fields=None,
+            tags=[],
+            custom_fields=self.d42_ipaddr_default_cfs,
             uuid=None,
         )
         self.add(_ip)
