@@ -95,10 +95,10 @@ class NautobotPatchPanel(PatchPanel):
                 ppanel.status_id = self.diffsync.status_map["offline"]
         if "vendor" in attrs and "model" in attrs:
             ppanel.device_type = DeviceType.objects.get(model=attrs["model"])
-            if attrs.get("size"):
-                ppanel.device_type.u_height = int(attrs["size"])
-            if attrs.get("depth"):
-                ppanel.device_type.is_full_depth = bool(attrs["depth"] == "Full Depth")
+        if attrs.get("size"):
+            ppanel.device_type.u_height = int(attrs["size"])
+        if attrs.get("depth"):
+            ppanel.device_type.is_full_depth = bool(attrs["depth"] == "Full Depth")
         if "orientation" in attrs:
             ppanel.face = attrs["orientation"]
         if "position" in attrs:
