@@ -664,7 +664,9 @@ class Device42Adapter(DiffSync):
                     if self.d42_port_map[port_pk].get("second_device_fk"):
                         secondary_device_fk = self.d42_port_map[port_pk]["second_device_fk"]
                         _device_name = self.d42_device_map[secondary_device_fk]["name"]
-                        self.job.log_info(message=f"Second device {_device_name} found for {_ipaddr}.")
+                        self.job.log_info(
+                            message=f"Primary: {self.d42_port_map[port_pk]['device']}/Secondary: {_device_name} found for {_ipaddr}."
+                        )
                     else:
                         _device_name = self.d42_port_map[port_pk]["device"]
                     if self.d42_port_map[port_pk].get("port"):
