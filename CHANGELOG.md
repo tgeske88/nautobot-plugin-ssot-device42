@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.5.0 (2023-03-09)
+### Feature
+* ✨ Add bulk_import toggle to Job and update sync_complete to do bulk if toggled else individual. ([`950469c`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/950469cc28bf07aa5d3dd516d0af63dcc090ddb2))
+* ✨ Make a method for updating tags on all tagged objects, update all models to use ([`c8d12bc`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/c8d12bc180e208248f10fe81e0c3d2f77a95ceae))
+* ✨ Add port hwaddress to get_ip_addrs query. ([`10b7722`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/10b7722bdf6b415c5c87bd9a255732f562a6cab9))
+
+### Fix
+* 🐛 Make Half Depth default for patch panel hardware to match Nautobot ([`5c54d64`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/5c54d645dfa1ea7089103b0131192f4579720995))
+* 🐛 Don't document IPs on Devices that aren't imported. ([`6c2085d`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/6c2085db90a23039c1716af779fd52c7ff97d817))
+* 🐛 Ensure that CustomFields are updated and not just new ones. ([`f511f5a`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/f511f5ae6ae741e1ea86682df7b064bf8544c960))
+* ♻️ Move VRF, VLAN, and Prefix creation to happen before clusters & devices ([`ed18f2a`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/ed18f2a2b2c02c89bfac539451ca021e94468048))
+* Corrections for new IP Address to ensure diff lines up ([`9d3bd82`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/9d3bd82277231b71b8a28378d417b8da269a18b9))
+* Set defaults for part_number and custom_fields for Patch Panel hardware ([`3af050c`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/3af050cdcc81324b5e57ff433b776dee7cbe45e7))
+* Correct key name to custom_fields ([`ca58477`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/ca584778ab7d3811b7e63007820d4c0ec0d00e4a))
+* It's supposed to be a tuple dummy! ([`cab12ed`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/cab12edeb8fe714654cb92d1beb94b327e6231ea))
+* 🐛 Fix variable name to not conflict with method name ([`aa8d9d6`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/aa8d9d6b4fc76c52e32bf97af0e67483d69cf309))
+* Add handling for potentially missing VC or device ([`114961d`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/114961d906031af819d22c1d1d485e1a5f9b58da))
+* Ensure part_number lines up in diff ([`06c74ad`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/06c74adf69c5c5bfb61783c83ffdc7f5e7795ef6))
+* Use kwargs for dry_run ([`e82a5db`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/e82a5db8712086558f94f872190bf25aa988aee2))
+* Should use dry_run, not commit ([`6345081`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/63450810c1f5967ec45739f36f6b5b6366d00ec6))
+* Try to ensure that new VC position isn't used ([`2a1440d`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/2a1440daf6bc57482f4bf9b3138c882964bafe04))
+* Ensure VC position is set if new VC set ([`f9aaa23`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/f9aaa23c5e16df18c71abbc939cf065d0c0c8d0b))
+* Handle changing rack but not room ([`e042d72`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/e042d7296bd057333aa5924c680960d77e115305))
+* Ensure part number lines up in diff ([`3dc6bb0`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/3dc6bb0638631ca61a97e3e338771a145e68bdd6))
+* Only have sync happen if not a dry-run ([`e81b164`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/e81b16400848d71b8b5ef1c6d260d8349cb67653))
+* 🐛 Make sync happen outside normal Job so it's not atomic ([`08b070c`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/08b070cde54df4f76a63f123e7cd824b421300a0))
+* 🐛 Correct key for objects_to_create to rooms when checking to create RackGroups. ([`3a1833f`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/3a1833f03f950c684c698074713bd2d05dd97c97))
+* Reduce batch sizes to 50 so we aren't overwhelming DB ([`e91515d`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/e91515de51b35fb4f4d18dae8d555ce3d35dbe2a))
+* Remove unnecessary passing to method ([`f655a88`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/f655a88dab1ba6d13883829d9a021dc33480f61b))
+* Correct port CustomField reference ([`448e7a6`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/448e7a60be8262930a0f2535cce0fa93dee8fbdc))
+* 🐛 Update all CRUD ops to work with new CF format. Also fixed all the tests to use new dict format. ([`418f117`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/418f11740720d73ada108fdae39984b4c86d5e02))
+* Add update for role if it's Unknown and tags ([`b07f3b9`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/b07f3b97ed806fcdedca33ccc67c8ef9bb3d907b))
+* ♻️ Redo verify_platform method to create Platforms correctly and add tests validating. ([`10204cc`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/10204cc150c6fa7bb69df5696a4aa426121a0b69))
+* ♻️ Redo verify_platform to handle IOSXR and other Cisco platforms. ([`cffa58b`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/cffa58b5eea1f2997c438b3a491d06fae2bdb136))
+* 🔊 Correct DeviceType log to use model instead of name. ([`0f4e3af`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/0f4e3af74005d8119de3999622b4a1a3a01d5526))
+* ⏪️ Revert var back to not have id attribute as unneeded. ([`9f82d33`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/9f82d33348b424f9739dfd6fb59fc64e5cc1b45e))
+* 🐛 Corect assigned_object_type and id for updating IPAddress interface ([`a21aa27`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/a21aa274f12601cc64e7243263e5598d13951601))
+
+### Documentation
+* 📝 Make log statement more informative for IPs on clusters ([`5ba43fd`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/5ba43fd646293e86c5c92fc1b0d1fcda6d9d17fb))
+* 🧑‍💻 Improve logging so user knows what's happening during Job execution. ([`123ae56`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/123ae568bd52034bf4f581b3001cde473dc24f1f))
+* 🧑‍💻 Tweak the logging to be more informational for user. ([`91a3a83`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/91a3a838054d4b2bb49b3cc2cd27e80a8742c5f9))
+* 🔊 Improve logging for CRUD ops so it no longer looks like the Job has hung if not in debug. ([`040b022`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/040b022316024d842c77f6cad76aa77b21db21fc))
+
+### Performance
+* 🔥 Remove members as cluster attribute. ([`e611f0f`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/e611f0fcfdf15e97408b742917213625097bd19f))
+
 ## v1.4.10 (2022-12-07)
 ### Fix
 * 🐛 Set Nautobot minimum version to 1.4.0 for Interface Status support ([`c3d6305`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/c3d6305f626f3895bf2b1db55edf985b95442165))
