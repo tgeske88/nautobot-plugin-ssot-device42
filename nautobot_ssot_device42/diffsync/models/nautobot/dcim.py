@@ -785,21 +785,12 @@ class NautobotPort(Port):
                 site_name = "global"
             if attrs["mode"] == "access" and len(attrs["vlans"]) == 1:
                 _vlan = attrs["vlans"][0]
-                try:
-                    new_intf.untagged_vlan_id = diffsync.vlan_map[slugify(site_name)][str(_vlan["vlan_id"])]
-                except KeyError:
-                    diffsync.job.log_warning(message=f"Unable to find access VLAN {_vlan['vlan_id']} in {site_name}.")
+                new_intf.untagged_vlan_id = nautobot.verify_vlan(diffsync=diffsync, vlan_id=_vlan, site_slug=site_name)
             else:
                 for _vlan in attrs["vlans"]:
-                    try:
-                        tagged_vlan = diffsync.vlan_map[slugify(site_name)][str(_vlan["vlan_id"])]
-                        if tagged_vlan:
-                            new_intf.tagged_vlans.add(tagged_vlan)
-                    except KeyError:
-                        if diffsync.job.kwargs.get("debug"):
-                            diffsync.job.log_warning(
-                                message=f"Unable to find trunked VLAN {_vlan['vlan_id']} in {site_name}."
-                            )
+                    tagged_vlan = nautobot.verify_vlan(diffsync=diffsync, vlan_id=_vlan, site_slug=site_name)
+                    if tagged_vlan:
+                        new_intf.tagged_vlans.add(tagged_vlan)
         diffsync.objects_to_create["ports"].append(new_intf)
         if ids["device"] not in diffsync.port_map:
             diffsync.port_map[ids["device"]] = {}

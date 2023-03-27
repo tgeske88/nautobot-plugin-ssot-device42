@@ -641,27 +641,17 @@ class NautobotAdapter(DiffSync):
                     tags=nautobot.get_tag_strings(port.tags),
                     mode=port.mode,
                     status=port.status.slug if hasattr(port, "status") else "active",
+                    vlans=None,
                     custom_fields=nautobot.get_custom_field_dict(port.get_custom_fields()),
                     uuid=port.id,
                 )
                 if port.mode == "access" and port.untagged_vlan:
-                    _port.vlans = [
-                        {
-                            "vlan_name": port.untagged_vlan.name,
-                            "vlan_id": str(port.untagged_vlan.vid),
-                        }
-                    ]
+                    _port.vlans = port.untagged_vlan.vid
                 else:
-                    _tags = []
+                    _vlans = []
                     for _vlan in port.tagged_vlans.values():
-                        _tags.append(
-                            {
-                                "vlan_name": _vlan["name"],
-                                "vlan_id": str(_vlan["vid"]),
-                            }
-                        )
-                    _vlans = sorted(_tags, key=lambda k: k["vlan_id"])
-                    _port.vlans = _vlans
+                        _vlans.append(_vlan["vid"])
+                    _port.vlans = set(sorted(_vlans))
                 self.add(_port)
                 _dev = self.get(self.device, port.device.name)
                 _dev.add_child(_port)
@@ -765,8 +755,8 @@ class NautobotAdapter(DiffSync):
             if site_slug not in self.vlan_map:
                 self.vlan_map[site_slug] = {}
             if str(vlan.vid) not in self.vlan_map[site_slug]:
-                self.vlan_map[site_slug][str(vlan.vid)] = {}
-            self.vlan_map[site_slug][str(vlan.vid)] = vlan.id
+                self.vlan_map[site_slug][vlan.vid] = {}
+            self.vlan_map[site_slug][vlan.vid] = vlan.id
             if self.job.kwargs.get("debug"):
                 self.job.log_debug(message=f"Loading VLAN: {vlan.name}.")
             try:

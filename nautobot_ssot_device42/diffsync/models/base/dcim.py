@@ -170,7 +170,7 @@ class Port(DiffSyncModel):
     tags: Optional[List[str]]
     mode: Optional[str]
     status: str
-    vlans: List[dict] = list()
+    vlans: Optional[set]
     custom_fields: Optional[dict]
     uuid: Optional[UUID]
 

@@ -553,22 +553,16 @@ class Device42Adapter(DiffSync):
                     tags=_tags,
                     mode="access",
                     status=_status,
+                    vlans=None,
                     custom_fields=default_cfs,
                     uuid=None,
                 )
                 if _port.get("vlan_pks"):
-                    _tags = []
+                    _vlans = []
                     for _pk in _port["vlan_pks"]:
                         if _pk in self.d42_vlan_map and self.d42_vlan_map[_pk]["vid"] != 0:
-                            _tags.append(
-                                {
-                                    "vlan_name": self.d42_vlan_map[_pk]["name"],
-                                    "vlan_id": str(self.d42_vlan_map[_pk]["vid"]),
-                                }
-                            )
-                    _sorted_list = sorted(_tags, key=lambda k: k["vlan_id"])
-                    _vlans = [i for n, i in enumerate(_sorted_list) if i not in _sorted_list[n + 1 :]]  # noqa: E203
-                    new_port.vlans = _vlans
+                            _vlans.append(self.d42_vlan_map[_pk]["vid"])
+                    new_port.vlans = set(sorted(_vlans))
                     if len(_vlans) > 1:
                         new_port.mode = "tagged"
                 if _device_name in _cfs and _cfs[_device_name].get(_port_name):
@@ -703,8 +697,8 @@ class Device42Adapter(DiffSync):
         """Load Device42 VLANs."""
         _vlans = self.device42.get_vlans_with_location()
         for _info in _vlans:
+            _vlan_name = _info["vlan_name"].strip()
             try:
-                _vlan_name = _info["vlan_name"].strip()
                 if _info.get("building"):
                     new_vlan = self.get(
                         self.vlan, {"name": _vlan_name, "vlan_id": _info["vid"], "building": _info["building"]}
@@ -733,6 +727,7 @@ class Device42Adapter(DiffSync):
                     vlan_id=int(_info["vid"]),
                     description=_info["description"] if _info.get("description") else "",
                     custom_fields=_cfs,
+                    tags=_info["tags"].split(",").sort() if _info.get("tags") else [],
                     building=None,
                     uuid=None,
                 )

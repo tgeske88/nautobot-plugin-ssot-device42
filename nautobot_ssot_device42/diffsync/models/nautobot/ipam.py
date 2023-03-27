@@ -308,43 +308,24 @@ class NautobotVLAN(VLAN):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create VLAN object in Nautobot."""
-        _site, _site_name = None, None
+        _site_name = None, None
         if ids["building"] != "Unknown":
-            try:
-                _site = diffsync.site_map[slugify(ids["building"])]
-                _site_name = slugify(ids["building"])
-            except KeyError:
-                if diffsync.job.kwargs.get("debug"):
-                    diffsync.job.log_debug(message=f"Unable to find Site {ids['building']}.")
-        else:
-            _site = None
-            _site_name = "global"
-        try:
-            _vlan = diffsync.vlan_map[_site_name][str(ids["vlan_id"])]
-            diffsync.job.log_warning(
-                message=f"Duplicate VLAN attempting to be created: {_site_name} {ids['name']} {ids['vlan_id']}"
-            )
-            return None
-        except KeyError:
-            diffsync.job.log_info(message=f"Creating VLAN {ids['vlan_id']} {ids['name']} for {_site}")
-            _vlan = OrmVLAN(
-                name=ids["name"],
-                vid=ids["vlan_id"],
-                description=attrs["description"],
-                status_id=diffsync.status_map["active"],
-            )
-        if _site:
-            _vlan.site_id = _site
-        if attrs.get("custom_fields"):
-            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vlan)
-        diffsync.objects_to_create["vlans"].append(_vlan)
-        if ids["building"]:
             _site_name = slugify(ids["building"])
         else:
             _site_name = "global"
-        if _site_name not in diffsync.vlan_map:
-            diffsync.vlan_map[_site_name] = {}
-        diffsync.vlan_map[_site_name][str(ids["vlan_id"])] = _vlan.id
+        _vlan = nautobot.verify_vlan(
+            diffsync=diffsync,
+            vlan_id=ids["vlan_id"],
+            site_slug=_site_name,
+            vlan_name=ids["name"],
+            description=attrs["description"],
+        )
+        if attrs.get("custom_fields"):
+            vlan_obj = OrmVLAN.objects.get(id=_vlan)
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=vlan_obj)
+        if attrs.get("tags"):
+            vlan_obj = OrmVLAN.objects.get(id=_vlan)
+            nautobot.update_tags(tagged_obj=vlan_obj, new_tags=attrs["tags"])
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):

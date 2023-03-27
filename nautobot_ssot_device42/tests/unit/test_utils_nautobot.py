@@ -5,8 +5,14 @@ from django.contrib.contenttypes.models import ContentType
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot.dcim.models import Manufacturer, Site, Region
 from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField
-from nautobot_ssot_device42.utils.nautobot import verify_platform, determine_vc_position, update_custom_fields
+from nautobot.extras.models import CustomField, Status
+from nautobot.ipam.models import VLAN
+from nautobot_ssot_device42.utils.nautobot import (
+    verify_platform,
+    verify_vlan,
+    determine_vc_position,
+    update_custom_fields,
+)
 
 
 class TestNautobotUtils(TransactionTestCase):
@@ -14,53 +20,81 @@ class TestNautobotUtils(TransactionTestCase):
 
     databases = ("default", "job_logs")
 
+    def setUp(self):
+        """Setup shared test objects."""
+        super().setUp()
+        self.status_active = Status.objects.get(name="Active")
+        self.cisco_manu, _ = Manufacturer.objects.get_or_create(name="Cisco")
+        self.site = Site.objects.create(name="Test Site", slug="test-site", status=self.status_active)
+        self.dsync = MagicMock()
+        self.dsync.platform_map = {}
+        self.dsync.vlan_map = {}
+        self.dsync.site_map = {}
+        self.dsync.status_map = {}
+        self.dsync.objects_to_create = {"platforms": [], "vlans": []}
+        self.dsync.site_map["test-site"] = self.site.id
+        self.dsync.status_map["active"] = self.status_active.id
+
     def test_verify_platform_ios(self):
         """Test the verify_platform method with IOS."""
-        dsync = MagicMock()
-        dsync.platform_map = {}
-        dsync.objects_to_create = {"platforms": []}
-        cisco_manu, _ = Manufacturer.objects.get_or_create(name="Cisco")
-        platform = verify_platform(diffsync=dsync, platform_name="cisco_ios", manu=cisco_manu.id)
+        platform = verify_platform(diffsync=self.dsync, platform_name="cisco_ios", manu=self.cisco_manu.id)
         self.assertEqual(type(platform), UUID)
-        self.assertEqual(dsync.objects_to_create["platforms"][0].name, "cisco.ios.ios")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].slug, "cisco_ios")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].napalm_driver, "ios")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].name, "cisco.ios.ios")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].slug, "cisco_ios")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].napalm_driver, "ios")
 
     def test_verify_platform_iosxr(self):
         """Test the verify_platform method with IOS-XR."""
-        dsync = MagicMock()
-        dsync.platform_map = {}
-        dsync.objects_to_create = {"platforms": []}
-        cisco_manu, _ = Manufacturer.objects.get_or_create(name="Cisco")
-        platform = verify_platform(diffsync=dsync, platform_name="cisco_xr", manu=cisco_manu.id)
+        platform = verify_platform(diffsync=self.dsync, platform_name="cisco_xr", manu=self.cisco_manu.id)
         self.assertEqual(type(platform), UUID)
-        self.assertEqual(dsync.objects_to_create["platforms"][0].name, "cisco.iosxr.iosxr")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].slug, "cisco_xr")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].napalm_driver, "iosxr")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].name, "cisco.iosxr.iosxr")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].slug, "cisco_xr")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].napalm_driver, "iosxr")
 
     def test_verify_platform_junos(self):
         """Test the verify_platform method with JunOS."""
-        dsync = MagicMock()
-        dsync.platform_map = {}
-        dsync.objects_to_create = {"platforms": []}
         juniper_manu, _ = Manufacturer.objects.get_or_create(name="Juniper")
-        platform = verify_platform(diffsync=dsync, platform_name="juniper_junos", manu=juniper_manu.id)
+        platform = verify_platform(diffsync=self.dsync, platform_name="juniper_junos", manu=juniper_manu.id)
         self.assertEqual(type(platform), UUID)
-        self.assertEqual(dsync.objects_to_create["platforms"][0].name, "junipernetworks.junos.junos")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].slug, "juniper_junos")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].napalm_driver, "junos")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].name, "junipernetworks.junos.junos")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].slug, "juniper_junos")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].napalm_driver, "junos")
 
     def test_verify_platform_f5(self):
         """Test the verify_platform method with F5 BIG-IP."""
-        dsync = MagicMock()
-        dsync.platform_map = {}
-        dsync.objects_to_create = {"platforms": []}
         f5_manu, _ = Manufacturer.objects.get_or_create(name="F5")
-        platform = verify_platform(diffsync=dsync, platform_name="f5_tmsh", manu=f5_manu.id)
+        platform = verify_platform(diffsync=self.dsync, platform_name="f5_tmsh", manu=f5_manu.id)
         self.assertEqual(type(platform), UUID)
-        self.assertEqual(dsync.objects_to_create["platforms"][0].name, "f5_tmsh")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].slug, "f5_tmsh")
-        self.assertEqual(dsync.objects_to_create["platforms"][0].napalm_driver, "f5_tmsh")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].name, "f5_tmsh")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].slug, "f5_tmsh")
+        self.assertEqual(self.dsync.objects_to_create["platforms"][0].napalm_driver, "f5_tmsh")
+
+    def test_verify_vlan_existing(self):
+        """Test the verify_vlan() method with existing VLAN."""
+        vlan_id = 100
+        vlan_name = "Test VLAN"
+        vlan = VLAN.objects.create(name=vlan_name, vid=vlan_id, site_id=self.site.id, status_id=self.status_active.id)
+        self.dsync.vlan_map["test-site"] = {vlan_id: vlan.id}
+        result = verify_vlan(self.dsync, vlan_id, "test-site", vlan_name)
+        self.assertEqual(result, vlan.id)
+
+    def test_verify_vlan_new(self):
+        """Test the verify_vlan() method with new non-existant VLAN."""
+        vlan_id = 200
+        vlan_name = "New VLAN"
+        result = verify_vlan(self.dsync, vlan_id, "test-site", vlan_name)
+        self.assertIsInstance(result, UUID)
+        self.assertIn("test-site", self.dsync.vlan_map)
+        self.assertIn(vlan_id, self.dsync.vlan_map["test-site"])
+        self.assertEqual(self.dsync.vlan_map["test-site"][vlan_id], result)
+        self.assertEqual(len(self.dsync.objects_to_create["vlans"]), 1)
+        new_vlan = self.dsync.objects_to_create["vlans"][0]
+        self.assertIsInstance(new_vlan, VLAN)
+        self.assertEqual(new_vlan.vid, vlan_id)
+        self.assertEqual(new_vlan.site_id, self.site.id)
+        self.assertEqual(new_vlan.status_id, self.status_active.id)
+        self.assertEqual(new_vlan.name, vlan_name)
+        self.assertEqual(new_vlan.description, "")
 
     def test_determine_vc_position(self):
         vc_map = {
