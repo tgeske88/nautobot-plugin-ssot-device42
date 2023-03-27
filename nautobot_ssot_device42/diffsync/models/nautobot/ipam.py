@@ -336,6 +336,11 @@ class NautobotVLAN(VLAN):
             _vlan.description = attrs["description"] if attrs.get("description") else ""
         if attrs.get("custom_fields"):
             nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vlan)
+        if "tags" in attrs:
+            if attrs.get("tags"):
+                nautobot.update_tags(tagged_obj=_vlan, new_tags=attrs["tags"])
+            else:
+                _vlan.tags.clear()
         _vlan.validated_save()
         return super().update(attrs)
 

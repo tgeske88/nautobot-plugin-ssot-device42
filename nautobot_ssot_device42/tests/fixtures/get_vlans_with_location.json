@@ -3,6 +3,7 @@
         "vlan_pk": 1,
         "vid": 100,
         "description": "Public",
+        "tags": "",
         "vlan_name": "Public",
         "building": "Austin",
         "customer": "AUS"
@@ -11,6 +12,7 @@
         "vlan_pk": 2,
         "vid": 200,
         "description": "DMZ",
+        "tags": "",
         "vlan_name": "DMZ",
         "building": "Los Angeles",
         "customer": "LAX"
