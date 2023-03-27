@@ -27,7 +27,7 @@ def get_random_color() -> str:
     Returns:
         str: Hex code value for a color with hash stripped.
     """
-    return f"{'%06x' % random.randint(0, 0xFFFFFF)}"  # pylint: disable=consider-using-f-string
+    return f"{random.randint(0, 0xFFFFFF):06x}"
 
 
 def verify_device_role(diffsync, role_name: str, role_color: str = None) -> UUID:
