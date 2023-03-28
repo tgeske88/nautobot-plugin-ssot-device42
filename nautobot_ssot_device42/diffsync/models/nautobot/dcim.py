@@ -840,37 +840,25 @@ class NautobotPort(Port):
                 site_name = "global"
             if _mode == "access" and len(attrs["vlans"]) == 1:
                 _vlan = attrs["vlans"][0]
-                try:
-                    _port.untagged_vlan_id = self.diffsync.vlan_map[slugify(site_name)][str(_vlan["vlan_id"])]
-                except KeyError:
-                    if self.diffsync.job.kwargs.get("debug"):
-                        self.diffsync.job.log_warning(
-                            message=f"Unable to find VLAN {_vlan['vlan_name']} {_vlan['vlan_id']} in {site_name}."
-                        )
+                _port.untagged_vlan_id = nautobot.verify_vlan(
+                    diffsync=self.diffsync, vlan_id=_vlan, site_slug=site_name
+                )
             else:
-                current_vlans = self.vlans
+                current_vlans = self.vlans if self.vlans else []
                 update_vlans = attrs["vlans"]
                 for _vlan in update_vlans:
                     if _vlan not in current_vlans:
-                        try:
-                            tagged_vlan = self.diffsync.vlan_map[slugify(site_name)][str(_vlan["vlan_id"])]
-                            if tagged_vlan:
-                                _port.tagged_vlans.add(tagged_vlan)
-                        except KeyError:
-                            if self.diffsync.job.kwargs.get("debug"):
-                                self.diffsync.job.log_warning(
-                                    message=f"Unable to find VLAN {_vlan['vlan_name']} {_vlan['vlan_id']} in {site_name}."
-                                )
+                        tagged_vlan = nautobot.verify_vlan(diffsync=self.diffsync, vlan_id=_vlan, site_slug=site_name)
+                        _port.tagged_vlans.add(tagged_vlan)
                 for _vlan in current_vlans:
                     if _vlan not in update_vlans:
                         try:
-                            tagged_vlan = self.diffsync.vlan_map[slugify(site_name)][str(_vlan["vlan_id"])]
-                            if tagged_vlan:
-                                _port.tagged_vlans.remove(tagged_vlan)
+                            tagged_vlan = self.diffsync.vlan_map[site_name][_vlan]
+                            _port.tagged_vlans.remove(tagged_vlan)
                         except KeyError:
                             if self.diffsync.job.kwargs.get("debug"):
                                 self.diffsync.job.log_warning(
-                                    message=f"Unable to find VLAN {_vlan['vlan_name']} {_vlan['vlan_id']} in {site_name}."
+                                    message=f"Unable to find VLAN {_vlan} in {site_name} to be removed from {_port.device.name} {_port}."
                                 )
         try:
             _port.validated_save()
