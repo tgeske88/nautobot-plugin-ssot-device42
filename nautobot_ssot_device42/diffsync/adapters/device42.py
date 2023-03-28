@@ -553,7 +553,7 @@ class Device42Adapter(DiffSync):
                     tags=_tags,
                     mode="access",
                     status=_status,
-                    vlans=None,
+                    vlans=[],
                     custom_fields=default_cfs,
                     uuid=None,
                 )
