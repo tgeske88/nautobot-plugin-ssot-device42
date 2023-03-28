@@ -641,12 +641,12 @@ class NautobotAdapter(DiffSync):
                     tags=nautobot.get_tag_strings(port.tags),
                     mode=port.mode,
                     status=port.status.slug if hasattr(port, "status") else "active",
-                    vlans=None,
+                    vlans=[],
                     custom_fields=nautobot.get_custom_field_dict(port.get_custom_fields()),
                     uuid=port.id,
                 )
                 if port.mode == "access" and port.untagged_vlan:
-                    _port.vlans = port.untagged_vlan.vid
+                    _port.vlans = [port.untagged_vlan.vid]
                 else:
                     _vlans = []
                     for _vlan in port.tagged_vlans.values():
