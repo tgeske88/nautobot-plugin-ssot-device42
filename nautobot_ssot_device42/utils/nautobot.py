@@ -100,22 +100,19 @@ def verify_vlan(diffsync, vlan_id: int, site_slug: str, vlan_name: str = "", des
     """
     if site_slug in diffsync.vlan_map:
         if vlan_id in diffsync.vlan_map[site_slug]:
-            print(f"VLAN ID found for {site_slug}, returning.")
             return diffsync.vlan_map[site_slug][vlan_id]
     else:
         diffsync.vlan_map[site_slug] = {}
     diffsync.job.log_info(message=f"Creating VLAN {vlan_id} {vlan_name} for {site_slug}")
-    print(f"Creating VLAN ID {vlan_id} for {site_slug}.")
     new_vlan = VLAN(
-        name=f"VLAN{vlan_id}" if not vlan_name else vlan_name,
+        name=f"VLAN{vlan_id:04d}" if not vlan_name else vlan_name,
         vid=vlan_id,
-        site_id=diffsync.site_map[site_slug],
+        site_id=diffsync.site_map[site_slug] if site_slug != "global" else None,
         status_id=diffsync.status_map["active"],
         description=description,
     )
     diffsync.objects_to_create["vlans"].append(new_vlan)
     diffsync.vlan_map[site_slug][vlan_id] = new_vlan.id
-    print(diffsync.vlan_map)
     return new_vlan.id
 
 
