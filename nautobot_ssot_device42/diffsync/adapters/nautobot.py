@@ -651,7 +651,7 @@ class NautobotAdapter(DiffSync):
                     _vlans = []
                     for _vlan in port.tagged_vlans.values():
                         _vlans.append(_vlan["vid"])
-                    _port.vlans = set(sorted(_vlans))
+                    _port.vlans = sorted(set(_vlans))
                 self.add(_port)
                 _dev = self.get(self.device, port.device.name)
                 _dev.add_child(_port)

@@ -562,7 +562,7 @@ class Device42Adapter(DiffSync):
                     for _pk in _port["vlan_pks"]:
                         if _pk in self.d42_vlan_map and self.d42_vlan_map[_pk]["vid"] != 0:
                             _vlans.append(self.d42_vlan_map[_pk]["vid"])
-                    new_port.vlans = set(sorted(_vlans))
+                    new_port.vlans = sorted(set(_vlans))
                     if len(_vlans) > 1:
                         new_port.mode = "tagged"
                 if _device_name in _cfs and _cfs[_device_name].get(_port_name):
