@@ -785,10 +785,12 @@ class NautobotPort(Port):
                 site_name = "global"
             if attrs["mode"] == "access" and len(attrs["vlans"]) == 1:
                 _vlan = attrs["vlans"][0]
-                new_intf.untagged_vlan_id = nautobot.verify_vlan(diffsync=diffsync, vlan_id=_vlan, site_slug=site_name)
+                new_intf.untagged_vlan_id, _ = nautobot.verify_vlan(
+                    diffsync=diffsync, vlan_id=_vlan, site_slug=site_name
+                )
             else:
                 for _vlan in attrs["vlans"]:
-                    tagged_vlan = nautobot.verify_vlan(diffsync=diffsync, vlan_id=_vlan, site_slug=site_name)
+                    tagged_vlan, _ = nautobot.verify_vlan(diffsync=diffsync, vlan_id=_vlan, site_slug=site_name)
                     if tagged_vlan:
                         new_intf.tagged_vlans.add(tagged_vlan)
         diffsync.objects_to_create["ports"].append(new_intf)
@@ -840,15 +842,23 @@ class NautobotPort(Port):
                 site_name = "global"
             if _mode == "access" and len(attrs["vlans"]) == 1:
                 _vlan = attrs["vlans"][0]
-                _port.untagged_vlan_id = nautobot.verify_vlan(
+                _port.untagged_vlan_id, created = nautobot.verify_vlan(
                     diffsync=self.diffsync, vlan_id=_vlan, site_slug=site_name
                 )
+                if created:
+                    new_vlan = self.diffsync.objects_to_create["vlans"].pop()
+                    new_vlan.validated_save()
             else:
                 current_vlans = self.vlans if self.vlans else []
                 update_vlans = attrs["vlans"]
                 for _vlan in update_vlans:
                     if _vlan not in current_vlans:
-                        tagged_vlan = nautobot.verify_vlan(diffsync=self.diffsync, vlan_id=_vlan, site_slug=site_name)
+                        tagged_vlan, created = nautobot.verify_vlan(
+                            diffsync=self.diffsync, vlan_id=_vlan, site_slug=site_name
+                        )
+                        if created:
+                            new_vlan = self.diffsync.objects_to_create["vlans"].pop()
+                            new_vlan.validated_save()
                         _port.tagged_vlans.add(tagged_vlan)
                 for _vlan in current_vlans:
                     if _vlan not in update_vlans:

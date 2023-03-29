@@ -75,19 +75,21 @@ class TestNautobotUtils(TransactionTestCase):
         vlan_name = "Test VLAN"
         vlan = VLAN.objects.create(name=vlan_name, vid=vlan_id, site_id=self.site.id, status_id=self.status_active.id)
         self.dsync.vlan_map["test-site"] = {vlan_id: vlan.id}
-        result = verify_vlan(self.dsync, vlan_id, "test-site", vlan_name)
+        result, created = verify_vlan(self.dsync, vlan_id, "test-site", vlan_name)
         self.assertEqual(result, vlan.id)
+        self.assertFalse(created)
 
     def test_verify_vlan_new(self):
         """Test the verify_vlan() method with new non-existant VLAN."""
         vlan_id = 200
         vlan_name = "New VLAN"
-        result = verify_vlan(self.dsync, vlan_id, "test-site", vlan_name)
+        result, created = verify_vlan(self.dsync, vlan_id, "test-site", vlan_name)
         self.assertIsInstance(result, UUID)
         self.assertIn("test-site", self.dsync.vlan_map)
         self.assertIn(vlan_id, self.dsync.vlan_map["test-site"])
         self.assertEqual(self.dsync.vlan_map["test-site"][vlan_id], result)
         self.assertEqual(len(self.dsync.objects_to_create["vlans"]), 1)
+        self.assertTrue(created)
         new_vlan = self.dsync.objects_to_create["vlans"][0]
         self.assertIsInstance(new_vlan, VLAN)
         self.assertEqual(new_vlan.vid, vlan_id)
