@@ -65,11 +65,10 @@ class VLAN(DiffSyncModel):
 
     _modelname = "vlan"
     _identifiers = (
-        "name",
         "vlan_id",
         "building",
     )
-    _attributes = ("description", "custom_fields", "tags")
+    _attributes = ("name", "description", "custom_fields", "tags")
     _children = {}
 
     name: str

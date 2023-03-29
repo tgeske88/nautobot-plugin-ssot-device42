@@ -96,7 +96,7 @@ class Device42AdapterTestCase(TransactionTestCase):
         )
         self.device42.load_vlans()
         self.assertEqual(
-            {f"{vlan['vlan_name']}__{vlan['vid']}__{vlan['building']}" for vlan in VLAN_FIXTURE},
+            {f"{vlan['vid']}__{vlan['building']}" for vlan in VLAN_FIXTURE},
             {vlan.get_unique_id() for vlan in self.device42.get_all("vlan")},
         )
         self.device42.load_subnets()

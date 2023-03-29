@@ -700,20 +700,17 @@ class Device42Adapter(DiffSync):
             _vlan_name = _info["vlan_name"].strip()
             try:
                 if _info.get("building"):
-                    new_vlan = self.get(
-                        self.vlan, {"name": _vlan_name, "vlan_id": _info["vid"], "building": _info["building"]}
-                    )
+                    new_vlan = self.get(self.vlan, {"vlan_id": _info["vid"], "building": _info["building"]})
                 elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
                     new_vlan = self.get(
                         self.vlan,
                         {
-                            "name": _vlan_name,
                             "vlan_id": _info["vid"],
                             "building": self.d42_building_sitecode_map[_info["customer"]],
                         },
                     )
                 else:
-                    new_vlan = self.get(self.vlan, {"name": _vlan_name, "vlan_id": _info["vid"], "building": "Unknown"})
+                    new_vlan = self.get(self.vlan, {"vlan_id": _info["vid"], "building": "Unknown"})
             except ObjectAlreadyExists as err:
                 if self.job.kwargs.get("debug"):
                     self.job.log_warning(message=f"VLAN {_vlan_name} already exists. {err}")

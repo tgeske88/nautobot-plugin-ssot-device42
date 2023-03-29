@@ -319,7 +319,7 @@ class NautobotVLAN(VLAN):
             diffsync=diffsync,
             vlan_id=ids["vlan_id"],
             site_slug=_site_name,
-            vlan_name=ids["name"],
+            vlan_name=attrs["name"],
             description=attrs["description"],
         )
         if created:
@@ -348,6 +348,8 @@ class NautobotVLAN(VLAN):
         """Update VLAN object in Nautobot."""
         _vlan = OrmVLAN.objects.get(id=self.uuid)
         self.diffsync.job.log_info(message=f"Updating VLAN {_vlan.vlan} {_vlan.vid}.")
+        if "name" in attrs:
+            _vlan.name = attrs["name"]
         if "description" in attrs:
             _vlan.description = attrs["description"] if attrs.get("description") else ""
         if attrs.get("custom_fields"):
