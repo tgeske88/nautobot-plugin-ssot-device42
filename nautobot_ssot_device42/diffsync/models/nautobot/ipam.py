@@ -347,7 +347,9 @@ class NautobotVLAN(VLAN):
     def update(self, attrs):
         """Update VLAN object in Nautobot."""
         _vlan = OrmVLAN.objects.get(id=self.uuid)
-        self.diffsync.job.log_info(message=f"Updating VLAN {_vlan.vlan} {_vlan.vid}.")
+        self.diffsync.job.log_info(
+            message=f"Updating VLAN {_vlan.name} {_vlan.vid} for {_vlan.site.name if _vlan.site else 'global'}."
+        )
         if "name" in attrs:
             _vlan.name = attrs["name"]
         if "description" in attrs:
