@@ -1,6 +1,6 @@
 """Tests of Nautobot utility methods."""
 from uuid import UUID
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from django.contrib.contenttypes.models import ContentType
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot.dcim.models import Manufacturer, Site, Region
@@ -34,6 +34,18 @@ class TestNautobotUtils(TransactionTestCase):
         self.dsync.objects_to_create = {"platforms": [], "vlans": []}
         self.dsync.site_map["test-site"] = self.site.id
         self.dsync.status_map["active"] = self.status_active.id
+
+    def test_lifecycle_mgmt_available(self):
+        """Validate that the DLC App module is available."""
+        with patch("nautobot_device_lifecycle_mgmt.models.SoftwareLCM"):
+            from nautobot_device_lifecycle_mgmt.models import (  # noqa: F401 # pylint: disable=import-outside-toplevel, unused-import
+                SoftwareLCM,
+            )
+            from nautobot_ssot_device42.utils.nautobot import (  # noqa: F401 # pylint: disable=import-outside-toplevel, unused-import
+                LIFECYCLE_MGMT,
+            )
+
+            self.assertTrue(LIFECYCLE_MGMT)
 
     def test_verify_platform_ios(self):
         """Test the verify_platform method with IOS."""
