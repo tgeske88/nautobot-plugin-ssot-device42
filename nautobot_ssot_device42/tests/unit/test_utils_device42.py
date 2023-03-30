@@ -154,6 +154,17 @@ class TestUtilsDevice42(TestCase):
         }
         self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf), "lag")
 
+    port_statuses = [
+        ("active", {"up": True, "up_admin": True}, "active"),
+        ("decommissioned", {"up": False, "up_admin": False}, "decommissioned"),
+        ("failed", {"up": False, "up_admin": True}, "failed"),
+        ("planned", {}, "planned"),
+    ]
+
+    @parameterized.expand(port_statuses, skip_on_empty=True)
+    def test_get_intf_status(self, name, sent, received):  # pylint: disable=unused-argument
+        self.assertEqual(device42.get_intf_status(sent), received)
+
     netmiko_platforms = [
         ("asa", "asa", "cisco_asa"),
         ("ios", "ios", "cisco_ios"),

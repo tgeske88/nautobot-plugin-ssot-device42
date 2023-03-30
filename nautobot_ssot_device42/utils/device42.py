@@ -108,6 +108,22 @@ def get_intf_type(intf_record: dict) -> str:  # pylint: disable=too-many-branche
     return _port_type
 
 
+def get_intf_status(port: dict):
+    """Method to determine Interface Status.
+
+    Args:
+        port (dict): Dictionary containing port `up` and `up_admin` keys.
+    """
+    _status = "planned"
+    if "up" in port and not is_truthy(port["up"]) and "up_admin" in port and not is_truthy(port["up_admin"]):
+        _status = "decommissioned"
+    elif "up" in port and not is_truthy(port["up"]) and "up_admin" in port and is_truthy(port["up_admin"]):
+        _status = "failed"
+    elif "up" in port and is_truthy(port["up"]) and "up_admin" in port and is_truthy(port["up_admin"]):
+        _status = "active"
+    return _status
+
+
 def get_netmiko_platform(network_os: str) -> str:
     """Method to return the netmiko platform if a pyATS platform is provided.
 

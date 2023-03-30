@@ -16,6 +16,7 @@ from nautobot_ssot_device42.diffsync.models.base import assets, circuits, dcim, 
 from nautobot_ssot_device42.utils.device42 import (
     get_facility,
     get_intf_type,
+    get_intf_status,
     get_netmiko_platform,
     get_custom_field_dict,
 )
@@ -515,9 +516,6 @@ class Device42Adapter(DiffSync):
                 _port_name = _port["port_name"][:63].strip()
             else:
                 _port_name = _port["hwaddress"]
-            _tags = _port["tags"].split(",") if _port.get("tags") else []
-            if len(_tags) > 1:
-                _tags.sort()
             try:
                 _dev = self.get(self.device, _device_name)
             except ObjectNotFound:
@@ -528,17 +526,10 @@ class Device42Adapter(DiffSync):
                 continue
             if self.job.kwargs.get("debug"):
                 self.job.log_info(message=f"Loading Port {_port_name} for Device {_device_name}")
-            if _port.get("up") and is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
-                _status = "active"
-            elif _port.get("up") and not is_truthy(_port.get("up")) and not is_truthy(_port.get("up_admin")):
-                _status = "decommissioned"
-            elif _port.get("up") and not is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
-                _status = "failed"
-            elif is_truthy(_port.get("up_admin")):
-                # this is for virtual interfaces that don't have an up status but do an up_admin
-                _status = "active"
-            else:
-                _status = "planned"
+            _tags = _port["tags"].split(",") if _port.get("tags") else []
+            if len(_tags) > 1:
+                _tags.sort()
+            _status = get_intf_status(port=_port)
             try:
                 self.get(self.port, {"device": _device_name, "name": _port_name})
             except ObjectNotFound:
