@@ -196,8 +196,8 @@ class Device42Adapter(DiffSync):
             building = self.building(
                 name=record["name"],
                 address=sanitize_string(record["address"]) if record.get("address") else "",
-                latitude=round(Decimal(record["latitude"] if record["latitude"] else 0.0), 6),
-                longitude=round(Decimal(record["longitude"] if record["longitude"] else 0.0), 6),
+                latitude=float(round(Decimal(record["latitude"] if record["latitude"] else 0.0), 6)),
+                longitude=float(round(Decimal(record["longitude"] if record["longitude"] else 0.0), 6)),
                 contact_name=record["contact_name"] if record.get("contact_name") else "",
                 contact_phone=record["contact_phone"] if record.get("contact_phone") else "",
                 rooms=record["rooms"] if record.get("rooms") else [],
