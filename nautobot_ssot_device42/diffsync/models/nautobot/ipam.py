@@ -4,7 +4,6 @@ import re
 from django.contrib.contenttypes.models import ContentType
 from django.forms import ValidationError
 from django.utils.text import slugify
-from diffsync.exceptions import ObjectNotFound
 from nautobot.dcim.models import Interface as OrmInterface
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
@@ -14,7 +13,6 @@ from nautobot.ipam.models import VRF as OrmVRF
 from nautobot.ipam.models import IPAddress as OrmIPAddress
 from nautobot.ipam.models import Prefix as OrmPrefix
 from nautobot_ssot_device42.constant import PLUGIN_CFG
-from nautobot_ssot_device42.diffsync.models.nautobot.dcim import NautobotBuilding
 from nautobot_ssot_device42.diffsync.models.base.ipam import VLAN, IPAddress, Subnet, VRFGroup
 from nautobot_ssot_device42.utils import nautobot
 
@@ -315,34 +313,23 @@ class NautobotVLAN(VLAN):
             _site_name = slugify(ids["building"])
         else:
             _site_name = "global"
-        _vlan, created = nautobot.verify_vlan(
-            diffsync=diffsync,
-            vlan_id=ids["vlan_id"],
-            site_slug=_site_name,
-            vlan_name=attrs["name"],
+        diffsync.job.log_info(message=f"Creating VLAN {ids['vlan_id']} {attrs['name']} for {_site_name}")
+        new_vlan = OrmVLAN(
+            name=attrs["name"],
+            vid=ids["vlan_id"],
+            site_id=diffsync.site_map[_site_name] if _site_name != "global" else None,
+            status_id=diffsync.status_map["active"],
             description=attrs["description"],
         )
-        if created:
-            _vlan = diffsync.objects_to_create["vlans"].pop()
-            if attrs.get("custom_fields"):
-                nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vlan)
-            if attrs.get("tags"):
-                nautobot.update_tags(tagged_obj=_vlan, new_tags=attrs["tags"])
-            try:
-                diffsync.get(NautobotBuilding, _site_name)
-                for site in diffsync.objects_to_create["sites"]:
-                    if site.name == _site_name:
-                        site.validated_save()
-                        diffsync.objects_to_create["sites"].pop(diffsync.objects_to_create["sites"].index(site))
-            except ObjectNotFound:
-                diffsync.job.log_debug(
-                    message=f"Site {_site_name} should already exist for VLAN {ids['name']} {ids['vlan_id']} to be assigned to."
-                )
-            try:
-                _vlan.validated_save()
-                return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
-            except ValidationError as err:
-                diffsync.job.log_warning(message=f"Error creating VLAN {ids['name']} {ids['vlan_id']}. {err}")
+        if attrs.get("custom_fields"):
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_vlan)
+        if attrs.get("tags"):
+            nautobot.update_tags(tagged_obj=new_vlan, new_tags=attrs["tags"])
+        try:
+            new_vlan.validated_save()
+            return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
+        except ValidationError as err:
+            diffsync.job.log_warning(message=f"Error creating VLAN {attrs['name']} {ids['vlan_id']}. {err}")
 
     def update(self, attrs):
         """Update VLAN object in Nautobot."""

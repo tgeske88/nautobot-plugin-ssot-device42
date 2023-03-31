@@ -5,14 +5,12 @@ from typing import List
 
 import requests
 import urllib3
+from diffsync.exceptions import ObjectNotFound
+from nautobot.core.settings_funcs import is_truthy
 from netutils.lib_mapper import PYATS_LIB_MAPPER
-from nautobot_ssot_device42.constant import (
-    DEFAULTS,
-    FC_INTF_MAP,
-    INTF_NAME_MAP,
-    PHY_INTF_MAP,
-    PLUGIN_CFG,
-)
+
+from nautobot_ssot_device42.constant import DEFAULTS, FC_INTF_MAP, INTF_NAME_MAP, PHY_INTF_MAP, PLUGIN_CFG
+from nautobot_ssot_device42.diffsync.models.base.ipam import VLAN
 
 
 class MissingConfigSetting(Exception):
@@ -182,6 +180,43 @@ def get_custom_field_dict(cfields: List[dict]) -> dict:
     for cfield in cfields:
         cf_dict[cfield["key"]] = cfield
     return cf_dict
+
+
+def load_vlan(  # pylint: disable=dangerous-default-value, too-many-arguments
+    diffsync,
+    vlan_id: int,
+    site_name: str,
+    vlan_name: str = "",
+    description: str = "",
+    custom_fields: dict = {},
+    tags: list = [],
+):
+    """Find or create specified Site VLAN.
+
+    Args:
+        diffsync (obj): DiffSync adapter with logger and get method.
+        vlan_id (int): VLAN ID for site.
+        site_name (str): Site name for associated VLAN.
+        vlan_name (str): Name of VLAN to be created.
+        description (str): Description for VLAN.
+        custom_fields (dict): Dictionary of CustomFields for VLAN.
+        tags (list): List of Tags to be applied to VLAN.
+    """
+    try:
+        diffsync.get(VLAN, {"vlan_id": vlan_id, "building": site_name})
+        diffsync.job.log_warning(message=f"Duplicate VLAN attempted to be loaded: {vlan_id} {site_name}")
+    except ObjectNotFound:
+        diffsync.job.log_info(message=f"Loading VLAN {vlan_id} {vlan_name} for {site_name}")
+        new_vlan = VLAN(
+            name=f"VLAN{vlan_id:04d}" if not vlan_name else vlan_name,
+            vlan_id=vlan_id,
+            description=description,
+            building=site_name,
+            custom_fields=custom_fields,
+            tags=tags,
+            uuid=None,
+        )
+        diffsync.add(new_vlan)
 
 
 class Device42API:  # pylint: disable=too-many-public-methods

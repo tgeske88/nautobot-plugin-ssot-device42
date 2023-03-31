@@ -88,36 +88,6 @@ def verify_platform(diffsync, platform_name: str, manu: UUID) -> UUID:
     return platform_obj
 
 
-def verify_vlan(diffsync, vlan_id: int, site_slug: str, vlan_name: str = "", description: str = ""):
-    """Find or create specified Site VLAN.
-
-    Args:
-        diffsync (obj): DiffSync Job with maps.
-        vlan_id (int): VLAN ID for site.
-        site_slug (str): Slug form of Site name with associated VLAN.
-        vlan_name (str): Name of VLAN to be created.
-        description (str): Description for VLAN.
-    """
-    created = False
-    if site_slug in diffsync.vlan_map:
-        if vlan_id in diffsync.vlan_map[site_slug]:
-            return (diffsync.vlan_map[site_slug][vlan_id], created)
-    else:
-        diffsync.vlan_map[site_slug] = {}
-    diffsync.job.log_info(message=f"Creating VLAN {vlan_id} {vlan_name} for {site_slug}")
-    new_vlan = VLAN(
-        name=f"VLAN{vlan_id:04d}" if not vlan_name else vlan_name,
-        vid=vlan_id,
-        site_id=diffsync.site_map[site_slug] if site_slug != "global" else None,
-        status_id=diffsync.status_map["active"],
-        description=description,
-    )
-    created = True
-    diffsync.objects_to_create["vlans"].append(new_vlan)
-    diffsync.vlan_map[site_slug][vlan_id] = new_vlan.id
-    return (new_vlan.id, created)
-
-
 def get_or_create_mgmt_intf(intf_name: str, dev: Device) -> Interface:
     """Creates a Management interface with specified name.
 

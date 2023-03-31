@@ -6,10 +6,8 @@ from nautobot.utilities.testing import TransactionTestCase
 from nautobot.dcim.models import Manufacturer, Site, Region
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Status
-from nautobot.ipam.models import VLAN
 from nautobot_ssot_device42.utils.nautobot import (
     verify_platform,
-    verify_vlan,
     determine_vc_position,
     update_custom_fields,
 )
@@ -80,35 +78,6 @@ class TestNautobotUtils(TransactionTestCase):
         self.assertEqual(self.dsync.objects_to_create["platforms"][0].name, "f5_tmsh")
         self.assertEqual(self.dsync.objects_to_create["platforms"][0].slug, "f5_tmsh")
         self.assertEqual(self.dsync.objects_to_create["platforms"][0].napalm_driver, "f5_tmsh")
-
-    def test_verify_vlan_existing(self):
-        """Test the verify_vlan() method with existing VLAN."""
-        vlan_id = 100
-        vlan_name = "Test VLAN"
-        vlan = VLAN.objects.create(name=vlan_name, vid=vlan_id, site_id=self.site.id, status_id=self.status_active.id)
-        self.dsync.vlan_map["test-site"] = {vlan_id: vlan.id}
-        result, created = verify_vlan(self.dsync, vlan_id, "test-site", vlan_name)
-        self.assertEqual(result, vlan.id)
-        self.assertFalse(created)
-
-    def test_verify_vlan_new(self):
-        """Test the verify_vlan() method with new non-existant VLAN."""
-        vlan_id = 200
-        vlan_name = "New VLAN"
-        result, created = verify_vlan(self.dsync, vlan_id, "test-site", vlan_name)
-        self.assertIsInstance(result, UUID)
-        self.assertIn("test-site", self.dsync.vlan_map)
-        self.assertIn(vlan_id, self.dsync.vlan_map["test-site"])
-        self.assertEqual(self.dsync.vlan_map["test-site"][vlan_id], result)
-        self.assertEqual(len(self.dsync.objects_to_create["vlans"]), 1)
-        self.assertTrue(created)
-        new_vlan = self.dsync.objects_to_create["vlans"][0]
-        self.assertIsInstance(new_vlan, VLAN)
-        self.assertEqual(new_vlan.vid, vlan_id)
-        self.assertEqual(new_vlan.site_id, self.site.id)
-        self.assertEqual(new_vlan.status_id, self.status_active.id)
-        self.assertEqual(new_vlan.name, vlan_name)
-        self.assertEqual(new_vlan.description, "")
 
     def test_determine_vc_position(self):
         vc_map = {

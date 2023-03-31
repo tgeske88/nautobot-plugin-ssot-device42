@@ -60,6 +60,7 @@ class Device42AdapterTestCase(TransactionTestCase):
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.device42 = Device42Adapter(job=self.job, sync=None, client=self.d42_client)
+        self.device42.d42_building_sitecode_map = {"AUS": "Austin", "LAX": "Los Angeles"}
 
     def test_data_loading(self):
         """Test the load() function."""
@@ -96,7 +97,7 @@ class Device42AdapterTestCase(TransactionTestCase):
         )
         self.device42.load_vlans()
         self.assertEqual(
-            {f"{vlan['vid']}__{vlan['building']}" for vlan in VLAN_FIXTURE},
+            {f"{vlan['vid']}__{self.device42.d42_building_sitecode_map[vlan['customer']]}" for vlan in VLAN_FIXTURE},
             {vlan.get_unique_id() for vlan in self.device42.get_all("vlan")},
         )
         self.device42.load_subnets()

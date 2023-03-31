@@ -19,6 +19,7 @@ from nautobot_ssot_device42.utils.device42 import (
     get_intf_status,
     get_netmiko_platform,
     get_custom_field_dict,
+    load_vlan,
 )
 from nautobot_ssot_device42.utils.nautobot import determine_vc_position
 
@@ -689,43 +690,25 @@ class Device42Adapter(DiffSync):
         _vlans = self.device42.get_vlans_with_location()
         for _info in _vlans:
             _vlan_name = _info["vlan_name"].strip()
-            try:
-                if _info.get("building"):
-                    new_vlan = self.get(self.vlan, {"vlan_id": _info["vid"], "building": _info["building"]})
-                elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
-                    new_vlan = self.get(
-                        self.vlan,
-                        {
-                            "vlan_id": _info["vid"],
-                            "building": self.d42_building_sitecode_map[_info["customer"]],
-                        },
-                    )
-                else:
-                    new_vlan = self.get(self.vlan, {"vlan_id": _info["vid"], "building": "Unknown"})
-            except ObjectAlreadyExists as err:
-                if self.job.kwargs.get("debug"):
-                    self.job.log_warning(message=f"VLAN {_vlan_name} already exists. {err}")
-            except ObjectNotFound:
-                if _info["vlan_pk"] in self.d42_vlan_map and self.d42_vlan_map[_info["vlan_pk"]].get("custom_fields"):
-                    _cfs = get_custom_field_dict(self.d42_vlan_map[_info["vlan_pk"]]["custom_fields"])
-                else:
-                    _cfs = {}
-                new_vlan = self.vlan(
-                    name=_vlan_name,
-                    vlan_id=int(_info["vid"]),
-                    description=_info["description"] if _info.get("description") else "",
-                    custom_fields=_cfs,
-                    tags=_info["tags"].split(",").sort() if _info.get("tags") else [],
-                    building=None,
-                    uuid=None,
-                )
-                if _info.get("building"):
-                    new_vlan.building = _info["building"]
-                elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
-                    new_vlan.building = self.d42_building_sitecode_map[_info["customer"]]
-                else:
-                    new_vlan.building = "Unknown"
-                self.add(new_vlan)
+            building = "Unknown"
+            if _info["vlan_pk"] in self.d42_vlan_map and self.d42_vlan_map[_info["vlan_pk"]].get("custom_fields"):
+                _cfs = get_custom_field_dict(self.d42_vlan_map[_info["vlan_pk"]]["custom_fields"])
+            else:
+                _cfs = {}
+            tags = _info["tags"].split(",").sort() if _info.get("tags") else []
+            if is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
+                building = self.d42_building_sitecode_map[_info["customer"]]
+            elif _info.get("building"):
+                building = _info["building"]
+            load_vlan(
+                diffsync=self,
+                vlan_id=int(_info["vid"]),
+                site_name=building,
+                vlan_name=_vlan_name,
+                description=_info["description"] if _info.get("description") else "",
+                custom_fields=_cfs,
+                tags=tags,
+            )
 
     def load_connections(self):
         """Load Device42 connections."""
