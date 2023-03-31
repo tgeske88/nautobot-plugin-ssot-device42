@@ -771,22 +771,10 @@ class NautobotPort(Port):
                 field.content_types.add(ContentType.objects.get_for_model(OrmInterface).id)
                 new_intf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
         if attrs.get("vlans"):
-            site_name = None
-            for dev in diffsync.objects_to_create["devices"]:
-                if dev.name == ids["device"]:
-                    site_name = cls.find_site(cls, diffsync=diffsync, site_id=dev.site_id)
-            if not site_name:
-                site_name = "global"
-            if attrs["mode"] == "access" and len(attrs["vlans"]) == 1:
-                _vlan = attrs["vlans"][0]
-                new_intf.untagged_vlan_id, _ = nautobot.verify_vlan(
-                    diffsync=diffsync, vlan_id=_vlan, site_slug=site_name
-                )
-            else:
-                for _vlan in attrs["vlans"]:
-                    tagged_vlan, _ = nautobot.verify_vlan(diffsync=diffsync, vlan_id=_vlan, site_slug=site_name)
-                    if tagged_vlan:
-                        new_intf.tagged_vlans.add(tagged_vlan)
+            nautobot.apply_vlans_to_port(
+                diffsync=diffsync, device_name=ids["device"], mode=attrs["mode"], vlans=attrs["vlans"], port=new_intf
+            )
+
         diffsync.objects_to_create["ports"].append(new_intf)
         if ids["device"] not in diffsync.port_map:
             diffsync.port_map[ids["device"]] = {}
@@ -828,42 +816,9 @@ class NautobotPort(Port):
                 _device = attrs["device"]
             else:
                 _device = self.device
-            site_name = None
-            for dev in self.diffsync.objects_to_create["devices"]:
-                if dev.name == _device:
-                    site_name = self.find_site(diffsync=self.diffsync, site_id=dev.site_id)
-            if not site_name:
-                site_name = "global"
-            if _mode == "access" and len(attrs["vlans"]) == 1:
-                _vlan = attrs["vlans"][0]
-                _port.untagged_vlan_id, created = nautobot.verify_vlan(
-                    diffsync=self.diffsync, vlan_id=_vlan, site_slug=site_name
-                )
-                if created:
-                    new_vlan = self.diffsync.objects_to_create["vlans"].pop()
-                    new_vlan.validated_save()
-            else:
-                current_vlans = self.vlans if self.vlans else []
-                update_vlans = attrs["vlans"]
-                for _vlan in update_vlans:
-                    if _vlan not in current_vlans:
-                        tagged_vlan, created = nautobot.verify_vlan(
-                            diffsync=self.diffsync, vlan_id=_vlan, site_slug=site_name
-                        )
-                        if created:
-                            new_vlan = self.diffsync.objects_to_create["vlans"].pop()
-                            new_vlan.validated_save()
-                        _port.tagged_vlans.add(tagged_vlan)
-                for _vlan in current_vlans:
-                    if _vlan not in update_vlans:
-                        try:
-                            tagged_vlan = self.diffsync.vlan_map[site_name][_vlan]
-                            _port.tagged_vlans.remove(tagged_vlan)
-                        except KeyError:
-                            if self.diffsync.job.kwargs.get("debug"):
-                                self.diffsync.job.log_warning(
-                                    message=f"Unable to find VLAN {_vlan} in {site_name} to be removed from {_port.device.name} {_port}."
-                                )
+            nautobot.apply_vlans_to_port(
+                diffsync=self.diffsync, device_name=_device, mode=_mode, vlans=attrs["vlans"], port=_port
+            )
         try:
             _port.validated_save()
             return super().update(attrs)

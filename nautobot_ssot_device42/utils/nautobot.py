@@ -341,3 +341,26 @@ def find_site(diffsync, site_id: UUID):
     return site_name
 
 
+def apply_vlans_to_port(diffsync, device_name: str, mode: str, vlans: list, port: Interface):
+    """Determine appropriate VLANs to add to a Port link.
+
+    Args:
+        diffsync (DiffSyncAdapter): DiffSync Adapter with get and vlan_map.
+        device_name (str): Name of Device associated to Port.
+        mode (str): Port mode, access or trunk.
+        vlans (list): List of VLANs to be attached to Port.
+        port (Interface): Port to have VLANs applied to.
+    """
+    try:
+        dev = diffsync.get(Device, device_name)
+        site_name = find_site(diffsync=diffsync, site_id=dev.site_id)
+    except ObjectNotFound:
+        site_name = "global"
+    if mode == "access" and len(vlans) == 1:
+        _vlan = vlans[0]
+        port.untagged_vlan_id = diffsync.vlan_map[site_name][_vlan]
+    else:
+        for _vlan in vlans:
+            tagged_vlan = diffsync.vlan_map[site_name][_vlan]
+            if tagged_vlan:
+                port.tagged_vlans.add(tagged_vlan)
