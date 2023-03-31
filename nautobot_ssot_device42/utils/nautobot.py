@@ -10,6 +10,7 @@ from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Relationship, Tag
+from nautobot_ssot_device42.diffsync.models.nautobot.dcim import NautobotDevice
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
 
@@ -352,7 +353,7 @@ def apply_vlans_to_port(diffsync, device_name: str, mode: str, vlans: list, port
         port (Interface): Port to have VLANs applied to.
     """
     try:
-        dev = diffsync.get(Device, device_name)
+        dev = diffsync.get(NautobotDevice, device_name)
         site_name = find_site(diffsync=diffsync, site_id=dev.site_id)
     except ObjectNotFound:
         site_name = "global"
