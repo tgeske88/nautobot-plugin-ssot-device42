@@ -10,7 +10,7 @@ from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Relationship, Tag
-from nautobot_ssot_device42.diffsync.models.nautobot.dcim import NautobotDevice
+from nautobot_ssot_device42.diffsync.models.base.dcim import Device as NautobotDevice
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
 
