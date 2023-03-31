@@ -1,17 +1,17 @@
 """Utility functions for Nautobot ORM."""
+import random
 from typing import List, OrderedDict
 from uuid import UUID
 
-import random
+from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
-from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
-from taggit.managers import TaggableManager
 from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
 from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import Tag, Relationship, CustomField
-from nautobot.ipam.models import VLAN
+from nautobot.extras.models import CustomField, Relationship, Tag
+from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
+from taggit.managers import TaggableManager
 
 try:
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
