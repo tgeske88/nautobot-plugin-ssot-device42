@@ -639,7 +639,7 @@ class NautobotAdapter(DiffSync):
                     mac_addr=_mac_addr[:13],
                     type=port.type,
                     tags=nautobot.get_tag_strings(port.tags),
-                    mode=port.mode,
+                    mode=port.mode if port.mode else "access",
                     status=port.status.slug if hasattr(port, "status") else "active",
                     vlans=[],
                     custom_fields=nautobot.get_custom_field_dict(port.get_custom_fields()),

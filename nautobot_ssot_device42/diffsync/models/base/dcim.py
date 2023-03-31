@@ -168,7 +168,7 @@ class Port(DiffSyncModel):
     mac_addr: Optional[str]
     type: str
     tags: Optional[List[str]]
-    mode: Optional[str]
+    mode: str
     status: str
     vlans: Optional[List[int]] = []
     custom_fields: Optional[dict]
