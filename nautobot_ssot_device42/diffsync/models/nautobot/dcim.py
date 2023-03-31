@@ -25,14 +25,14 @@ from nautobot.extras.models import Status as OrmStatus
 from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP, PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.models.base.dcim import (
     Building,
-    Room,
-    Rack,
-    Vendor,
-    Hardware,
     Cluster,
-    Device,
-    Port,
     Connection,
+    Device,
+    Hardware,
+    Port,
+    Rack,
+    Room,
+    Vendor,
 )
 from nautobot_ssot_device42.utils import device42, nautobot
 
