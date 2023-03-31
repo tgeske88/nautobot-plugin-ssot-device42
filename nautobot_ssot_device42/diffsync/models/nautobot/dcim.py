@@ -736,12 +736,6 @@ class NautobotDevice(Device):
 class NautobotPort(Port):
     """Nautobot Port model."""
 
-    def find_site(self, diffsync, site_id: UUID):
-        """Find Site name using it's UUID."""
-        for site, obj_id in diffsync.site_map.items():
-            if obj_id == site_id:
-                return site
-
     @classmethod
     def create(cls, diffsync, ids, attrs):  # pylint: disable=inconsistent-return-statements
         """Create Interface object in Nautobot."""

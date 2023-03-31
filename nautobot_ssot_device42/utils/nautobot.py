@@ -352,3 +352,22 @@ def get_cf_version_map():
         if "os-version" in dev.custom_field_data:
             version_map[dev.platform.slug][dev.custom_field_data["os-version"]] = dev.id
     return version_map
+
+
+def find_site(diffsync, site_id: UUID):
+    """Find Site name using it's UUID.
+
+    Args:
+        diffsync (obj): DiffSync adapter with site_map.
+        site_id (UUID): UUID of Site to be found.
+
+    Returns:
+        str: Name of Site matching site_id if found. Returns blank string if Site not found.
+    """
+    site_name = ""
+    for site, obj_id in diffsync.site_map.items():
+        if obj_id == site_id:
+            site_name = site
+    return site_name
+
+
