@@ -13,13 +13,9 @@ def find_site(diffsync, attrs):
     """Method to determine Site for Patch Panel based upon object attributes."""
     pp_site = False
     try:
-        if attrs.get("building") is not None:
+        if attrs.get("building"):
             pp_site = diffsync.site_map[slugify(attrs["building"])]
-        elif attrs.get("room") is not None and attrs.get("rack") is not None:
-            rack = diffsync.get(NautobotRack, {"name": attrs["rack"], "group": attrs["room"]})
-            site_name = rack.building
-            pp_site = diffsync.site_map[slugify(site_name)]
-        elif attrs.get("rack") is not None:
+        elif attrs.get("room") and attrs.get("rack"):
             rack = diffsync.get(NautobotRack, {"name": attrs["rack"], "group": attrs["room"]})
             site_name = rack.building
             pp_site = diffsync.site_map[slugify(site_name)]
