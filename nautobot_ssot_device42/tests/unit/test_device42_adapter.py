@@ -2,7 +2,7 @@
 import json
 import uuid
 from unittest.mock import MagicMock
-
+from django.test import override_settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot.extras.models import Job, JobResult
@@ -60,7 +60,9 @@ class Device42AdapterTestCase(TransactionTestCase):
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.device42 = Device42Adapter(job=self.job, sync=None, client=self.d42_client)
+        self.device42.d42_building_sitecode_map = {"AUS": "Austin", "LAX": "Los Angeles"}
 
+    @override_settings(PLUGINS_CONFIG={"nautobot_ssot_device42": {"customer_is_facility": True}})
     def test_data_loading(self):
         """Test the load() function."""
 
@@ -96,7 +98,7 @@ class Device42AdapterTestCase(TransactionTestCase):
         )
         self.device42.load_vlans()
         self.assertEqual(
-            {f"{vlan['vlan_name']}__{vlan['vid']}__{vlan['building']}" for vlan in VLAN_FIXTURE},
+            {f"{vlan['vid']}__{self.device42.d42_building_sitecode_map[vlan['customer']]}" for vlan in VLAN_FIXTURE},
             {vlan.get_unique_id() for vlan in self.device42.get_all("vlan")},
         )
         self.device42.load_subnets()

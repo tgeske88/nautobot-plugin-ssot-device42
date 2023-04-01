@@ -16,8 +16,10 @@ from nautobot_ssot_device42.diffsync.models.base import assets, circuits, dcim, 
 from nautobot_ssot_device42.utils.device42 import (
     get_facility,
     get_intf_type,
+    get_intf_status,
     get_netmiko_platform,
     get_custom_field_dict,
+    load_vlan,
 )
 from nautobot_ssot_device42.utils.nautobot import determine_vc_position
 
@@ -195,8 +197,8 @@ class Device42Adapter(DiffSync):
             building = self.building(
                 name=record["name"],
                 address=sanitize_string(record["address"]) if record.get("address") else "",
-                latitude=round(Decimal(record["latitude"] if record["latitude"] else 0.0), 6),
-                longitude=round(Decimal(record["longitude"] if record["longitude"] else 0.0), 6),
+                latitude=float(round(Decimal(record["latitude"] if record["latitude"] else 0.0), 6)),
+                longitude=float(round(Decimal(record["longitude"] if record["longitude"] else 0.0), 6)),
                 contact_name=record["contact_name"] if record.get("contact_name") else "",
                 contact_phone=record["contact_phone"] if record.get("contact_phone") else "",
                 rooms=record["rooms"] if record.get("rooms") else [],
@@ -515,9 +517,6 @@ class Device42Adapter(DiffSync):
                 _port_name = _port["port_name"][:63].strip()
             else:
                 _port_name = _port["hwaddress"]
-            _tags = _port["tags"].split(",") if _port.get("tags") else []
-            if len(_tags) > 1:
-                _tags.sort()
             try:
                 _dev = self.get(self.device, _device_name)
             except ObjectNotFound:
@@ -528,17 +527,10 @@ class Device42Adapter(DiffSync):
                 continue
             if self.job.kwargs.get("debug"):
                 self.job.log_info(message=f"Loading Port {_port_name} for Device {_device_name}")
-            if _port.get("up") and is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
-                _status = "active"
-            elif _port.get("up") and not is_truthy(_port.get("up")) and not is_truthy(_port.get("up_admin")):
-                _status = "decommissioned"
-            elif _port.get("up") and not is_truthy(_port.get("up")) and is_truthy(_port.get("up_admin")):
-                _status = "failed"
-            elif is_truthy(_port.get("up_admin")):
-                # this is for virtual interfaces that don't have an up status but do an up_admin
-                _status = "active"
-            else:
-                _status = "planned"
+            _tags = _port["tags"].split(",") if _port.get("tags") else []
+            if len(_tags) > 1:
+                _tags.sort()
+            _status = get_intf_status(port=_port)
             try:
                 self.get(self.port, {"device": _device_name, "name": _port_name})
             except ObjectNotFound:
@@ -553,22 +545,16 @@ class Device42Adapter(DiffSync):
                     tags=_tags,
                     mode="access",
                     status=_status,
+                    vlans=[],
                     custom_fields=default_cfs,
                     uuid=None,
                 )
                 if _port.get("vlan_pks"):
-                    _tags = []
+                    _vlans = []
                     for _pk in _port["vlan_pks"]:
                         if _pk in self.d42_vlan_map and self.d42_vlan_map[_pk]["vid"] != 0:
-                            _tags.append(
-                                {
-                                    "vlan_name": self.d42_vlan_map[_pk]["name"],
-                                    "vlan_id": str(self.d42_vlan_map[_pk]["vid"]),
-                                }
-                            )
-                    _sorted_list = sorted(_tags, key=lambda k: k["vlan_id"])
-                    _vlans = [i for n, i in enumerate(_sorted_list) if i not in _sorted_list[n + 1 :]]  # noqa: E203
-                    new_port.vlans = _vlans
+                            _vlans.append(self.d42_vlan_map[_pk]["vid"])
+                    new_port.vlans = sorted(set(_vlans))
                     if len(_vlans) > 1:
                         new_port.mode = "tagged"
                 if _device_name in _cfs and _cfs[_device_name].get(_port_name):
@@ -703,46 +689,26 @@ class Device42Adapter(DiffSync):
         """Load Device42 VLANs."""
         _vlans = self.device42.get_vlans_with_location()
         for _info in _vlans:
-            try:
-                _vlan_name = _info["vlan_name"].strip()
-                if _info.get("building"):
-                    new_vlan = self.get(
-                        self.vlan, {"name": _vlan_name, "vlan_id": _info["vid"], "building": _info["building"]}
-                    )
-                elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
-                    new_vlan = self.get(
-                        self.vlan,
-                        {
-                            "name": _vlan_name,
-                            "vlan_id": _info["vid"],
-                            "building": self.d42_building_sitecode_map[_info["customer"]],
-                        },
-                    )
-                else:
-                    new_vlan = self.get(self.vlan, {"name": _vlan_name, "vlan_id": _info["vid"], "building": "Unknown"})
-            except ObjectAlreadyExists as err:
-                if self.job.kwargs.get("debug"):
-                    self.job.log_warning(message=f"VLAN {_vlan_name} already exists. {err}")
-            except ObjectNotFound:
-                if _info["vlan_pk"] in self.d42_vlan_map and self.d42_vlan_map[_info["vlan_pk"]].get("custom_fields"):
-                    _cfs = get_custom_field_dict(self.d42_vlan_map[_info["vlan_pk"]]["custom_fields"])
-                else:
-                    _cfs = {}
-                new_vlan = self.vlan(
-                    name=_vlan_name,
-                    vlan_id=int(_info["vid"]),
-                    description=_info["description"] if _info.get("description") else "",
-                    custom_fields=_cfs,
-                    building=None,
-                    uuid=None,
-                )
-                if _info.get("building"):
-                    new_vlan.building = _info["building"]
-                elif is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
-                    new_vlan.building = self.d42_building_sitecode_map[_info["customer"]]
-                else:
-                    new_vlan.building = "Unknown"
-                self.add(new_vlan)
+            _vlan_name = _info["vlan_name"].strip()
+            building = "Unknown"
+            if _info["vlan_pk"] in self.d42_vlan_map and self.d42_vlan_map[_info["vlan_pk"]].get("custom_fields"):
+                _cfs = get_custom_field_dict(self.d42_vlan_map[_info["vlan_pk"]]["custom_fields"])
+            else:
+                _cfs = {}
+            tags = _info["tags"].split(",").sort() if _info.get("tags") else []
+            if is_truthy(PLUGIN_CFG.get("customer_is_facility")) and _info.get("customer"):
+                building = self.d42_building_sitecode_map[_info["customer"]]
+            elif _info.get("building"):
+                building = _info["building"]
+            load_vlan(
+                diffsync=self,
+                vlan_id=int(_info["vid"]),
+                site_name=building,
+                vlan_name=_vlan_name,
+                description=_info["description"] if _info.get("description") else "",
+                custom_fields=_cfs,
+                tags=tags,
+            )
 
     def load_connections(self):
         """Load Device42 connections."""

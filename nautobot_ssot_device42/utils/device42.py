@@ -5,14 +5,12 @@ from typing import List
 
 import requests
 import urllib3
+from diffsync.exceptions import ObjectNotFound
+from nautobot.core.settings_funcs import is_truthy
 from netutils.lib_mapper import PYATS_LIB_MAPPER
-from nautobot_ssot_device42.constant import (
-    DEFAULTS,
-    FC_INTF_MAP,
-    INTF_NAME_MAP,
-    PHY_INTF_MAP,
-    PLUGIN_CFG,
-)
+
+from nautobot_ssot_device42.constant import DEFAULTS, FC_INTF_MAP, INTF_NAME_MAP, PHY_INTF_MAP, PLUGIN_CFG
+from nautobot_ssot_device42.diffsync.models.base.ipam import VLAN
 
 
 class MissingConfigSetting(Exception):
@@ -108,6 +106,22 @@ def get_intf_type(intf_record: dict) -> str:  # pylint: disable=too-many-branche
     return _port_type
 
 
+def get_intf_status(port: dict):
+    """Method to determine Interface Status.
+
+    Args:
+        port (dict): Dictionary containing port `up` and `up_admin` keys.
+    """
+    _status = "planned"
+    if "up" in port and not is_truthy(port["up"]) and "up_admin" in port and not is_truthy(port["up_admin"]):
+        _status = "decommissioned"
+    elif "up" in port and not is_truthy(port["up"]) and "up_admin" in port and is_truthy(port["up_admin"]):
+        _status = "failed"
+    elif "up" in port and is_truthy(port["up"]) and "up_admin" in port and is_truthy(port["up_admin"]):
+        _status = "active"
+    return _status
+
+
 def get_netmiko_platform(network_os: str) -> str:
     """Method to return the netmiko platform if a pyATS platform is provided.
 
@@ -166,6 +180,43 @@ def get_custom_field_dict(cfields: List[dict]) -> dict:
     for cfield in cfields:
         cf_dict[cfield["key"]] = cfield
     return cf_dict
+
+
+def load_vlan(  # pylint: disable=dangerous-default-value, too-many-arguments
+    diffsync,
+    vlan_id: int,
+    site_name: str,
+    vlan_name: str = "",
+    description: str = "",
+    custom_fields: dict = {},
+    tags: list = [],
+):
+    """Find or create specified Site VLAN.
+
+    Args:
+        diffsync (obj): DiffSync adapter with logger and get method.
+        vlan_id (int): VLAN ID for site.
+        site_name (str): Site name for associated VLAN.
+        vlan_name (str): Name of VLAN to be created.
+        description (str): Description for VLAN.
+        custom_fields (dict): Dictionary of CustomFields for VLAN.
+        tags (list): List of Tags to be applied to VLAN.
+    """
+    try:
+        diffsync.get(VLAN, {"vlan_id": vlan_id, "building": site_name})
+        diffsync.job.log_warning(message=f"Duplicate VLAN attempted to be loaded: {vlan_id} {site_name}")
+    except ObjectNotFound:
+        diffsync.job.log_info(message=f"Loading VLAN {vlan_id} {vlan_name} for {site_name}")
+        new_vlan = VLAN(
+            name=f"VLAN{vlan_id:04d}" if not vlan_name else vlan_name,
+            vlan_id=vlan_id,
+            description=description,
+            building=site_name,
+            custom_fields=custom_fields,
+            tags=tags,
+            uuid=None,
+        )
+        diffsync.add(new_vlan)
 
 
 class Device42API:  # pylint: disable=too-many-public-methods
@@ -542,7 +593,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             List[dict]: List of dicts of VLANs and location information.
         """
-        query = "SELECT v.vlan_pk, v.number AS vid, v.description, vn.vlan_name, b.name as building, c.name as customer FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n on n.netport_pk = vn.netport_fk LEFT JOIN view_device_v2 d on d.device_pk = n.device_fk LEFT JOIN view_building_v1 b ON b.building_pk = d.building_fk LEFT JOIN view_customer_v1 c ON c.customer_pk = d.customer_fk WHERE vn.vlan_name is not null and v.number <> 0 GROUP BY v.vlan_pk, v.number, v.description, vn.vlan_name, b.name, c.name"
+        query = "SELECT v.vlan_pk, v.number AS vid, v.description, v.tags, vn.vlan_name, b.name as building, c.name as customer FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n on n.netport_pk = vn.netport_fk LEFT JOIN view_device_v2 d on d.device_pk = n.device_fk LEFT JOIN view_building_v1 b ON b.building_pk = d.building_fk LEFT JOIN view_customer_v1 c ON c.customer_pk = d.customer_fk WHERE vn.vlan_name is not null and v.number <> 0 GROUP BY v.vlan_pk, v.number, v.description, v.tags, vn.vlan_name, b.name, c.name"
         return self.doql_query(query=query)
 
     def get_vlan_info(self) -> dict:

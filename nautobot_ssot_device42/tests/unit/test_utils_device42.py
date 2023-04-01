@@ -41,7 +41,6 @@ class TestUtilsDevice42(TestCase):
         result_dict = {"total_count": 10, "limit": 2, "offset": 4, "Objects": ["a", "b", "c", "d"]}
         self.assertEqual(device42.merge_offset_dicts(orig_dict=first_dict, offset_dict=second_dict), result_dict)
 
-    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_eth_intf(self):
         # test physical Ethernet interfaces
         eth_intf = {
@@ -52,7 +51,6 @@ class TestUtilsDevice42(TestCase):
         }
         self.assertEqual(device42.get_intf_type(intf_record=eth_intf), "1000base-t")
 
-    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_fc_intf(self):
         # test physical FiberChannel interfaces
         fc_intf = {
@@ -64,7 +62,6 @@ class TestUtilsDevice42(TestCase):
         }
         self.assertEqual(device42.get_intf_type(intf_record=fc_intf), "1gfc-sfp")
 
-    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_unknown_phy_intf(self):
         # test physical interfaces that don't have a discovered_type of Ethernet or FiberChannel
         unknown_phy_intf_speed = {
@@ -106,7 +103,6 @@ class TestUtilsDevice42(TestCase):
         }
         self.assertEqual(device42.get_intf_type(intf_record=dot11_intf), "ieee802.11a")
 
-    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_ad_lag_intf(self):
         # test 802.3ad lag logical interface
         ad_lag_intf = {
@@ -118,7 +114,6 @@ class TestUtilsDevice42(TestCase):
         }
         self.assertEqual(device42.get_intf_type(intf_record=ad_lag_intf), "lag")
 
-    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_lacp_intf(self):
         # test lacp logical interface
         lacp_intf = {
@@ -130,7 +125,6 @@ class TestUtilsDevice42(TestCase):
         }
         self.assertEqual(device42.get_intf_type(intf_record=lacp_intf), "lag")
 
-    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_virtual_intf(self):
         # test "virtual" logical interface
         virtual_intf = {
@@ -142,7 +136,6 @@ class TestUtilsDevice42(TestCase):
         }
         self.assertEqual(device42.get_intf_type(intf_record=virtual_intf), "virtual")
 
-    @patch.object(Device42DataSource, "debug", True)
     def test_get_intf_type_port_channel_intf(self):
         # test Port-Channel logical interface
         port_channel_intf = {
@@ -153,6 +146,17 @@ class TestUtilsDevice42(TestCase):
             "device_name": "distro-switch.testexample.com",
         }
         self.assertEqual(device42.get_intf_type(intf_record=port_channel_intf), "lag")
+
+    port_statuses = [
+        ("active", {"up": True, "up_admin": True}, "active"),
+        ("decommissioned", {"up": False, "up_admin": False}, "decommissioned"),
+        ("failed", {"up": False, "up_admin": True}, "failed"),
+        ("planned", {}, "planned"),
+    ]
+
+    @parameterized.expand(port_statuses, skip_on_empty=True)
+    def test_get_intf_status(self, name, sent, received):  # pylint: disable=unused-argument
+        self.assertEqual(device42.get_intf_status(sent), received)
 
     netmiko_platforms = [
         ("asa", "asa", "cisco_asa"),
@@ -603,7 +607,7 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_vlans_with_location.json")
         responses.add(
             responses.GET,
-            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT v.vlan_pk, v.number AS vid, v.description, vn.vlan_name, b.name as building, c.name as customer FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n on n.netport_pk = vn.netport_fk LEFT JOIN view_device_v2 d on d.device_pk = n.device_fk LEFT JOIN view_building_v1 b ON b.building_pk = d.building_fk LEFT JOIN view_customer_v1 c ON c.customer_pk = d.customer_fk WHERE vn.vlan_name is not null and v.number <> 0 GROUP BY v.vlan_pk, v.number, v.description, vn.vlan_name, b.name, c.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT v.vlan_pk, v.number AS vid, v.description, v.tags, vn.vlan_name, b.name as building, c.name as customer FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n on n.netport_pk = vn.netport_fk LEFT JOIN view_device_v2 d on d.device_pk = n.device_fk LEFT JOIN view_building_v1 b ON b.building_pk = d.building_fk LEFT JOIN view_customer_v1 c ON c.customer_pk = d.customer_fk WHERE vn.vlan_name is not null and v.number <> 0 GROUP BY v.vlan_pk, v.number, v.description, v.tags, vn.vlan_name, b.name, c.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )

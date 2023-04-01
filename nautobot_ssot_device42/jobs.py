@@ -143,6 +143,7 @@ class Device42DataSource(DataSource, Job):
                 self.source_adapter.sync_to(self.target_adapter, flags=self.diffsync_flags)
             else:
                 self.log_warning(message="Not both adapters were properly initialized prior to synchronization.")
+        self.log_info(message="Synchronization from Device42 into Nautobot is complete.")
 
 
 jobs = [Device42DataSource]

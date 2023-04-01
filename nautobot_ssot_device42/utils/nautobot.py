@@ -1,16 +1,18 @@
 """Utility functions for Nautobot ORM."""
+import random
 from typing import List, OrderedDict
 from uuid import UUID
 
-import random
+from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
-from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
-from taggit.managers import TaggableManager
 from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
 from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import Tag, Relationship, CustomField
+from nautobot.extras.models import CustomField, Relationship, Tag
+from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
+from taggit.managers import TaggableManager
+from nautobot_ssot_device42.diffsync.models.base.dcim import Device as NautobotDevice
 
 try:
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
@@ -27,7 +29,7 @@ def get_random_color() -> str:
     Returns:
         str: Hex code value for a color with hash stripped.
     """
-    return f"{'%06x' % random.randint(0, 0xFFFFFF)}"  # pylint: disable=consider-using-f-string
+    return f"{random.randint(0, 0xFFFFFF):06x}"
 
 
 def verify_device_role(diffsync, role_name: str, role_color: str = None) -> UUID:
@@ -321,3 +323,45 @@ def get_cf_version_map():
         if "os-version" in dev.custom_field_data:
             version_map[dev.platform.slug][dev.custom_field_data["os-version"]] = dev.id
     return version_map
+
+
+def find_site(diffsync, site_id: UUID):
+    """Find Site name using it's UUID.
+
+    Args:
+        diffsync (obj): DiffSync adapter with site_map.
+        site_id (UUID): UUID of Site to be found.
+
+    Returns:
+        str: Name of Site matching site_id if found. Returns blank string if Site not found.
+    """
+    site_name = ""
+    for site, obj_id in diffsync.site_map.items():
+        if obj_id == site_id:
+            site_name = site
+    return site_name
+
+
+def apply_vlans_to_port(diffsync, device_name: str, mode: str, vlans: list, port: Interface):
+    """Determine appropriate VLANs to add to a Port link.
+
+    Args:
+        diffsync (DiffSyncAdapter): DiffSync Adapter with get and vlan_map.
+        device_name (str): Name of Device associated to Port.
+        mode (str): Port mode, access or trunk.
+        vlans (list): List of VLANs to be attached to Port.
+        port (Interface): Port to have VLANs applied to.
+    """
+    try:
+        dev = diffsync.get(NautobotDevice, device_name)
+        site_name = find_site(diffsync=diffsync, site_id=dev.site_id)
+    except ObjectNotFound:
+        site_name = "global"
+    if mode == "access" and len(vlans) == 1:
+        _vlan = vlans[0]
+        port.untagged_vlan_id = diffsync.vlan_map[site_name][_vlan]
+    else:
+        for _vlan in vlans:
+            tagged_vlan = diffsync.vlan_map[site_name][_vlan]
+            if tagged_vlan:
+                port.tagged_vlans.add(tagged_vlan)
