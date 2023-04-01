@@ -8,7 +8,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 <!--next-version-placeholder-->
 
 ## v1.5.1 (2023-03-31)
+
 ### Fix
+
 * Use base model instead of Nautobot to avoid circular import ([`ddf0711`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/ddf07119cfdfc523744ea7f124ee10ada5995bfa))
 * Correct get to use NautobotDevice ([`ee59ebe`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/ee59ebea6423ad9e10d993706c3c2fd9605c1d35))
 * Ensure latitude/longitude are float and not Decimal ([`74e2d77`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/74e2d77bf3f3d2314f9a26ea4b488fbc89d8c94d))
@@ -22,15 +24,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * ♻️ Change get_random_color to use f-string ([`77eb6c9`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/77eb6c9bc553a353ee2cda3e20b718a1ea6fc4a1))
 
 ### Documentation
+
 * 📝 Add log for declaring end of Sync in post_run ([`054932e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/054932ec2e9b974e25906f3e11aed55363612585))
 
 ## v1.5.0 (2023-03-09)
+
 ### Feature
+
 * ✨ Add bulk_import toggle to Job and update sync_complete to do bulk if toggled else individual. ([`950469c`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/950469cc28bf07aa5d3dd516d0af63dcc090ddb2))
 * ✨ Make a method for updating tags on all tagged objects, update all models to use ([`c8d12bc`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/c8d12bc180e208248f10fe81e0c3d2f77a95ceae))
 * ✨ Add port hwaddress to get_ip_addrs query. ([`10b7722`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/10b7722bdf6b415c5c87bd9a255732f562a6cab9))
 
 ### Fix
+
 * 🐛 Make Half Depth default for patch panel hardware to match Nautobot ([`5c54d64`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/5c54d645dfa1ea7089103b0131192f4579720995))
 * 🐛 Don't document IPs on Devices that aren't imported. ([`6c2085d`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/6c2085db90a23039c1716af779fd52c7ff97d817))
 * 🐛 Ensure that CustomFields are updated and not just new ones. ([`f511f5a`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/f511f5ae6ae741e1ea86682df7b064bf8544c960))
@@ -63,149 +69,215 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 * 🐛 Corect assigned_object_type and id for updating IPAddress interface ([`a21aa27`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/a21aa274f12601cc64e7243263e5598d13951601))
 
 ### Documentation
+
 * 📝 Make log statement more informative for IPs on clusters ([`5ba43fd`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/5ba43fd646293e86c5c92fc1b0d1fcda6d9d17fb))
 * 🧑‍💻 Improve logging so user knows what's happening during Job execution. ([`123ae56`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/123ae568bd52034bf4f581b3001cde473dc24f1f))
 * 🧑‍💻 Tweak the logging to be more informational for user. ([`91a3a83`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/91a3a838054d4b2bb49b3cc2cd27e80a8742c5f9))
 * 🔊 Improve logging for CRUD ops so it no longer looks like the Job has hung if not in debug. ([`040b022`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/040b022316024d842c77f6cad76aa77b21db21fc))
 
 ### Performance
+
 * 🔥 Remove members as cluster attribute. ([`e611f0f`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/e611f0fcfdf15e97408b742917213625097bd19f))
 
 ## v1.4.10 (2022-12-07)
+
 ### Fix
+
 * 🐛 Set Nautobot minimum version to 1.4.0 for Interface Status support ([`c3d6305`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/c3d6305f626f3895bf2b1db55edf985b95442165))
 * 🐛 Set Nautobot minimum version to 1.4.0 for Interface Status support ([`c93ac16`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/c93ac16deb46316329143616c2b84db65af8953e))
 
 ## v1.4.9 (2022-10-05)
+
 ### Fix
-* 🐛 Add handling for instance of new device passed to assign version ([`e014c0f`](https://github.com/networking/nautobot-plugin-device42-sync/commit/e014c0f48a05f019ef6d824d7bbba33abd10ddac))
+
+* 🐛 Add handling for instance of new device passed to assign version ([`e014c0f`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/e014c0f48a05f019ef6d824d7bbba33abd10ddac))
 
 ## v1.4.8 (2022-10-05)
+
 ### Fix
-* 🐛 Correct version assignment/removal with DLC plugin ([`62eac46`](https://github.com/networking/nautobot-plugin-device42-sync/commit/62eac46669509164ee6ef8d2a9437b5e8775dddf))
+
+* 🐛 Correct version assignment/removal with DLC plugin ([`62eac46`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/62eac46669509164ee6ef8d2a9437b5e8775dddf))
 
 ## v1.4.7 (2022-10-05)
+
 ### Fix
-* ♻️ Redo how OS version is updated for Devices ([`cf889b3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/cf889b306bd2f8a3c66274008f2fa079177424fa))
+
+* ♻️ Redo how OS version is updated for Devices ([`cf889b3`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/cf889b306bd2f8a3c66274008f2fa079177424fa))
 
 ### Performance
-* ♻️ Use status_map in Device update to reduce db queries ([`49b48cf`](https://github.com/networking/nautobot-plugin-device42-sync/commit/49b48cf789ce4ae07a66caf08002a37030205f8b))
-* 🔥 Remove hardware determination in update as not used ([`e5ff85d`](https://github.com/networking/nautobot-plugin-device42-sync/commit/e5ff85d7d2962dbe32cf510670fb88391e4e2e93))
+
+* ♻️ Use status_map in Device update to reduce db queries ([`49b48cf`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/49b48cf789ce4ae07a66caf08002a37030205f8b))
+* 🔥 Remove hardware determination in update as not used ([`e5ff85d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/e5ff85d7d2962dbe32cf510670fb88391e4e2e93))
 
 ## v1.4.6 (2022-10-04)
+
 ### Fix
-* 🐛 Redo how VC position is updated, find if another dev is in position ([`181ec39`](https://github.com/networking/nautobot-plugin-device42-sync/commit/181ec39f70a4736a74ba914760eff1f488bdefd4))
+
+* 🐛 Redo how VC position is updated, find if another dev is in position ([`181ec39`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/181ec39f70a4736a74ba914760eff1f488bdefd4))
 
 ## v1.4.5 (2022-10-04)
+
 ### Fix
-* Add check for slot in rack_elevations ([`7440a97`](https://github.com/networking/nautobot-plugin-device42-sync/commit/7440a97ad34508e715923fb7126d4b0793b366a2))
+
+* Add check for slot in rack_elevations ([`7440a97`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/7440a97ad34508e715923fb7126d4b0793b366a2))
 
 ## v1.4.4 (2022-10-04)
+
 ### Fix
-* Don't set description to None for IPAddress ([`6400ab7`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6400ab7ac7218fce7a705b77fd7468bcfc64b727))
+
+* Don't set description to None for IPAddress ([`6400ab7`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/6400ab7ac7218fce7a705b77fd7468bcfc64b727))
 
 ## v1.4.3 (2022-10-04)
+
 ### Fix
-* 🐛 Correct rack_position determination ([`befc6a0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/befc6a06a40d74f55356bfd98bdf4e5a88305168))
-* 🐛 Correct update of device assigned to IP ([`c8f06bc`](https://github.com/networking/nautobot-plugin-device42-sync/commit/c8f06bc74dc968269289b6b9bbd9683ba243e44a))
+
+* 🐛 Correct rack_position determination ([`befc6a0`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/befc6a06a40d74f55356bfd98bdf4e5a88305168))
+* 🐛 Correct update of device assigned to IP ([`c8f06bc`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/c8f06bc74dc968269289b6b9bbd9683ba243e44a))
 
 ## v1.4.2 (2022-10-04)
+
 ### Fix
-* 🐛 Correct key for device name, add catch for no Device assigned ([`4b57882`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4b578828a00e7bc955e915d18d7e0d5f4eb878a8))
+
+* 🐛 Correct key for device name, add catch for no Device assigned ([`4b57882`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/4b578828a00e7bc955e915d18d7e0d5f4eb878a8))
 
 ## v1.4.1 (2022-10-04)
+
 ### Fix
-* ⏪️ Restore the netport_pk in DOQL query for ports ([`d7e09fd`](https://github.com/networking/nautobot-plugin-device42-sync/commit/d7e09fd477e3c456da85625deca96e033f210789))
+
+* ⏪️ Restore the netport_pk in DOQL query for ports ([`d7e09fd`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/d7e09fd477e3c456da85625deca96e033f210789))
 
 ## v1.4.0 (2022-10-04)
+
 ### Feature
-* ✨ Update port queries to include second device ([`0335835`](https://github.com/networking/nautobot-plugin-device42-sync/commit/0335835313e1fa522445b428b448c8e0e7356747))
+
+* ✨ Update port queries to include second device ([`0335835`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/0335835313e1fa522445b428b448c8e0e7356747))
 
 ### Fix
-* 🐛 Correct debug message for device name ([`5c99c42`](https://github.com/networking/nautobot-plugin-device42-sync/commit/5c99c42268e4eca37d4724ab5fc86e8ddfca1611))
+
+* 🐛 Correct debug message for device name ([`5c99c42`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/5c99c42268e4eca37d4724ab5fc86e8ddfca1611))
 
 ## v1.3.12 (2022-10-03)
+
 ### Fix
-* Verify device is in port map before assigning ID ([`1d960e3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/1d960e39f034293e019da23282eb4813f423d0f8))
+
+* Verify device is in port map before assigning ID ([`1d960e3`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/1d960e39f034293e019da23282eb4813f423d0f8))
 
 ## v1.3.11 (2022-10-03)
+
 ### Fix
-* 🐛 Fix IPAddr moving interface in update function ([`9d5ed98`](https://github.com/networking/nautobot-plugin-device42-sync/commit/9d5ed9854a009ad7c154849a3fc17f76842ab5e9))
+
+* 🐛 Fix IPAddr moving interface in update function ([`9d5ed98`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/9d5ed9854a009ad7c154849a3fc17f76842ab5e9))
 
 ## v1.3.10 (2022-10-03)
+
 ### Fix
-* 🐛 Ensure device found before trying to save ([`dab7cc8`](https://github.com/networking/nautobot-plugin-device42-sync/commit/dab7cc89721d5c74a83d8c42a8964907740e36bc))
+
+* 🐛 Ensure device found before trying to save ([`dab7cc8`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/dab7cc89721d5c74a83d8c42a8964907740e36bc))
 
 ## v1.3.9 (2022-10-03)
+
 ### Fix
-* Handle None for tags ([`ec3fff3`](https://github.com/networking/nautobot-plugin-device42-sync/commit/ec3fff34749bd315069dc0f6c1b6976745135d3c))
+
+* Handle None for tags ([`ec3fff3`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/ec3fff34749bd315069dc0f6c1b6976745135d3c))
 
 ## v1.3.8 (2022-10-03)
+
 ### Fix
-* Add handling for None being passed ([`c5e9184`](https://github.com/networking/nautobot-plugin-device42-sync/commit/c5e9184a19e0e9de9a9d99c59fdb1285c9aeae1d))
+
+* Add handling for None being passed ([`c5e9184`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/c5e9184a19e0e9de9a9d99c59fdb1285c9aeae1d))
 
 ## v1.3.7 (2022-09-30)
+
 ### Fix
-* Validate rack_position var for dev position ([`f4626f4`](https://github.com/networking/nautobot-plugin-device42-sync/commit/f4626f4acd21d7a45b43ca24d05ccd926ba6df71))
+
+* Validate rack_position var for dev position ([`f4626f4`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/f4626f4acd21d7a45b43ca24d05ccd926ba6df71))
 
 ## v1.3.6 (2022-09-29)
+
 ### Fix
-* Ensure part number isn't null ([`4138e64`](https://github.com/networking/nautobot-plugin-device42-sync/commit/4138e64b1c2ea3b67f7fde53c66f0e6b35e6d8a8))
+
+* Ensure part number isn't null ([`4138e64`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/4138e64b1c2ea3b67f7fde53c66f0e6b35e6d8a8))
 
 ## v1.3.5 (2022-09-29)
+
 ### Fix
-* ⏪️ Revert custom_field to be a get ([`8631b6f`](https://github.com/networking/nautobot-plugin-device42-sync/commit/8631b6fb99e20b3eeba1771e0c4bf5e6157a6019))
+
+* ⏪️ Revert custom_field to be a get ([`8631b6f`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/8631b6fb99e20b3eeba1771e0c4bf5e6157a6019))
 
 ## v1.3.4 (2022-09-29)
+
 ### Fix
-* 🐛 Fix tag updates so they're added/removed properly ([`03ff4fc`](https://github.com/networking/nautobot-plugin-device42-sync/commit/03ff4fcf18441450b614b38c96cd4edf3120a005))
+
+* 🐛 Fix tag updates so they're added/removed properly ([`03ff4fc`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/03ff4fcf18441450b614b38c96cd4edf3120a005))
 
 ## v1.3.3 (2022-09-28)
+
 ### Fix
-* 🐛 Add Status attribute to mgmt interface ([`0bb9070`](https://github.com/networking/nautobot-plugin-device42-sync/commit/0bb907005b09ceb9a2438fa46211f113676b1535))
+
+* 🐛 Add Status attribute to mgmt interface ([`0bb9070`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/0bb907005b09ceb9a2438fa46211f113676b1535))
 
 ## v1.3.2 (2022-09-28)
+
 ### Fix
-* 🐛 Add check for up on port to handle virtual ports ([`36c8d8c`](https://github.com/networking/nautobot-plugin-device42-sync/commit/36c8d8c205713e70f450f19799f04bf119d2beff))
+
+* 🐛 Add check for up on port to handle virtual ports ([`36c8d8c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/36c8d8c205713e70f450f19799f04bf119d2beff))
 
 ## v1.3.1 (2022-09-28)
+
 ### Fix
-* Correct var to be _device_name ([`3f361ca`](https://github.com/networking/nautobot-plugin-device42-sync/commit/3f361cac2d51156918b043ba537992769253243d))
+
+* Correct var to be _device_name ([`3f361ca`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/3f361cac2d51156918b043ba537992769253243d))
 
 ## v1.3.0 (2022-09-28)
+
 ### Feature
-* ✨ Add Status to Ports ([`3d76bfd`](https://github.com/networking/nautobot-plugin-device42-sync/commit/3d76bfd809a47a0a744a074104050fdc912b59bc))
+
+* ✨ Add Status to Ports ([`3d76bfd`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/3d76bfd809a47a0a744a074104050fdc912b59bc))
 
 ### Fix
-* 🐛 Correct get of Device to use variable ([`cf6bf80`](https://github.com/networking/nautobot-plugin-device42-sync/commit/cf6bf802f1be9ad3c6e3c88fc3403022bae5c379))
+
+* 🐛 Correct get of Device to use variable ([`cf6bf80`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/cf6bf802f1be9ad3c6e3c88fc3403022bae5c379))
 
 ## v1.2.8 (2022-09-27)
+
 ### Fix
-* Correct import for DiffSyncFlags ([`89e77ef`](https://github.com/networking/nautobot-plugin-device42-sync/commit/89e77efa402a7df7dfc331cd77811bf8b8848778))
+
+* Correct import for DiffSyncFlags ([`89e77ef`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/89e77efa402a7df7dfc331cd77811bf8b8848778))
 
 ## v1.2.7 (2022-09-27)
+
 ### Fix
-* 🐛 Correct label attr to be defined even if field missing for diff ([`3a8a3cb`](https://github.com/networking/nautobot-plugin-device42-sync/commit/3a8a3cbdc2466b647055b070e78b25d43034e6a5))
-* 🐛 Ensure updates to device are saved ([`86758d9`](https://github.com/networking/nautobot-plugin-device42-sync/commit/86758d9bcc837a250a586afe13f1b75937ff23c8))
+
+* 🐛 Correct label attr to be defined even if field missing for diff ([`3a8a3cb`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/3a8a3cbdc2466b647055b070e78b25d43034e6a5))
+* 🐛 Ensure updates to device are saved ([`86758d9`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/86758d9bcc837a250a586afe13f1b75937ff23c8))
 
 ## v1.2.6 (2022-09-26)
+
 ### Fix
-* 🐛 Add handling for IP showing assigned but non-existant Interface ([`7da3a69`](https://github.com/networking/nautobot-plugin-device42-sync/commit/7da3a69998b8545702d65c7c1b579e50aa4941f8))
+
+* 🐛 Add handling for IP showing assigned but non-existant Interface ([`7da3a69`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/7da3a69998b8545702d65c7c1b579e50aa4941f8))
 
 ## v1.2.5 (2022-09-26)
+
 ### Fix
-* Check that queryset has a version ([`b8428f0`](https://github.com/networking/nautobot-plugin-device42-sync/commit/b8428f052bfc829bd5e21f6747f2182381d3696e))
+
+* Check that queryset has a version ([`b8428f0`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/b8428f052bfc829bd5e21f6747f2182381d3696e))
 
 ### Documentation
-* 📝 Add debug logging for deleting devices ([`6125600`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6125600857a0cd651077607a55282ca4d7ac3791))
+
+* 📝 Add debug logging for deleting devices ([`6125600`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/6125600857a0cd651077607a55282ca4d7ac3791))
 
 ## v1.2.4 (2022-09-26)
+
 ### Fix
-* 🐛 Ensure only one version assigned to Device ([`65dde96`](https://github.com/networking/nautobot-plugin-device42-sync/commit/65dde968bf8db1311be4df8696337b66dde81c8c))
+
+* 🐛 Ensure only one version assigned to Device ([`65dde96`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/65dde968bf8db1311be4df8696337b66dde81c8c))
 
 ## v1.2.3 (2022-09-23)
+
 ### Fix
-* Many Fixes and Features for Bulk Create/Update/Delete ([`6c9ed94`](https://github.com/networking/nautobot-plugin-device42-sync/commit/6c9ed94a90af2f421c04595bce1914ede5c8fbae))
+
+* Many Fixes and Features for Bulk Create/Update/Delete ([`6c9ed94`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/6c9ed94a90af2f421c04595bce1914ede5c8fbae))
 
 ## v1.2.2 (2022-05-06)
 
@@ -409,7 +481,8 @@ The plugin is officially in a stable, production-ready state!
 
 ### Bug Fixes
 
-- :bug: correct logging to be from diffsync. ([afb3b62](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/afb3b62c8896f665d97f37bb611ff73864794271) by Justin Drew - Network To Code).
+* :bug: correct logging to be from diffsync. ([afb3b62](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/afb3b62c8896f665d97f37bb611ff73864794271) by Justin Drew - Network To Code).
+
 * :bug: return sorted customfields. ([4f8066f](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/4f8066f57f520f9ccf597fbaecba49e7b3b8745e) by Justin Drew - Network To Code).
 * :bug: missed exception var, has been added. ([d8ac88d](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/d8ac88d8355bd6adb8f231dca58faf608ccf62e4) by Justin Drew - Network To Code).
 * :bug: check for dns answer matching primary ip needs str. ([87bf1cd](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/87bf1cdea2381731c8a8a22cd9f10ae76f7dac90) by Justin Drew - Network To Code).
@@ -422,7 +495,8 @@ The plugin is officially in a stable, production-ready state!
 
 ### Features
 
-- :sparkles: add methods to get default customfields for ports and subnets. ([6acf222](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/6acf2225eecdabb9112fbb213fb41dec7f7be59e) by Justin Drew - Network To Code).
+* :sparkles: add methods to get default customfields for ports and subnets. ([6acf222](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/6acf2225eecdabb9112fbb213fb41dec7f7be59e) by Justin Drew - Network To Code).
+
 * :sparkles: handle case for ip addr where device changes. ([7d0ba67](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/7d0ba672964f14ce690534683c75fd5bd860a236) by Justin Drew - Network To Code).
 
 ## [v0.9.3](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/tags/v0.9.3) - 2021-11-01
@@ -431,7 +505,7 @@ The plugin is officially in a stable, production-ready state!
 
 ### Bug Fixes
 
-- :rewind: revert attribute for circuit object to use cid. ([d856e3e](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/d856e3eeb084f65b4fcd83774ffeab20c510b5b8) by Justin Drew - Network To Code).
+* :rewind: revert attribute for circuit object to use cid. ([d856e3e](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/d856e3eeb084f65b4fcd83774ffeab20c510b5b8) by Justin Drew - Network To Code).
 
 ## [v0.9.2](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/tags/v0.9.2) - 2021-11-01
 
@@ -439,7 +513,7 @@ The plugin is officially in a stable, production-ready state!
 
 ### Bug Fixes
 
-- :bug: correct attribute from `cid` to `circuit_id` for circuitterminations ([134943d](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/134943d00116c1bb9f66cb6a40d846a8c71e656f) by Justin Drew - Network To Code).
+* :bug: correct attribute from `cid` to `circuit_id` for circuitterminations ([134943d](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/134943d00116c1bb9f66cb6a40d846a8c71e656f) by Justin Drew - Network To Code).
 
 ## [v0.9.1](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/tags/v0.9.1) - 2021-11-01
 
@@ -447,7 +521,8 @@ The plugin is officially in a stable, production-ready state!
 
 ### Features
 
-- Add circuit terminations to devices in create ([ed908b0](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/ed908b0321e71969ca076f83b15a49fcb39bbcc7) by Justin Drew - Network To Code).
+* Add circuit terminations to devices in create ([ed908b0](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/ed908b0321e71969ca076f83b15a49fcb39bbcc7) by Justin Drew - Network To Code).
+
 * Add telco circuits ([e1c0386](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/e1c03862aeb2e584bfd49996b5349ff4561574fa) by Justin Drew - Network To Code).
 * Add custom fields ([e52bb0d](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/e52bb0d2faa4170e207a288c3e7b6e74e3ae7818) by Justin Drew - Network To Code).
 * Add cables ([f1c9791](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/f1c9791b9b8b1e63f52e04d002e62732be27af20) by Justin Drew - Network To Code).
@@ -458,7 +533,8 @@ The plugin is officially in a stable, production-ready state!
 
 ### Bug Fixes
 
-- :bug: fix customfields not being added to ipaddress ([36a1dad](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/36a1dadfedd6d0f3a45364757cd0e00b7ad8118c) by Justin Drew - Network To Code).
+* :bug: fix customfields not being added to ipaddress ([36a1dad](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/36a1dadfedd6d0f3a45364757cd0e00b7ad8118c) by Justin Drew - Network To Code).
+
 * Fix tests ([d224c76](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/d224c768bdcb3802b9243ea0236e6e1ad10dde1c) by Justin Drew - Network To Code).
 * Fix diffs ([5b5e8fe](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/5b5e8fe5a4a400771be8dc5c6c1bc039481daeb1) by Justin Drew - Network To Code).
 * Fix model updates ([51bae7e](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/51bae7e43aff2af6557315987b03e0132ccad0b2) by Justin Drew - Network To Code).
@@ -472,7 +548,8 @@ The plugin is officially in a stable, production-ready state!
 
 ### Added
 
-- Add ip addresses ([afdcaae](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/afdcaae2b202978fc71ab082d1933cf79c27868c) by Justin Drew - Network To Code).
+* Add ip addresses ([afdcaae](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/afdcaae2b202978fc71ab082d1933cf79c27868c) by Justin Drew - Network To Code).
+
 * Add prefixes ([9fe3086](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/9fe3086e959e1b198c572f6a5b8856ee73d50dac) by Justin Drew - Network To Code).
 * Add vrfs ([8ccaf12](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/8ccaf128a62d2125c4fa34b5ab425af2b2aaf925) by Justin Drew - Network To Code).
 * Add ports ([9873430](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/9873430a23bac50cf3d6b1451163e43602051b67) by Justin Drew - Network To Code).
@@ -483,7 +560,8 @@ The plugin is officially in a stable, production-ready state!
 
 ### Added
 
-- Add clusters and devices ([116b741](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/116b741747e7f0d4f77b5ab78f703e5e934a8f5e) by Justin Drew - Network To Code).
+* Add clusters and devices ([116b741](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/116b741747e7f0d4f77b5ab78f703e5e934a8f5e) by Justin Drew - Network To Code).
+
 * Add vendors ([860f9fc](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/860f9fc5bc8df502bc1d61db300bb9f1a0ca241e) by Justin Drew).
 * Add racks ([13e92fa](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/13e92fa1f6a644c2728a9eaa6382e40d263c73e9) by Justin Drew - Network To Code).
 
@@ -493,7 +571,7 @@ The plugin is officially in a stable, production-ready state!
 
 ### Added
 
-- Add site sync support ([4c6ac8f](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/4c6ac8f2e516f9311daa1e7441b834e53793644d) by Justin Drew - Network To Code).
+* Add site sync support ([4c6ac8f](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/commit/4c6ac8f2e516f9311daa1e7441b834e53793644d) by Justin Drew - Network To Code).
 
 ## [v0.2.0](https://github.com/networktocode-llc/nautobot-plugin-device42-sync/tags/v0.2.0) - 2021-07-15
 
