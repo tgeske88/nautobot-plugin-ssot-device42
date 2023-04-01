@@ -123,7 +123,7 @@ class Device(DiffSyncModel):
     )
     _children = {"port": "interfaces"}
     name: str
-    building: Optional[str]
+    building: str
     room: Optional[str]
     rack: Optional[str]
     rack_position: Optional[float]
