@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.5.1 (2023-03-31)
+### Fix
+* Use base model instead of Nautobot to avoid circular import ([`ddf0711`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/ddf07119cfdfc523744ea7f124ee10ada5995bfa))
+* Correct get to use NautobotDevice ([`ee59ebe`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/ee59ebea6423ad9e10d993706c3c2fd9605c1d35))
+* Ensure latitude/longitude are float and not Decimal ([`74e2d77`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/74e2d77bf3f3d2314f9a26ea4b488fbc89d8c94d))
+* Correct vars in update log message ([`c280247`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/c280247ec68a9f4836d52ff17238e154deef7554))
+* Don't look for site if slug is global ([`b7e9006`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/b7e9006bb883014ad6a0a44ac2a9b7e89f0ff4fc))
+* Ensure all VLANs attribute are list for diff ([`bd6ec33`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/bd6ec33271a05d80f9e7ba8d1c86dddab6c7f3e9))
+* 🐛 Correct port update method for VLAN tagging to use verify_vlan method ([`a2cc368`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/a2cc368400b20908c6e1d54194c91b1e53ac0fc2))
+* Use empty list instead of None ([`98d95b3`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/98d95b3c7c976c99161d2bbd784f0bb936d8cbf0))
+* 🐛 VLANs attribute can't be set, must be list to be serializable ([`97a0052`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/97a0052afc138cef7344126f1a5326d173cf629d))
+* 🐛 Add tags to VLAN model ([`acffb9b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/acffb9bde980b2632b6ac40cb5c86e8a427cf2f1))
+* ♻️ Change get_random_color to use f-string ([`77eb6c9`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/77eb6c9bc553a353ee2cda3e20b718a1ea6fc4a1))
+
+### Documentation
+* 📝 Add log for declaring end of Sync in post_run ([`054932e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/054932ec2e9b974e25906f3e11aed55363612585))
+
 ## v1.5.0 (2023-03-09)
 ### Feature
 * ✨ Add bulk_import toggle to Job and update sync_complete to do bulk if toggled else individual. ([`950469c`](https://github.com/networktocode-llc/cu-zest-ssot-device42/commit/950469cc28bf07aa5d3dd516d0af63dcc090ddb2))
