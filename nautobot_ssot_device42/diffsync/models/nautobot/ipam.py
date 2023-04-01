@@ -325,11 +325,11 @@ class NautobotVLAN(VLAN):
             nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_vlan)
         if attrs.get("tags"):
             nautobot.update_tags(tagged_obj=new_vlan, new_tags=attrs["tags"])
-        try:
-            new_vlan.validated_save()
-            return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
-        except ValidationError as err:
-            diffsync.job.log_warning(message=f"Error creating VLAN {attrs['name']} {ids['vlan_id']}. {err}")
+        diffsync.objects_to_create["vlans"].append(new_vlan)
+        if _site_name not in diffsync.vlan_map:
+            diffsync.vlan_map[_site_name] = {}
+        diffsync.vlan_map[_site_name][ids["vlan_id"]] = new_vlan.id
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
         """Update VLAN object in Nautobot."""
