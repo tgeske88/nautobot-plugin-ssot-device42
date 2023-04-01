@@ -325,23 +325,6 @@ def get_cf_version_map():
     return version_map
 
 
-def find_site(diffsync, site_id: UUID):
-    """Find Site name using it's UUID.
-
-    Args:
-        diffsync (obj): DiffSync adapter with site_map.
-        site_id (UUID): UUID of Site to be found.
-
-    Returns:
-        str: Name of Site matching site_id if found. Returns blank string if Site not found.
-    """
-    site_name = ""
-    for site, obj_id in diffsync.site_map.items():
-        if obj_id == site_id:
-            site_name = site
-    return site_name
-
-
 def apply_vlans_to_port(diffsync, device_name: str, mode: str, vlans: list, port: Interface):
     """Determine appropriate VLANs to add to a Port link.
 
@@ -354,7 +337,7 @@ def apply_vlans_to_port(diffsync, device_name: str, mode: str, vlans: list, port
     """
     try:
         dev = diffsync.get(NautobotDevice, device_name)
-        site_name = find_site(diffsync=diffsync, site_id=dev.site_id)
+        site_name = slugify(dev.building)
     except ObjectNotFound:
         site_name = "global"
     if mode == "access" and len(vlans) == 1:
