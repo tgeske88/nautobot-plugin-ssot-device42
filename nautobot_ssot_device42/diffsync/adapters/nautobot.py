@@ -764,7 +764,7 @@ class NautobotAdapter(DiffSync):
                     name=vlan.name,
                     vlan_id=vlan.vid,
                     description=vlan.description if vlan.description else "",
-                    building=vlan.site.name if vlan.site else "Unknown",
+                    building=vlan.site.slug if vlan.site else "Unknown",
                     custom_fields=nautobot.get_custom_field_dict(vlan.get_custom_fields()),
                     tags=nautobot.get_tag_strings(vlan.tags),
                     uuid=vlan.id,
