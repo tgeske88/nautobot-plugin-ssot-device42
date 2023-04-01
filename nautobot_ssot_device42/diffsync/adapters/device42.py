@@ -553,6 +553,13 @@ class Device42Adapter(DiffSync):
                     _vlans = []
                     for _pk in _port["vlan_pks"]:
                         if _pk in self.d42_vlan_map and self.d42_vlan_map[_pk]["vid"] != 0:
+                            # Need to ensure that there's a VLAN loaded for every one that's being tagged.
+                            try:
+                                self.get(
+                                    self.vlan, {"vlan_id": self.d42_vlan_map[_pk]["vid"], "building": _dev.building}
+                                )
+                            except ObjectNotFound:
+                                load_vlan(diffsync=self, vlan_id=self.d42_vlan_map[_pk]["vid"], site_name=_dev.building)
                             _vlans.append(self.d42_vlan_map[_pk]["vid"])
                     new_port.vlans = sorted(set(_vlans))
                     if len(_vlans) > 1:
