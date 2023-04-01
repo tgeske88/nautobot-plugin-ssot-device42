@@ -786,6 +786,7 @@ class NautobotPort(Port):
     def update(self, attrs):
         """Update Interface object in Nautobot."""
         _port = OrmInterface.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Port {_port.name} on {_port.device.name} with {attrs}")
         if "enabled" in attrs:
             _port.enabled = is_truthy(attrs["enabled"])
         if "mtu" in attrs:
