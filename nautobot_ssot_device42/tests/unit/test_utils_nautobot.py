@@ -66,7 +66,7 @@ class TestNautobotUtils(TransactionTestCase):  # pylint: disable=too-many-instan
         self.dsync.vlan_map["microsoft-hq"][1] = self.mock_vlan.id
         self.dsync.site_map = {}
         self.dsync.status_map = {}
-        self.dsync.objects_to_create = {"platforms": [], "vlans": []}
+        self.dsync.objects_to_create = {"platforms": [], "vlans": [], "tagged_vlans": []}
         self.dsync.site_map["test-site"] = self.site.id
         self.dsync.status_map["active"] = self.status_active.id
 
@@ -219,7 +219,9 @@ class TestNautobotUtils(TransactionTestCase):  # pylint: disable=too-many-instan
         self.dsync.get.return_value = self.mock_dev
         self.intf.mode = "tagged"
         apply_vlans_to_port(diffsync=self.dsync, device_name="Test", mode="tagged", vlans=[1, 2], port=self.intf)
-        self.assertIsNotNone(self.intf.tagged_vlans)
+        port_update = self.dsync.objects_to_create["tagged_vlans"][0]
+        self.assertEqual(port_update[0], self.intf)
+        self.assertEqual(port_update[1], [self.mock_vlan.id, mock_vlan2.id])
 
     def test_apply_vlans_to_port_w_missing_device(self):
         """Test the apply_vlans_to_port() method when Device not found."""

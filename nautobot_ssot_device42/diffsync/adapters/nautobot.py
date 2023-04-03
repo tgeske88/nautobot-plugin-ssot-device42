@@ -409,6 +409,13 @@ class NautobotAdapter(DiffSync):
             if self.job.kwargs["bulk_import"]:
                 VirtualChassis.objects.bulk_update(master_devices, ["master"], batch_size=50)
 
+        if len(self.objects_to_create["tagged_vlans"]) > 0:
+            self.job.log_info(message="Assigning tagged VLANs to Ports in Nautobot.")
+            for item in self.objects_to_create["tagged_vlans"]:
+                port, tagged_vlans = item
+                port.tagged_vlans.set(tagged_vlans)
+                port.validated_save()
+
         if LIFECYCLE_MGMT:
             if len(self.objects_to_create["softwarelcms"]) > 0:
                 if self.job.kwargs["bulk_import"]:
