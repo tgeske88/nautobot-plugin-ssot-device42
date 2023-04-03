@@ -385,16 +385,27 @@ class NautobotAdapter(DiffSync):
                         self.job.log_warning(message=f"Unable to find Device {dev_ip[0]} to assign primary IP. {err}")
                     try:
                         ipaddr = IPAddress.objects.get(id=dev_ip[1])
+                        ipaddr.validated_save()
+                        try:
+                            if dev and ipaddr:
+                                if ipaddr.assigned_object.device == dev:
+                                    if ipaddr.family == 4:
+                                        dev.primary_ip4_id = dev_ip[1]
+                                    else:
+                                        dev.primary_ip6_id = dev_ip[1]
+                                    dev.validated_save()
+                                else:
+                                    self.job.log_warning(
+                                        message=f"IP Address doesn't show assigned to {dev} so can't mark primary."
+                                    )
+                        except ValidationError as err:
+                            self.job.log_warning(message=f"Unable to assign primary IP to {dev}. {err}")
                     except IPAddress.DoesNotExist as err:
                         self.job.log_warning(
                             message=f"Unable to find IP Address {dev_ip[1]} to assign primary IP. {err}"
                         )
-                    if dev and ipaddr:
-                        if ipaddr.family == 4:
-                            dev.primary_ip4_id = dev_ip[1]
-                        else:
-                            dev.primary_ip6_id = dev_ip[1]
-                        dev.validated_save()
+                    except ValidationError as err:
+                        self.job.log_warning(message=f"Unable to save IP Address {dev_ip[1]} for {dev}. {err}")
 
         if len(self.objects_to_create["master_devices"]) > 0:
             master_devices = []
