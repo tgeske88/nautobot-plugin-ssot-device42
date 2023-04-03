@@ -1,19 +1,23 @@
 """Tests of Nautobot utility methods."""
 from uuid import UUID
 from unittest.mock import MagicMock, patch
+from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from nautobot.utilities.testing import TransactionTestCase
-from nautobot.dcim.models import Manufacturer, Site, Region
+from nautobot.dcim.models import Manufacturer, Site, Region, Device, DeviceRole, DeviceType, Interface
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Status
+from nautobot.ipam.models import VLAN
+from nautobot_ssot_device42.diffsync.models.nautobot.dcim import NautobotDevice
 from nautobot_ssot_device42.utils.nautobot import (
     verify_platform,
     determine_vc_position,
     update_custom_fields,
+    apply_vlans_to_port,
 )
 
 
-class TestNautobotUtils(TransactionTestCase):
+class TestNautobotUtils(TransactionTestCase):  # pylint: disable=too-many-instance-attributes
     """Test Nautobot utility methods."""
 
     databases = ("default", "job_logs")
@@ -24,9 +28,42 @@ class TestNautobotUtils(TransactionTestCase):
         self.status_active = Status.objects.get(name="Active")
         self.cisco_manu, _ = Manufacturer.objects.get_or_create(name="Cisco")
         self.site = Site.objects.create(name="Test Site", slug="test-site", status=self.status_active)
+        _dt = DeviceType(model="CSR1000v", manufacturer=self.cisco_manu)
+        _dr = DeviceRole(name="CORE")
+        self.dev = Device(name="Test", device_role=_dr, device_type=_dt, site=self.site, status=self.status_active)
+        self.intf = Interface(
+            name="Management", type="virtual", mode="access", device=self.dev, status=self.status_active
+        )
+        self.mock_dev = NautobotDevice(
+            name="Test",
+            building="Microsoft HQ",
+            room=None,
+            rack=None,
+            rack_position=None,
+            rack_orientation=None,
+            hardware="CSR1000v",
+            os="cisco_ios",
+            os_version="16.2.3",
+            in_service=True,
+            serial_no="12345678",
+            tags=[],
+            cluster_host=None,
+            master_device=False,
+            vc_position=None,
+            custom_fields=None,
+            uuid=None,
+        )
+        self.mock_vlan = VLAN(
+            vid=1,
+            name="Test",
+            site=self.site,
+            status=self.status_active,
+        )
         self.dsync = MagicMock()
+        self.dsync.get = MagicMock()
         self.dsync.platform_map = {}
-        self.dsync.vlan_map = {}
+        self.dsync.vlan_map = {"microsoft-hq": {}, "global": {}}
+        self.dsync.vlan_map["microsoft-hq"][1] = self.mock_vlan.id
         self.dsync.site_map = {}
         self.dsync.status_map = {}
         self.dsync.objects_to_create = {"platforms": [], "vlans": []}
@@ -161,3 +198,33 @@ class TestNautobotUtils(TransactionTestCase):
         }
         update_custom_fields(new_cfields=mock_cfs, update_obj=test_region)
         self.assertEqual(test_region.custom_field_data["department"], "IT")
+
+    def test_apply_vlans_to_port_access_port(self):
+        """Test the apply_vlans_to_port() method adds a single VLAN to a port."""
+        self.dsync.vlan_map["microsoft-hq"][1] = self.mock_vlan.id
+        self.dsync.get.return_value = self.mock_dev
+        apply_vlans_to_port(diffsync=self.dsync, device_name="Test", mode="access", vlans=[1], port=self.intf)
+        self.assertIsNotNone(self.intf.untagged_vlan_id)
+        self.assertEqual(self.intf.untagged_vlan_id, self.mock_vlan.id)
+
+    def test_apply_vlans_to_port_tagged_port(self):
+        """Test the apply_vlans_to_port() method adds multiple VLANs to a port."""
+        mock_vlan2 = VLAN(
+            vid=2,
+            name="Test2",
+            site=self.site,
+            status=self.status_active,
+        )
+        self.dsync.vlan_map["microsoft-hq"][2] = mock_vlan2.id
+        self.dsync.get.return_value = self.mock_dev
+        self.intf.mode = "tagged"
+        apply_vlans_to_port(diffsync=self.dsync, device_name="Test", mode="tagged", vlans=[1, 2], port=self.intf)
+        self.assertIsNotNone(self.intf.tagged_vlans)
+
+    def test_apply_vlans_to_port_w_missing_device(self):
+        """Test the apply_vlans_to_port() method when Device not found."""
+        self.dsync.get.side_effect = ObjectNotFound
+        self.dsync.vlan_map["global"][1] = self.mock_vlan.id
+        apply_vlans_to_port(diffsync=self.dsync, device_name="Test", mode="access", vlans=[1], port=self.intf)
+        self.assertIsNotNone(self.intf.untagged_vlan_id)
+        self.assertEqual(self.intf.untagged_vlan_id, self.mock_vlan.id)

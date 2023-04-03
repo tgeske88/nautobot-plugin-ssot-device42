@@ -5,7 +5,7 @@
         "description": "Public",
         "tags": "",
         "vlan_name": "Public",
-        "building": "Austin",
+        "building": "Dell - Round Rock 2",
         "customer": "AUS"
     },
     {
@@ -14,7 +14,7 @@
         "description": "DMZ",
         "tags": "",
         "vlan_name": "DMZ",
-        "building": "Los Angeles",
-        "customer": "LAX"
+        "building": "Microsoft HQ",
+        "customer": "SEA"
     }
 ]

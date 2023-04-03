@@ -344,7 +344,9 @@ def apply_vlans_to_port(diffsync, device_name: str, mode: str, vlans: list, port
         _vlan = vlans[0]
         port.untagged_vlan_id = diffsync.vlan_map[site_name][_vlan]
     else:
+        tagged_vlans = []
         for _vlan in vlans:
             tagged_vlan = diffsync.vlan_map[site_name][_vlan]
             if tagged_vlan:
-                port.tagged_vlans.add(tagged_vlan)
+                tagged_vlans.append(tagged_vlan)
+        port.tagged_vlans.set(tagged_vlans)

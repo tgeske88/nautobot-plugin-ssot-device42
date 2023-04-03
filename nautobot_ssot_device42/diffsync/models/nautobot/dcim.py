@@ -774,7 +774,6 @@ class NautobotPort(Port):
             nautobot.apply_vlans_to_port(
                 diffsync=diffsync, device_name=ids["device"], mode=attrs["mode"], vlans=attrs["vlans"], port=new_intf
             )
-
         diffsync.objects_to_create["ports"].append(new_intf)
         if ids["device"] not in diffsync.port_map:
             diffsync.port_map[ids["device"]] = {}
