@@ -149,9 +149,10 @@ class TestUtilsDevice42(TestCase):
 
     port_statuses = [
         ("active", {"up": True, "up_admin": True}, "active"),
-        ("decommissioned", {"up": False, "up_admin": False}, "decommissioned"),
+        ("decommissioning", {"up": False, "up_admin": False}, "decommissioning"),
         ("failed", {"up": False, "up_admin": True}, "failed"),
         ("planned", {}, "planned"),
+        ("up_admin", {"up_admin": True}, "active"),
     ]
 
     @parameterized.expand(port_statuses, skip_on_empty=True)

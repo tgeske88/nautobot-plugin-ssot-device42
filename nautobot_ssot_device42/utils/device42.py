@@ -113,11 +113,14 @@ def get_intf_status(port: dict):
         port (dict): Dictionary containing port `up` and `up_admin` keys.
     """
     _status = "planned"
-    if "up" in port and not is_truthy(port["up"]) and "up_admin" in port and not is_truthy(port["up_admin"]):
-        _status = "decommissioned"
-    elif "up" in port and not is_truthy(port["up"]) and "up_admin" in port and is_truthy(port["up_admin"]):
-        _status = "failed"
-    elif "up" in port and is_truthy(port["up"]) and "up_admin" in port and is_truthy(port["up_admin"]):
+    if "up" in port and "up_admin" in port:
+        if not is_truthy(port["up"]) and not is_truthy(port["up_admin"]):
+            _status = "decommissioning"
+        elif not is_truthy(port["up"]) and is_truthy(port["up_admin"]):
+            _status = "failed"
+        elif is_truthy(port["up"]) and is_truthy(port["up_admin"]):
+            _status = "active"
+    elif port.get("up_admin"):
         _status = "active"
     return _status
 
