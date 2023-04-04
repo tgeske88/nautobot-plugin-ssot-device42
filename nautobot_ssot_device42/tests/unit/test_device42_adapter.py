@@ -1,14 +1,13 @@
 """Unit tests for the Device42 DiffSync adapter class."""
 import json
 import uuid
-from unittest.mock import MagicMock
-from django.test import override_settings
+from unittest.mock import MagicMock, patch
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot.extras.models import Job, JobResult
 from parameterized import parameterized
-from nautobot_ssot_device42.diffsync.adapters.device42 import Device42Adapter, get_circuit_status
+from nautobot_ssot_device42.diffsync.adapters.device42 import Device42Adapter, get_circuit_status, get_site_from_mapping
 from nautobot_ssot_device42.jobs import Device42DataSource
 
 
@@ -62,10 +61,12 @@ class Device42AdapterTestCase(TransactionTestCase):
         )
         self.device42 = Device42Adapter(job=self.job, sync=None, client=self.d42_client)
 
-    @override_settings(PLUGINS_CONFIG={"nautobot_ssot_device42": {"customer_is_facility": True}})
+    @patch(
+        "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
+        {"customer_is_facility": True},
+    )
     def test_data_loading(self):
         """Test the load() function."""
-
         self.device42.load_buildings()
         self.assertEqual(
             {site["name"] for site in BUILDING_FIXTURE},
@@ -127,6 +128,15 @@ class Device42AdapterTestCase(TransactionTestCase):
     def test_get_circuit_status(self, name, sent, received):  # pylint: disable=unused-argument
         """Test get_circuit_status success."""
         self.assertEqual(get_circuit_status(sent), received)
+
+    @patch(
+        "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
+        {"hostname_mapping": [{"^aus.+|AUS.+": "austin"}]},
+    )
+    def test_get_site_from_mapping(self):
+        """Test the get_site_from_mapping method."""
+        expected = "austin"
+        self.assertEqual(get_site_from_mapping(device_name="aus.test.com"), expected)
 
     def test_filter_ports(self):
         """Method to test filter_ports success."""
