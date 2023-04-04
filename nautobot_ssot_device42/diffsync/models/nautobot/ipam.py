@@ -5,8 +5,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.forms import ValidationError
 from django.utils.text import slugify
 from nautobot.dcim.models import Interface as OrmInterface
-from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField
 from nautobot.extras.models import Status as OrmStatus
 from nautobot.ipam.models import VLAN as OrmVLAN
 from nautobot.ipam.models import VRF as OrmVRF
@@ -29,15 +27,7 @@ class NautobotVRFGroup(VRFGroup):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVRF).id)
-                _vrf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vrf)
         diffsync.objects_to_create["vrfs"].append(_vrf)
         diffsync.vrf_map[ids["name"]] = _vrf.id
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -95,15 +85,7 @@ class NautobotSubnet(Subnet):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _pf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmPrefix).id)
-                _pf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_pf)
         diffsync.objects_to_create["prefixes"].append(_pf)
         if vrf_name not in diffsync.prefix_map:
             diffsync.prefix_map[vrf_name] = {}

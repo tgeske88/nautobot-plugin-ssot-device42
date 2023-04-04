@@ -213,22 +213,24 @@ def update_custom_fields(new_cfields: dict, update_obj: object):
         new_cfields (OrderedDict): Dictionary of CustomFields on object to be updated to match.
         update_obj (object): Object to be updated with CustomFields.
     """
-    obj_contenttype = ContentType.objects.get_for_model(type(update_obj))
     current_cf = get_custom_field_dict(update_obj.get_custom_fields())
     for old_cf, old_cf_dict in current_cf.items():
         if old_cf not in new_cfields:
-            removed_cf = CustomField.objects.get(label=old_cf_dict["key"], content_types=obj_contenttype)
+            removed_cf = CustomField.objects.get(
+                label=old_cf_dict["key"], content_types=ContentType.objects.get_for_model(type(update_obj))
+            )
             removed_cf.delete()
     for new_cf, new_cf_dict in new_cfields.items():
         if new_cf not in current_cf:
             _cf_dict = {
-                "name": slugify(new_cf_dict["key"]),
+                "name": new_cf_dict["key"],
+                "slug": slugify(new_cf_dict["key"]),
                 "type": CustomFieldTypeChoices.TYPE_TEXT,
                 "label": new_cf_dict["key"],
             }
-            field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-            field.content_types.add(obj_contenttype.id)
-        update_obj.custom_field_data.update({slugify(new_cf_dict["key"]): new_cf_dict["value"]})
+            field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+            field.content_types.add(ContentType.objects.get_for_model(type(update_obj)).id)
+        update_obj.custom_field_data.update({new_cf_dict["key"]: new_cf_dict["value"]})
 
 
 def verify_circuit_type(circuit_type: str) -> CircuitType:
