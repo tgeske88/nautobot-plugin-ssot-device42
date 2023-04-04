@@ -886,7 +886,7 @@ class Device42Adapter(DiffSync):
             enabled=True,
             description="Interface added by script for Management of device using DNS A record.",
             mode="access",
-            mtu=None,
+            mtu=1500,
             mac_addr="",
             custom_fields=self.device42.get_port_default_custom_fields(),
             tags=[],
