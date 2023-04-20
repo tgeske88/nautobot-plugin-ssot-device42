@@ -145,3 +145,53 @@ class Device42AdapterTestCase(TransactionTestCase):
         merged_ports = load_json("./nautobot_ssot_device42/tests/fixtures/merged_ports.json")
         result = self.device42.filter_ports(vlan_ports, no_vlan_ports)
         self.assertEqual(merged_ports, result)
+
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.get_dns_a_record")
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.Device42Adapter.find_ipaddr")
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.Device42Adapter.get_management_intf")
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.Device42Adapter.add_management_interface")
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.Device42Adapter.add_ipaddr")
+    def test_set_primary_from_dns_with_valid_fqdn(  # pylint: disable=too-many-arguments
+        self, mock_add_ipaddr, mock_add_mgmt_intf, mock_get_mgmt_intf, mock_find_ipaddr, mock_dns_a_record
+    ):
+        """Method to test the set_primary_from_dns functionality with valid FQDN."""
+        mock_dns_a_record.return_value = "10.0.0.1"
+        mock_find_ipaddr.return_value = False
+        mock_mgmt_interface = MagicMock(name="mgmt_intf")
+        mock_mgmt_interface.name = "eth0"
+        mock_get_mgmt_intf.return_value = mock_mgmt_interface
+        mock_add_mgmt_intf.return_value = mock_mgmt_interface
+        mock_ip = MagicMock()
+        mock_add_ipaddr.return_value = mock_ip
+        dev_name = "router.test-example.com"
+        self.device42.set_primary_from_dns(dev_name)
+
+        mock_dns_a_record.assert_called_once_with(dev_name=dev_name)
+        mock_find_ipaddr.assert_called_once_with(address="10.0.0.1")
+        mock_get_mgmt_intf.assert_called_once_with(dev_name=dev_name)
+        mock_add_mgmt_intf.assert_not_called()
+        mock_add_ipaddr.assert_called_once_with(address="10.0.0.1/32", dev_name=dev_name, interface="eth0")
+        self.assertEqual(mock_ip.device, "router.test-example.com")
+        self.assertEqual(mock_ip.interface, "eth0")
+        self.assertTrue(mock_ip.primary)
+
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.get_dns_a_record")
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.Device42Adapter.find_ipaddr")
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.Device42Adapter.get_management_intf")
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.Device42Adapter.add_management_interface")
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.Device42Adapter.add_ipaddr")
+    def test_set_primary_from_dns_with_invalid_fqdn(  # pylint: disable=too-many-arguments
+        self, mock_add_ipaddr, mock_add_mgmt_intf, mock_get_mgmt_intf, mock_find_ipaddr, mock_dns_a_record
+    ):
+        """Method to test the set_primary_from_dns functionality with invalid FQDN."""
+        mock_dns_a_record.return_value = ""
+        dev_name = "router.test-example.com"
+        self.job.log_warning = MagicMock()
+        self.device42.set_primary_from_dns(dev_name=dev_name)
+
+        mock_dns_a_record.assert_called_once_with(dev_name=dev_name)
+        mock_find_ipaddr.assert_not_called()
+        mock_get_mgmt_intf.assert_not_called()
+        mock_add_mgmt_intf.assert_not_called()
+        mock_add_ipaddr.assert_not_called()
+        self.job.log_warning.assert_called_once()
