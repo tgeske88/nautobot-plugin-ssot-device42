@@ -7,7 +7,12 @@ from django.utils.text import slugify
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot.extras.models import Job, JobResult
 from parameterized import parameterized
-from nautobot_ssot_device42.diffsync.adapters.device42 import Device42Adapter, get_circuit_status, get_site_from_mapping
+from nautobot_ssot_device42.diffsync.adapters.device42 import (
+    Device42Adapter,
+    get_dns_a_record,
+    get_circuit_status,
+    get_site_from_mapping,
+)
 from nautobot_ssot_device42.jobs import Device42DataSource
 
 
@@ -148,6 +153,24 @@ class Device42AdapterTestCase(TransactionTestCase):
         """Test the get_site_from_mapping method."""
         expected = "austin"
         self.assertEqual(get_site_from_mapping(device_name="aus.test.com"), expected)
+
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.is_fqdn_resolvable", return_value=True)
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.fqdn_to_ip", return_value="192.168.0.1")
+    def test_get_dns_a_record_success(self, mock_fqdn_to_ip, mock_is_fqdn_resolvable):
+        """Test the get_dns_a_record method success."""
+        result = get_dns_a_record("example.com")
+        mock_is_fqdn_resolvable.assert_called_once_with("example.com")
+        mock_fqdn_to_ip.assert_called_once_with("example.com")
+        self.assertEqual(result, "192.168.0.1")
+
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.is_fqdn_resolvable", return_value=False)
+    @patch("nautobot_ssot_device42.diffsync.adapters.device42.fqdn_to_ip")
+    def test_get_dns_a_record_failure(self, mock_fqdn_to_ip, mock_is_fqdn_resolvable):
+        """Test the get_dns_a_record method failure."""
+        result = get_dns_a_record("invalid-hostname")
+        mock_is_fqdn_resolvable.assert_called_once_with("invalid-hostname")
+        mock_fqdn_to_ip.assert_not_called()
+        self.assertFalse(result)
 
     @patch(
         "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
