@@ -496,6 +496,14 @@ class Device42Adapter(DiffSync):
             if _device.name == cluster_host:
                 _device.master_device = True
                 _device.vc_position = 1
+                try:
+                    first_in_stack = self.get(self.device, {"name": self.device42_clusters[cluster_host]["members"][0]})
+                    self.job.log_info(message=f"Assigning {first_in_stack.os_version} version to {_device.name}.")
+                    _device.os_version = first_in_stack.os_version
+                except ObjectNotFound:
+                    self.job.log_warning(message=f"Unable to find VC Master Device {cluster_host} to assign version.")
+                except KeyError as err:
+                    self.job.log_warning(message=f"Unable to find cluster host in device42_clusters dictionary. {err}")
             else:
                 _device.vc_position = determine_vc_position(
                     vc_map=self.device42_clusters, virtual_chassis=cluster_host, device_name=_record["name"]
