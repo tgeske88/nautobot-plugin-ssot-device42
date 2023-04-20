@@ -2,7 +2,7 @@
 
 import re
 from decimal import Decimal
-from typing import List, Union
+from typing import List
 
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
@@ -50,7 +50,7 @@ def get_circuit_status(status: str) -> str:
         return "Offline"
 
 
-def get_site_from_mapping(device_name: str) -> Union[str, None]:
+def get_site_from_mapping(device_name: str) -> str:
     """Method to map a Device to a Site based upon their name using a regex pattern in the settings.
 
     This works in conjunction with the `hostname_mapping` setting to have a Device assigned to a Site by hostname. This is done using a regex pattern mapped to the Site slug.
@@ -59,14 +59,14 @@ def get_site_from_mapping(device_name: str) -> Union[str, None]:
         device_name (str): Name of the Device to be matched. Must match one of the regex patterns provided to get a response.
 
     Returns:
-        Union[str, None]: The Site slug of the associated Site for the Device in the mapping. Returns None if match not found.
+        str: The Site slug of the associated Site for the Device in the mapping. Returns blank string if match not found.
     """
     for _entry in PLUGIN_CFG["hostname_mapping"]:
         for _mapping, _slug in _entry.items():
             site_match = re.match(_mapping, device_name)
             if site_match:
                 return _slug
-    return None
+    return ""
 
 
 def get_dns_a_record(dev_name: str):
@@ -323,7 +323,7 @@ class Device42Adapter(DiffSync):
             device (str): Name of device to see if part of cluster.
 
         Returns:
-            Union[str, bool]: Name of cluster device is part of or returns False.
+            str: Name of cluster device is part of or empty string.
         """
         for _cluster, _info in self.device42_clusters.items():
             if device in _info["members"]:
