@@ -64,7 +64,7 @@ def verify_platform(diffsync, platform_name: str, manu: UUID) -> UUID:
         manu (UUID): The ID (primary key) of platform manufacturer.
 
     Returns:
-        UUID: UUID for found or created DeviceRole object.
+        UUID: UUID for found or created Platform object.
     """
     if ANSIBLE_LIB_MAPPER_REVERSE.get(platform_name):
         _name = ANSIBLE_LIB_MAPPER_REVERSE[platform_name]
