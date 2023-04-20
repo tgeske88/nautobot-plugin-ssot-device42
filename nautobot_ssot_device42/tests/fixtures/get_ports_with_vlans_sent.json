@@ -12,6 +12,7 @@
         "port_type": "physical",
         "port_speed": "1.0 Gbps",
         "mtu": 1518,
+        "tags": "first-tag,second-tag",
         "device": "core-router.testexample.com"
     }
 ]

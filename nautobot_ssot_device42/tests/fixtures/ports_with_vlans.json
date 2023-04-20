@@ -13,6 +13,7 @@
         "port_type": "physical",
         "port_speed": "40 Gbps",
         "mtu": 1500,
+        "tags": "first-tag,second-tag",
         "device_name": "core-router.testexample.com"
     },
     {
@@ -29,6 +30,7 @@
         "port_type": "physical",
         "port_speed": "40 Gbps",
         "mtu": 1500,
+        "tags": "",
         "device_name": "core-router.testexample.com"
     }
 ]

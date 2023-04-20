@@ -428,7 +428,7 @@ class Device42API:  # pylint: disable=too-many-public-methods
         Returns:
             List[dict]: Dict of interface information from DOQL query.
         """
-        query = "SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.netport_pk, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.second_device_fk, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.netport_pk, n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.second_device_fk, d.name"
+        query = "SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.netport_pk, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.tags, n.second_device_fk, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.netport_pk, n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.tags, n.second_device_fk, d.name"
         return self.doql_query(query=query)
 
     def get_ports_wo_vlans(self) -> List[dict]:
