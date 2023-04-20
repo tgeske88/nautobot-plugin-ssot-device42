@@ -925,17 +925,16 @@ class Device42Adapter(DiffSync):
             self.job.log_info(message=f"A record found for {_devname} {_a_record}.")
             _ip = self.find_ipaddr(address=_a_record)
             mgmt_intf = self.get_management_intf(dev_name=dev_name)
+            if not mgmt_intf:
+                mgmt_intf = self.add_management_interface(dev_name=dev_name)
             if not _ip:
-                if not mgmt_intf:
-                    mgmt_intf = self.add_management_interface(dev_name=dev_name, diffsync=diffsync)
-                self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=mgmt_intf.name)
+                _ip = self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=mgmt_intf.name)
+            if mgmt_intf and _ip.device != dev_name:
+                _ip.device = dev_name
+                _ip.interface = mgmt_intf.name
+                _ip.primary = True
             else:
-                if mgmt_intf and _ip.device != dev_name:
-                    _ip.device = dev_name
-                    _ip.interface = mgmt_intf.name
-                    _ip.primary = True
-                else:
-                    _ip.primary = True
+                _ip.primary = True
         else:
             self.job.log_warning(message=f"A record not found for {_devname}.")
 
@@ -977,6 +976,7 @@ class Device42Adapter(DiffSync):
             uuid=None,
         )
         self.add(_ip)
+        return _ip
 
     def load_patch_panels_and_ports(self):
         """Load Device42 Patch Panels and Patch Panel Ports."""
