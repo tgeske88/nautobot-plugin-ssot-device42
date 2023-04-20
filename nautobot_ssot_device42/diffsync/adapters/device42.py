@@ -850,7 +850,7 @@ class Device42Adapter(DiffSync):
             if not re.search(r"\s-\s\w+\s?\d+", _device.name) and not re.search(
                 r"AP[A-F0-9]{4}\.[A-F0-9]{4}.[A-F0-9]{4}", _device.name
             ):
-                self.set_primary_from_dns(dev_name=_device.name, diffsync=self.job)
+                self.set_primary_from_dns(dev_name=_device.name)
             else:
                 if self.job.kwargs.get("debug"):
                     self.job.log_warning(message=f"Skipping {_device.name} due to invalid Device name.")
@@ -880,12 +880,11 @@ class Device42Adapter(DiffSync):
                         return False
         return _intf
 
-    def add_management_interface(self, dev_name: str, diffsync=None):
+    def add_management_interface(self, dev_name: str):
         """Method to add a Management interface DiffSyncModel object.
 
         Args:
             dev_name (str): Name of Device to find Management interface.
-            diffsync (object, optional): Diffsync object for handling interactions with Job, such as logging. Defaults to None.
         """
         _intf = self.port(
             name="Management",
@@ -907,16 +906,15 @@ class Device42Adapter(DiffSync):
             _device.add_child(_intf)
             return _intf
         except ObjectAlreadyExists as err:
-            diffsync.log_warning(message=f"Management interface for {dev_name} already exists. {err}")
+            self.job.log_warning(message=f"Management interface for {dev_name} already exists. {err}")
 
-    def set_primary_from_dns(self, dev_name: str, diffsync=None):
+    def set_primary_from_dns(self, dev_name: str):
         """Method to resolve Device FQDNs A records into an IP and set primary IP for that Device to it if found.
 
             Checks if `use_dns` setting variable is `True`.
 
         Args:
             dev_name (str): Name of Device to perform DNS query on.
-            diffsync (object, optional): Diffsync object for handling interactions with Job, such as logging. Defaults to None.
         """
         _devname = re.search(r"[a-zA-Z0-9\.\/\?\:\-_=#]+\.[a-zA-Z]{2,6}", dev_name)
         if _devname:
