@@ -925,9 +925,10 @@ class Device42Adapter(DiffSync):
             return ""
         _a_record = get_dns_a_record(dev_name=_devname)
         if _a_record:
+            self.job.log_info(message=f"A record found for {_devname} {_a_record}.")
             _ip = self.find_ipaddr(address=_a_record)
             mgmt_intf = self.get_management_intf(dev_name=dev_name)
-            if _ip is False:
+            if not _ip:
                 if not mgmt_intf:
                     mgmt_intf = self.add_management_interface(dev_name=dev_name, diffsync=diffsync)
                 self.add_ipaddr(address=f"{_a_record}/32", dev_name=dev_name, interface=mgmt_intf.name)
@@ -938,6 +939,8 @@ class Device42Adapter(DiffSync):
                     _ip.primary = True
                 else:
                     _ip.primary = True
+        else:
+            self.job.log_warning(message=f"A record not found for {_devname}.")
 
     def find_ipaddr(self, address: str):
         """Method to find IPAddress DiffSyncModel object."""
@@ -1082,6 +1085,7 @@ class Device42Adapter(DiffSync):
         self.load_ports()
         self.load_ip_addresses()
         if is_truthy(PLUGIN_CFG.get("use_dns")):
+            self.job.log_info(message="Checking DNS entries for all loaded Devices.")
             self.check_dns()
         self.load_providers_and_circuits()
         self.load_patch_panels_and_ports()
