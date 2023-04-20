@@ -138,6 +138,15 @@ class Device42AdapterTestCase(TransactionTestCase):
         expected = "austin"
         self.assertEqual(get_site_from_mapping(device_name="aus.test.com"), expected)
 
+    @patch(
+        "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
+        {"hostname_mapping": [{"^aus.+|AUS.+": "austin"}]},
+    )
+    def test_get_site_from_mapping_missing_site(self):
+        """Test the get_site_from_mapping method with missing site."""
+        expected = ""
+        self.assertEqual(get_site_from_mapping(device_name="dfw.test.com"), expected)
+
     def test_filter_ports(self):
         """Method to test filter_ports success."""
         vlan_ports = load_json("./nautobot_ssot_device42/tests/fixtures/ports_with_vlans.json")
