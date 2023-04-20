@@ -117,8 +117,8 @@ class NautobotSubnet(Subnet):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            self.diffsync.job.log_info(message=f"Prefix {self.network} will be deleted.")
             subnet = OrmPrefix.objects.get(id=self.uuid)
+            self.diffsync.job.log_info(message=f"Prefix {subnet.prefix} will be deleted.")
             self.diffsync.objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
         return self
 
