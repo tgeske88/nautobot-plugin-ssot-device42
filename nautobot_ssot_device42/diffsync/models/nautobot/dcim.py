@@ -752,12 +752,13 @@ class NautobotPort(Port):
             else:
                 _device = self.device
             # must ensure any new VLANs that are created
-            for vlan in attrs["vlans"]:
-                if f"{vlan}__{_port.device.site.name}" in self.diffsync.objects_to_create["vlans"]:
-                    new_vlan = self.diffsync.objects_to_create["vlans"].pop(
-                        self.diffsync.objects_to_create["vlans"].index(vlan)
-                    )
-                    new_vlan.validated_save()
+            for update_vlan in attrs["vlans"]:
+                for vlan in self.diffsync.objects_to_create["vlans"]:
+                    if vlan.vid == update_vlan and vlan.site == _port.device.site:
+                        new_vlan = self.diffsync.objects_to_create["vlans"].pop(
+                            self.diffsync.objects_to_create["vlans"].index(update_vlan)
+                        )
+                        new_vlan.validated_save()
             nautobot.apply_vlans_to_port(
                 diffsync=self.diffsync, device_name=_device, mode=_mode, vlans=attrs["vlans"], port=_port
             )
