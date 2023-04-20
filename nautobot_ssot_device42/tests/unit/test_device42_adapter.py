@@ -31,6 +31,9 @@ SUBNET_CFS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_subn
 SUBNET_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_subnets.json")
 DEVICE_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_devices_recv.json")
 CLUSTER_MEMBER_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_cluster_members_recv.json")
+PORTS_W_VLANS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_with_vlans_recv.json")
+PORTS_WO_VLANS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_wo_vlans_recv.json")
+PORT_CUSTOM_FIELDS = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_custom_fields_recv.json")
 
 
 class Device42AdapterTestCase(TransactionTestCase):
@@ -54,6 +57,9 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.d42_client.get_subnets.return_value = SUBNET_FIXTURE
         self.d42_client.get_devices.return_value = DEVICE_FIXTURE
         self.d42_client.get_cluster_members.return_value = CLUSTER_MEMBER_FIXTURE
+        self.d42_client.get_ports_with_vlans.return_value = PORTS_W_VLANS_FIXTURE
+        self.d42_client.get_ports_wo_vlans.return_value = PORTS_WO_VLANS_FIXTURE
+        self.d42_client.get_port_custom_fields.return_value = PORT_CUSTOM_FIELDS
 
         self.job = Device42DataSource()
         self.job.job_result = JobResult.objects.create(
@@ -114,6 +120,11 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {dev["name"] for dev in DEVICE_FIXTURE},
             {dev.get_unique_id() for dev in self.device42.get_all("device")},
+        )
+        self.device42.load_ports()
+        self.assertEqual(
+            {f"{port['device_name']}__{port['port_name']}" for port in PORTS_WO_VLANS_FIXTURE},
+            {port.get_unique_id() for port in self.device42.get_all("port")},
         )
 
     statuses = [
