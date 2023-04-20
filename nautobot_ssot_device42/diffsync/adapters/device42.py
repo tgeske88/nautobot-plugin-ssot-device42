@@ -852,8 +852,7 @@ class Device42Adapter(DiffSync):
             ):
                 self.set_primary_from_dns(dev_name=_device.name)
             else:
-                if self.job.kwargs.get("debug"):
-                    self.job.log_warning(message=f"Skipping {_device.name} due to invalid Device name.")
+                self.job.log_warning(message=f"Skipping {_device.name} due to invalid Device name.")
                 continue
 
     def get_management_intf(self, dev_name: str):
