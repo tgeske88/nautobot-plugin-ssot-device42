@@ -32,7 +32,7 @@ def get_random_color() -> str:
     return f"{random.randint(0, 0xFFFFFF):06x}"
 
 
-def verify_device_role(diffsync, role_name: str, role_color: str = None) -> UUID:
+def verify_device_role(diffsync, role_name: str, role_color: str = "") -> UUID:
     """Verifies DeviceRole object exists in Nautobot. If not, creates it.
 
     Args:
