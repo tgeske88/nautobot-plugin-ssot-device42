@@ -316,7 +316,7 @@ class Device42Adapter(DiffSync):
                         self.job.log_warning(message=f"Hardware model already exists. {err}")
                     continue
 
-    def get_cluster_host(self, device: str) -> Union[str, bool]:
+    def get_cluster_host(self, device: str) -> str:
         """Get name of cluster host if device is in a cluster.
 
         Args:
@@ -328,7 +328,7 @@ class Device42Adapter(DiffSync):
         for _cluster, _info in self.device42_clusters.items():
             if device in _info["members"]:
                 return _cluster
-        return False
+        return ""
 
     def load_cluster(self, cluster_info: dict):
         """Load Device42 clusters into DiffSync model.
