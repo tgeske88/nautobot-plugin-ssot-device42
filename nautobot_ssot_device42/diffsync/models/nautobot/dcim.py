@@ -756,7 +756,7 @@ class NautobotPort(Port):
                 for vlan in self.diffsync.objects_to_create["vlans"]:
                     if vlan.vid == update_vlan and vlan.site == _port.device.site:
                         new_vlan = self.diffsync.objects_to_create["vlans"].pop(
-                            self.diffsync.objects_to_create["vlans"].index(update_vlan)
+                            self.diffsync.objects_to_create["vlans"].index(vlan)
                         )
                         new_vlan.validated_save()
             nautobot.apply_vlans_to_port(
