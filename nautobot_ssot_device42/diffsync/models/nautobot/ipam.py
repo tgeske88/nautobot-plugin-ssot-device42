@@ -210,11 +210,6 @@ class NautobotIPAddress(IPAddress):
                 intf = OrmInterface.objects.get(device__name=_device, name=attrs["interface"])
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
-
-                if attrs.get("primary"):
-                    self.diffsync.objects_to_create["device_primary_ip"].append(
-                        (self.diffsync.device_map[attrs["device"]], self.uuid)
-                    )
             except OrmInterface.DoesNotExist as err:
                 self.diffsync.job.log_warning(
                     message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
@@ -249,9 +244,14 @@ class NautobotIPAddress(IPAddress):
                 _ipaddr.assigned_object_id = intf
             except KeyError as err:
                 self.diffsync.job.log_debug(
-                    message=f"Unable to find Interface {attrs[]} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
+                    message=f"Unable to find Interface {attrs['interface']} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
                 )
-                    )
+        if attrs.get("primary"):
+            if attrs.get("device"):
+                device = attrs["device"]
+            else:
+                device = self.device
+            self.diffsync.objects_to_create["device_primary_ip"].append((self.diffsync.device_map[device], self.uuid))
         if "tags" in attrs:
             if attrs.get("tags"):
                 nautobot.update_tags(tagged_obj=_ipaddr, new_tags=attrs["tags"])
