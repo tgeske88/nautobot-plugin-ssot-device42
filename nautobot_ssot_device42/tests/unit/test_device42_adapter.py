@@ -181,6 +181,28 @@ class Device42AdapterTestCase(TransactionTestCase):
         mock_fqdn_to_ip.assert_not_called()
         self.assertFalse(result)
 
+    @patch(
+        "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
+        {"hostname_mapping": [{"^nyc.+|NYC.+": "new-york-city"}]},
+    )
+    def test_get_building_for_device_from_mapping(self):
+        """Test the get_building_for_device method using site_mapping."""
+        mock_dev_record = {"name": "nyc.test.com"}
+        expected = "new-york-city"
+        self.assertEqual(self.device42.get_building_for_device(dev_record=mock_dev_record), expected)
+
+    def test_get_building_for_device_from_device_record(self):
+        """Test the get_building_for_device method from device record."""
+        mock_dev_record = {"name": "la.test.com", "building": "los-angeles"}
+        expected = "los-angeles"
+        self.assertEqual(self.device42.get_building_for_device(dev_record=mock_dev_record), expected)
+
+    def test_get_building_for_device_missing_building(self):
+        """Test the get_building_for_device method with missing building."""
+        mock_dev_record = {"name": "la.test.com", "building": None}
+        expected = ""
+        self.assertEqual(self.device42.get_building_for_device(dev_record=mock_dev_record), expected)
+
     def test_filter_ports(self):
         """Method to test filter_ports success."""
         vlan_ports = load_json("./nautobot_ssot_device42/tests/fixtures/ports_with_vlans.json")
