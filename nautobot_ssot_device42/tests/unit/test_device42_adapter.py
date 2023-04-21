@@ -154,6 +154,15 @@ class Device42AdapterTestCase(TransactionTestCase):
         expected = "austin"
         self.assertEqual(get_site_from_mapping(device_name="aus.test.com"), expected)
 
+    @patch(
+        "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
+        {"hostname_mapping": [{"^aus.+|AUS.+": "austin"}]},
+    )
+    def test_get_site_from_mapping_missing_site(self):
+        """Test the get_site_from_mapping method with missing site."""
+        expected = ""
+        self.assertEqual(get_site_from_mapping(device_name="dfw.test.com"), expected)
+
     @patch("nautobot_ssot_device42.diffsync.adapters.device42.is_fqdn_resolvable", return_value=True)
     @patch("nautobot_ssot_device42.diffsync.adapters.device42.fqdn_to_ip", return_value="192.168.0.1")
     def test_get_dns_a_record_success(self, mock_fqdn_to_ip, mock_is_fqdn_resolvable):
@@ -171,15 +180,6 @@ class Device42AdapterTestCase(TransactionTestCase):
         mock_is_fqdn_resolvable.assert_called_once_with("invalid-hostname")
         mock_fqdn_to_ip.assert_not_called()
         self.assertFalse(result)
-
-    @patch(
-        "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
-        {"hostname_mapping": [{"^aus.+|AUS.+": "austin"}]},
-    )
-    def test_get_site_from_mapping_missing_site(self):
-        """Test the get_site_from_mapping method with missing site."""
-        expected = ""
-        self.assertEqual(get_site_from_mapping(device_name="dfw.test.com"), expected)
 
     def test_filter_ports(self):
         """Method to test filter_ports success."""
