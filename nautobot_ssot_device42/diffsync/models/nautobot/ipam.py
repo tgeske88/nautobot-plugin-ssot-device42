@@ -163,10 +163,9 @@ class NautobotIPAddress(IPAddress):
                         (diffsync.device_map[attrs["device"]], _ip.id)
                     )
             except KeyError:
-                if diffsync.job.kwargs.get("debug"):
-                    diffsync.job.log_debug(
-                        message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}.",
-                    )
+                diffsync.job.log_debug(
+                    message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}.",
+                )
         if attrs.get("interface"):
             if re.search(r"[Ll]oopback", attrs["interface"]):
                 _ip.role = "loopback"
@@ -217,10 +216,9 @@ class NautobotIPAddress(IPAddress):
                         (self.diffsync.device_map[attrs["device"]], self.uuid)
                     )
             except OrmInterface.DoesNotExist as err:
-                if self.diffsync.job.kwargs.get("debug"):
-                    self.diffsync.job.log_debug(
-                        message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
-                    )
+                self.diffsync.job.log_warning(
+                    message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
+                )
         elif attrs.get("device"):
             try:
                 intf = OrmInterface.objects.get(device=_ipaddr.assigned_object.device, name=self.interface)
@@ -234,10 +232,9 @@ class NautobotIPAddress(IPAddress):
                 if _dev:
                     _dev.validated_save()
             except OrmInterface.DoesNotExist as err:
-                if self.diffsync.job.kwargs.get("debug"):
-                    self.diffsync.job.log_debug(
-                        message=f"Unable to find Interface {attrs['interface']} for {str(_ipaddr.assigned_object.device)} {err}"
-                    )
+                self.diffsync.job.log_debug(
+                    message=f"Unable to find Interface {attrs['interface']} for {str(_ipaddr.assigned_object.device)} {err}"
+                )
         elif attrs.get("interface"):
             try:
                 if attrs.get("device") and attrs["device"] in self.diffsync.port_map:
@@ -251,9 +248,9 @@ class NautobotIPAddress(IPAddress):
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf
             except KeyError as err:
-                if self.diffsync.job.kwargs.get("debug"):
-                    self.diffsync.job.log_debug(
-                        message=f"Unable to find Interface {self.interface} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
+                self.diffsync.job.log_debug(
+                    message=f"Unable to find Interface {attrs[]} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
+                )
                     )
         if "tags" in attrs:
             if attrs.get("tags"):
