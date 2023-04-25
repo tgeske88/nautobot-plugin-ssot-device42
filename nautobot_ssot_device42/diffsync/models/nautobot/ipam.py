@@ -210,6 +210,7 @@ class NautobotIPAddress(IPAddress):
                 intf = OrmInterface.objects.get(device__name=_device, name=attrs["interface"])
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
+                _ipaddr.validated_save()
             except OrmInterface.DoesNotExist as err:
                 self.diffsync.job.log_warning(
                     message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
