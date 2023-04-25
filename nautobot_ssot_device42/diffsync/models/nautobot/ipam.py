@@ -234,10 +234,6 @@ class NautobotIPAddress(IPAddress):
             try:
                 if attrs.get("device") and attrs["device"] in self.diffsync.port_map:
                     intf = self.diffsync.port_map[attrs["device"]][attrs["interface"]]
-                    if attrs.get("primary"):
-                        self.diffsync.objects_to_create["device_primary_ip"].append(
-                            (self.diffsync.device_map[attrs["device"]], self.uuid)
-                        )
                 else:
                     intf = self.diffsync.port_map[self.device][attrs["interface"]]
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
