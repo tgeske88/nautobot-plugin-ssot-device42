@@ -247,11 +247,11 @@ class NautobotIPAddress(IPAddress):
                     message=f"Unable to find Interface {attrs['interface']} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
                 )
         if attrs.get("primary"):
-            if attrs.get("device"):
-                device = attrs["device"]
+            if _ipaddr.family == 4:
+                _ipaddr.assigned_object.device.primary_ip4 = _ipaddr
             else:
-                device = self.device
-            self.diffsync.objects_to_create["device_primary_ip"].append((self.diffsync.device_map[device], self.uuid))
+                _ipaddr.assigned_object.device.primary_ip6 = _ipaddr
+            _ipaddr.assigned_object.device.validated_save()
         if "tags" in attrs:
             if attrs.get("tags"):
                 nautobot.update_tags(tagged_obj=_ipaddr, new_tags=attrs["tags"])
