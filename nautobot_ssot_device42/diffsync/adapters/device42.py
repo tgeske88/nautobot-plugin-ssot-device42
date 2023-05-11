@@ -496,19 +496,31 @@ class Device42Adapter(DiffSync):
             if _device.name == cluster_host:
                 _device.master_device = True
                 _device.vc_position = 1
-                try:
-                    first_in_stack = self.get(self.device, {"name": self.device42_clusters[cluster_host]["members"][0]})
-                    if first_in_stack.os_version != "":
-                        self.job.log_info(message=f"Assigning {first_in_stack.os_version} version to {_device.name}.")
-                        _device.os_version = first_in_stack.os_version
-                except ObjectNotFound:
-                    self.job.log_warning(message=f"Unable to find VC Master Device {cluster_host} to assign version.")
-                except KeyError as err:
-                    self.job.log_warning(message=f"Unable to find cluster host in device42_clusters dictionary. {err}")
             else:
                 _device.vc_position = determine_vc_position(
                     vc_map=self.device42_clusters, virtual_chassis=cluster_host, device_name=_record["name"]
                 )
+
+    def assign_version_to_master_devices(self):
+        """Update all Master Devices in Cluster to have OS Version of first device in stack."""
+        for cluster in self.get_all(self.cluster):
+            try:
+                first_in_stack = self.get(self.device, self.device42_clusters[cluster.name]["members"][0])
+                try:
+                    master_device = self.get(self.device, cluster.name)
+                    if first_in_stack.os_version != "":
+                        self.job.log_info(
+                            message=f"Assigning {first_in_stack.os_version} version to {master_device.name}."
+                        )
+                        master_device.os_version = first_in_stack.os_version
+                    else:
+                        self.job.log_info(
+                            message=f"Software version for {first_in_stack.name} is blank so will not assign version to {master_device.name}."
+                        )
+                except ObjectNotFound:
+                    self.job.log_warning(message=f"Unable to find VC Master Device {cluster.name} to assign version.")
+            except KeyError as err:
+                self.job.log_warning(message=f"Unable to find cluster host in device42_clusters dictionary. {err}")
 
     def load_ports(self):
         """Load Device42 ports."""
@@ -1080,6 +1092,7 @@ class Device42Adapter(DiffSync):
         self.load_vlans()
         self.load_subnets()
         self.load_devices_and_clusters()
+        self.assign_version_to_master_devices()
         self.load_ports()
         self.load_ip_addresses()
         if is_truthy(PLUGIN_CFG.get("use_dns")):
