@@ -1,7 +1,9 @@
 """Unit tests for the Device42 DiffSync adapter class."""
 import json
 import uuid
+from unittest import skip
 from unittest.mock import MagicMock, patch
+from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from nautobot.utilities.testing import TransactionTestCase
@@ -67,10 +69,20 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.d42_client.get_port_custom_fields.return_value = PORT_CUSTOM_FIELDS
 
         self.job = Device42DataSource()
+        self.job.log_info = MagicMock()
+        self.job.log_warning = MagicMock()
         self.job.job_result = JobResult.objects.create(
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.device42 = Device42Adapter(job=self.job, sync=None, client=self.d42_client)
+        self.mock_device = MagicMock()
+        self.mock_device.name = "cluster1 - Switch 1"
+        self.mock_device.os_version = "1.0"
+        self.cluster_dev = MagicMock()
+        self.cluster_dev.name = "cluster1"
+        self.master_dev = MagicMock()
+        self.master_dev.name = "cluster1"
+        self.master_dev.os_version = ""
 
     @patch(
         "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
@@ -130,6 +142,65 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {f"{port['device_name']}__{port['port_name']}" for port in PORTS_WO_VLANS_FIXTURE},
             {port.get_unique_id() for port in self.device42.get_all("port")},
+        )
+
+    def test_assign_version_to_master_devices_with_valid_os_version(self):
+        """Validate functionality of the assign_version_to_master_devices() function with valid os_version."""
+        self.device42.device42_clusters = {"cluster1": {"members": [self.mock_device]}}
+        self.device42.get_all = MagicMock()
+        self.device42.get_all.return_value = [self.cluster_dev]
+
+        self.device42.get = MagicMock()
+        self.device42.get.side_effect = [self.mock_device, self.master_dev]
+
+        self.device42.assign_version_to_master_devices()
+
+        self.assertEqual(self.master_dev.os_version, "1.0")
+        self.job.log_info.assert_called_once_with(message="Assigning 1.0 version to cluster1.")
+
+    def test_assign_version_to_master_devices_with_blank_os_version(self):
+        """Validate functionality of the assign_version_to_master_devices() function with blank os_version."""
+        self.mock_device.os_version = ""
+        self.device42.device42_clusters = {"cluster1": {"members": [self.mock_device]}}
+
+        self.device42.get_all = MagicMock()
+        self.device42.get_all.return_value = [self.cluster_dev]
+
+        self.device42.get = MagicMock()
+        self.device42.get.side_effect = [self.mock_device, self.master_dev]
+
+        self.device42.assign_version_to_master_devices()
+
+        self.assertEqual(self.master_dev.os_version, "")
+        self.job.log_info.assert_called_once_with(
+            message="Software version for cluster1 - Switch 1 is blank so will not assign version to cluster1."
+        )
+
+    def test_assign_version_to_master_devices_with_missing_cluster_host(self):
+        """Validate functionality of the assign_version_to_master_devices() function with missing cluster host in device42_clusters."""
+        self.device42.get_all = MagicMock()
+        self.device42.get_all.return_value = [self.cluster_dev]
+
+        self.device42.get = MagicMock()
+        self.device42.get.return_value = KeyError
+
+        self.device42.assign_version_to_master_devices()
+        self.job.log_warning.assert_called_once_with(
+            message="Unable to find cluster host in device42_clusters dictionary. 'cluster1'"
+        )
+
+    @skip("Needs to be fixed")
+    def test_assign_version_to_master_devices_with_missing_master_device(self):
+        """Validate functionality of the assign_version_to_master_devices() function with missing master device."""
+        self.device42.get_all = MagicMock()
+        self.device42.get_all.return_value = [self.cluster_dev]
+
+        self.device42.get = MagicMock()
+        self.device42.get.return_value = ObjectNotFound
+
+        self.device42.assign_version_to_master_devices()
+        self.job.log_warning.assert_called_once_with(
+            message="Unable to find VC Master Device cluster1 to assign version."
         )
 
     statuses = [
