@@ -589,7 +589,7 @@ class NautobotDevice(Device):
                         if vc.name == attrs["cluster_host"]:
                             vc.master = _dev
             except KeyError:
-                self.diffsync.job.log_warning(message=f"Unable to find Virtual Chassis {attrs['cluster_host']}")
+                self.diffsync.job.log_warning(message=f"Unable to find Virtual Chassis {_clus_host}")
         if "vc_position" in attrs:
             # need to ensure the new position isn't already taken
             try:
