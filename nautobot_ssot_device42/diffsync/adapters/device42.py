@@ -498,8 +498,9 @@ class Device42Adapter(DiffSync):
                 _device.vc_position = 1
                 try:
                     first_in_stack = self.get(self.device, {"name": self.device42_clusters[cluster_host]["members"][0]})
-                    self.job.log_info(message=f"Assigning {first_in_stack.os_version} version to {_device.name}.")
-                    _device.os_version = first_in_stack.os_version
+                    if first_in_stack.os_version != "":
+                        self.job.log_info(message=f"Assigning {first_in_stack.os_version} version to {_device.name}.")
+                        _device.os_version = first_in_stack.os_version
                 except ObjectNotFound:
                     self.job.log_warning(message=f"Unable to find VC Master Device {cluster_host} to assign version.")
                 except KeyError as err:
