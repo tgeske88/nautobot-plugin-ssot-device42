@@ -235,6 +235,7 @@ class NautobotIPAddress(IPAddress):
                     intf = self.diffsync.port_map[self.device][attrs["interface"]]
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf
+                _ipaddr.validated_save()
             except KeyError as err:
                 self.diffsync.job.log_debug(
                     message=f"Unable to find Interface {attrs['interface']} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
