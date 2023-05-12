@@ -234,6 +234,17 @@ class NautobotIPAddress(IPAddress):
                 )
         elif attrs.get("interface"):
             try:
+                OrmInterface.objects.get(name=attrs["interface"], device__name=self.device)
+            except OrmInterface.DoesNotExist:
+                for port in self.diffsync.objects_to_create["ports"]:
+                    if port.name == attrs["interface"] and port.device.name == self.device:
+                        try:
+                            port.validated_save()
+                        except ValidationError as err:
+                            self.diffsync.job.log_warning(
+                                message=f"Failure saving port {port.name} for IPAddress {_ipaddr.address}."
+                            )
+            try:
                 if attrs.get("device") and attrs["device"] in self.diffsync.port_map:
                     intf = self.diffsync.port_map[attrs["device"]][attrs["interface"]]
                 else:
