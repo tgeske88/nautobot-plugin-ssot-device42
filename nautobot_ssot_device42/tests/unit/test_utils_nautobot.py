@@ -161,13 +161,13 @@ class TestNautobotUtils(TransactionTestCase):  # pylint: disable=too-many-instan
         }
         update_custom_fields(new_cfields=mock_cfs, update_obj=test_site)
         self.assertEqual(len(test_site.get_custom_fields()), 1)
-        self.assertEqual(test_site.custom_field_data["Test Custom Field"], None)
+        self.assertEqual(test_site.custom_field_data["test_custom_field"], None)
 
     def test_update_custom_fields_remove_cf(self):
         """Test the update_custom_fields method removes a CustomField."""
         test_region = Region.objects.create(name="Test", slug="test")
         _cf_dict = {
-            "name": "Department",
+            "name": "department",
             "slug": "department",
             "type": CustomFieldTypeChoices.TYPE_TEXT,
             "label": "Department",
@@ -188,7 +188,7 @@ class TestNautobotUtils(TransactionTestCase):  # pylint: disable=too-many-instan
         """Test the update_custom_fields method updates a CustomField."""
         test_region = Region.objects.create(name="Test", slug="test")
         _cf_dict = {
-            "name": "Department",
+            "name": "department",
             "slug": "department",
             "type": CustomFieldTypeChoices.TYPE_TEXT,
             "label": "Department",
@@ -199,7 +199,7 @@ class TestNautobotUtils(TransactionTestCase):  # pylint: disable=too-many-instan
             "Department": {"key": "Department", "value": "IT", "notes": None},
         }
         update_custom_fields(new_cfields=mock_cfs, update_obj=test_region)
-        self.assertEqual(test_region.custom_field_data["Department"], "IT")
+        self.assertEqual(test_region.custom_field_data["department"], "IT")
 
     def test_apply_vlans_to_port_access_port(self):
         """Test the apply_vlans_to_port() method adds a single VLAN to a port."""

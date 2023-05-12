@@ -11,6 +11,7 @@ from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Relationship, Tag
 from nautobot.ipam.models import IPAddress
+from nautobot.utilities.utils import slugify_dashes_to_underscores
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
 from nautobot_ssot_device42.diffsync.models.base.dcim import Device as NautobotDevice
@@ -224,14 +225,14 @@ def update_custom_fields(new_cfields: dict, update_obj: object):
     for new_cf, new_cf_dict in new_cfields.items():
         if new_cf not in current_cf:
             _cf_dict = {
-                "name": new_cf_dict["key"],
-                "slug": slugify(new_cf_dict["key"]),
+                "name": slugify_dashes_to_underscores(new_cf_dict["key"]),
+                "slug": slugify_dashes_to_underscores(new_cf_dict["key"]),
                 "type": CustomFieldTypeChoices.TYPE_TEXT,
                 "label": new_cf_dict["key"],
             }
             field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
             field.content_types.add(ContentType.objects.get_for_model(type(update_obj)).id)
-        update_obj.custom_field_data.update({new_cf_dict["key"]: new_cf_dict["value"]})
+        update_obj.custom_field_data.update({slugify_dashes_to_underscores(new_cf_dict["key"]): new_cf_dict["value"]})
 
 
 def verify_circuit_type(circuit_type: str) -> CircuitType:
