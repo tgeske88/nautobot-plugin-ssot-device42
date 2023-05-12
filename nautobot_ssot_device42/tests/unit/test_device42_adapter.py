@@ -1,7 +1,6 @@
 """Unit tests for the Device42 DiffSync adapter class."""
 import json
 import uuid
-from unittest import skip
 from unittest.mock import MagicMock, patch
 from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
@@ -189,14 +188,14 @@ class Device42AdapterTestCase(TransactionTestCase):
             message="Unable to find cluster host in device42_clusters dictionary. 'cluster1'"
         )
 
-    @skip("Needs to be fixed")
     def test_assign_version_to_master_devices_with_missing_master_device(self):
         """Validate functionality of the assign_version_to_master_devices() function with missing master device."""
+        self.device42.device42_clusters = {"cluster1": {"members": [self.mock_device]}}
         self.device42.get_all = MagicMock()
         self.device42.get_all.return_value = [self.cluster_dev]
 
         self.device42.get = MagicMock()
-        self.device42.get.return_value = ObjectNotFound
+        self.device42.get.side_effect = [self.mock_device, ObjectNotFound]
 
         self.device42.assign_version_to_master_devices()
         self.job.log_warning.assert_called_once_with(
