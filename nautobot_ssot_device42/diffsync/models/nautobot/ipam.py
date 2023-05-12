@@ -242,7 +242,7 @@ class NautobotIPAddress(IPAddress):
                             port.validated_save()
                         except ValidationError as err:
                             self.diffsync.job.log_warning(
-                                message=f"Failure saving port {port.name} for IPAddress {_ipaddr.address}."
+                                message=f"Failure saving port {port.name} for IPAddress {_ipaddr.address}. {err}"
                             )
             try:
                 if attrs.get("device") and attrs["device"] in self.diffsync.port_map:
