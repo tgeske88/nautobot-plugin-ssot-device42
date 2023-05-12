@@ -240,12 +240,13 @@ class NautobotIPAddress(IPAddress):
                 self.diffsync.job.log_debug(
                     message=f"Unable to find Interface {attrs['interface']} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
                 )
-        if attrs.get("primary") or self.primary:
-            if _ipaddr.family == 4:
-                _ipaddr.assigned_object.device.primary_ip4 = _ipaddr
-            else:
-                _ipaddr.assigned_object.device.primary_ip6 = _ipaddr
-            _ipaddr.assigned_object.device.validated_save()
+        if attrs.get("primary") or self.primary is True:
+            if hasattr(_ipaddr, "assigned_object"):
+                if _ipaddr.family == 4:
+                    _ipaddr.assigned_object.device.primary_ip4 = _ipaddr
+                else:
+                    _ipaddr.assigned_object.device.primary_ip6 = _ipaddr
+                _ipaddr.assigned_object.device.validated_save()
         if "tags" in attrs:
             if attrs.get("tags"):
                 nautobot.update_tags(tagged_obj=_ipaddr, new_tags=attrs["tags"])
