@@ -206,6 +206,8 @@ class NautobotIPAddress(IPAddress):
             _ipaddr.description = attrs["label"] if attrs.get("label") else ""
         if attrs.get("device") and attrs.get("interface"):
             _device = attrs["device"]
+            if self.primary:
+                nautobot.unassign_primary(_ipaddr)
             try:
                 intf = OrmInterface.objects.get(device__name=_device, name=attrs["interface"])
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
@@ -220,13 +222,7 @@ class NautobotIPAddress(IPAddress):
                 intf = OrmInterface.objects.get(device=_ipaddr.assigned_object.device, name=self.interface)
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
-                _dev = _ipaddr.assigned_object.device
-                if hasattr(_ipaddr, "primary_ip4_for"):
-                    _dev.primary_ip4 = None
-                elif hasattr(_ipaddr, "primary_ip6_for"):
-                    _dev.primary_ip6 = None
-                if _dev:
-                    _dev.validated_save()
+                nautobot.unassign_primary(_ipaddr)
             except OrmInterface.DoesNotExist as err:
                 self.diffsync.job.log_debug(
                     message=f"Unable to find Interface {attrs['interface']} for {str(_ipaddr.assigned_object.device)} {err}"
@@ -243,7 +239,7 @@ class NautobotIPAddress(IPAddress):
                 self.diffsync.job.log_debug(
                     message=f"Unable to find Interface {attrs['interface']} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
                 )
-        if attrs.get("primary"):
+        if attrs.get("primary") or self.primary:
             if _ipaddr.family == 4:
                 _ipaddr.assigned_object.device.primary_ip4 = _ipaddr
             else:
