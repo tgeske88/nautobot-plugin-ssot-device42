@@ -260,7 +260,7 @@ class NautobotIPAddress(IPAddress):
                     message=f"Unable to find Interface {attrs['interface']} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
                 )
         if attrs.get("primary") or self.primary is True:
-            if hasattr(_ipaddr, "assigned_object"):
+            if getattr(_ipaddr, "assigned_object"):
                 if _ipaddr.family == 4:
                     _ipaddr.assigned_object.device.primary_ip4 = _ipaddr
                 else:
