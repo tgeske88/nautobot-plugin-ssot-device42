@@ -522,28 +522,16 @@ class NautobotDevice(Device):
                 _os = attrs["os"]
             else:
                 _os = self.os
-            if LIFECYCLE_MGMT:
-                if attrs.get("os_version"):
+            if attrs.get("os_version"):
+                if LIFECYCLE_MGMT:
                     soft_lcm = self._add_software_lcm(
                         diffsync=self.diffsync,
                         os=_os,
                         version=attrs["os_version"],
                         manufacturer=_dev.device_type.manufacturer.id,
                     )
-                    self._assign_version_to_device(diffsync=self.diffsync, device=self.uuid, software_lcm=soft_lcm)
-                elif attrs["os_version"] == "":
-                    relations = _dev.get_relationships()
-                    software_relation_id = self.diffsync.relationship_map["Software on Device"]
-                    for _, relationships in relations.items():
-                        for relationship, queryset in relationships.items():
-                            if relationship.id == software_relation_id:
-                                if self.diffsync.job.kwargs.get("debug"):
-                                    self.diffsync.job.log_warning(
-                                        message=f"Deleting Software Version Relationship for {_dev.name} as Device42 shows no version."
-                                    )
-                                queryset.delete()
-            else:
-                if attrs.get("os_version"):
+                    self._assign_version_to_device(diffsync=self.diffsync, device=_dev.id, software_lcm=soft_lcm)
+                else:
                     attrs["custom_fields"].append(
                         {
                             "key": "OS Version",
