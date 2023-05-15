@@ -26,7 +26,7 @@ from nautobot_ssot_device42.utils.nautobot import determine_vc_position
 
 def sanitize_string(san_str: str):
     """Sanitize string to ensure it doesn't have invisible characters."""
-    return san_str.replace("\u200b", "").replace("\r", "")
+    return san_str.replace("\u200b", "").replace("\r", "").rstrip("-")
 
 
 def get_circuit_status(status: str) -> str:
