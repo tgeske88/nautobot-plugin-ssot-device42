@@ -692,7 +692,7 @@ class Device42Adapter(DiffSync):
                     except ObjectNotFound:
                         # if the Device isn't being imported there's no reason to have the Device name and interface for it to try and match
                         _device_name, _port_name = "", ""
-                _tags = _ip["tags"].split(",").sort() if _ip.get("tags") else []
+                _tags = sorted(_ip["tags"].split(",")) if _ip.get("tags") != "" else []
                 new_ip = self.ipaddr(
                     address=_ipaddr,
                     available=_ip["available"],
