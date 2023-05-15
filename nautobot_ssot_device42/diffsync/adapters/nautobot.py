@@ -484,7 +484,7 @@ class NautobotAdapter(DiffSync):
 
     def load_rackgroups(self):
         """Add Nautobot RackGroup objects as DiffSync Room models."""
-        for _rg in RackGroup.objects.all():
+        for _rg in RackGroup.objects.select_related("site").all():
             if _rg.site.slug not in self.room_map:
                 self.room_map[_rg.site.slug] = {}
             if _rg.slug not in self.room_map[_rg.site.slug]:
@@ -503,7 +503,7 @@ class NautobotAdapter(DiffSync):
 
     def load_racks(self):
         """Add Nautobot Rack objects as DiffSync Rack models."""
-        for rack in Rack.objects.all():
+        for rack in Rack.objects.select_related("site", "group").all():
             if rack.site.slug not in self.rack_map:
                 self.rack_map[rack.site.slug] = {}
             if rack.group.slug not in self.rack_map[rack.site.slug]:
@@ -542,7 +542,7 @@ class NautobotAdapter(DiffSync):
 
     def load_device_types(self):
         """Add Nautobot DeviceType objects as DiffSync Hardware models."""
-        for _dt in DeviceType.objects.all():
+        for _dt in DeviceType.objects.select_related("manufacturer").all():
             self.devicetype_map[_dt.slug] = _dt.id
             dtype = self.hardware(
                 name=_dt.model,
@@ -574,7 +574,9 @@ class NautobotAdapter(DiffSync):
 
     def load_devices(self):
         """Add Nautobot Device objects as DiffSync Device models."""
-        for dev in Device.objects.all():
+        for dev in Device.objects.select_related(
+            "status", "device_type", "device_role", "site", "rack", "platform", "vc_master_for", "virtual_chassis"
+        ).all():
             self.device_map[dev.name] = dev.id
             # As patch panels are added as Devices, we need to filter them out for their own load method.
             if DeviceRole.objects.get(id=dev.device_role.id).name == "patch panel":
@@ -634,7 +636,7 @@ class NautobotAdapter(DiffSync):
 
     def load_interfaces(self):
         """Add Nautobot Interface objects as DiffSync Port models."""
-        for port in Interface.objects.all():
+        for port in Interface.objects.select_related("device", "status").all():
             if port.device.name not in self.port_map:
                 self.port_map[port.device.name] = {}
             if port.name not in self.port_map[port.device.name]:
@@ -693,7 +695,7 @@ class NautobotAdapter(DiffSync):
 
     def load_prefixes(self):
         """Add Nautobot Prefix objects as DiffSync Subnet models."""
-        for _pf in Prefix.objects.all():
+        for _pf in Prefix.objects.select_related("vrf").all():
             if _pf.vrf:
                 vrf_name = _pf.vrf.name
             else:
@@ -717,7 +719,7 @@ class NautobotAdapter(DiffSync):
 
     def load_ip_addresses(self):
         """Add Nautobot IPAddress objects as DiffSync IPAddress models."""
-        for _ip in IPAddress.objects.all():
+        for _ip in IPAddress.objects.select_related("status", "vrf").all():
             if _ip.vrf:
                 vrf_name = _ip.vrf.name
             else:
@@ -767,7 +769,7 @@ class NautobotAdapter(DiffSync):
 
     def load_vlans(self):
         """Add Nautobot VLAN objects as DiffSync VLAN models."""
-        for vlan in VLAN.objects.all():
+        for vlan in VLAN.objects.select_related("site").all():
             if vlan.site:
                 site_slug = vlan.site.slug
             else:
@@ -913,7 +915,7 @@ class NautobotAdapter(DiffSync):
 
     def load_circuits(self):
         """Add Nautobot Circuit objects as DiffSync Circuit models."""
-        for _circuit in Circuit.objects.all():
+        for _circuit in Circuit.objects.select_related("provider", "type", "status").all():
             self.circuit_map[_circuit.cid] = _circuit.id
             new_circuit = self.circuit(
                 circuit_id=_circuit.cid,
@@ -944,7 +946,7 @@ class NautobotAdapter(DiffSync):
 
     def load_front_ports(self):
         """Add Nautobot FrontPort objects as DiffSync PatchPanelFrontPort models."""
-        for port in FrontPort.objects.all():
+        for port in FrontPort.objects.select_related("device").all():
             if port.device.device_role.name == "patch panel":
                 if port.device.name not in self.fp_map:
                     self.fp_map[port.device.name] = {}
@@ -959,7 +961,7 @@ class NautobotAdapter(DiffSync):
 
     def load_rear_ports(self):
         """Add Nautobot RearPort objects as DiffSync PatchPanelRearPort models."""
-        for port in RearPort.objects.all():
+        for port in RearPort.objects.select_related("device").all():
             if port.device.device_role.name == "patch panel":
                 if port.device.name not in self.rp_map:
                     self.rp_map[port.device.name] = {}
