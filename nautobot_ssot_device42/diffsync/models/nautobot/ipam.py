@@ -266,6 +266,10 @@ class NautobotIPAddress(IPAddress):
                 else:
                     _ipaddr.assigned_object.device.primary_ip6 = _ipaddr
                 _ipaddr.assigned_object.device.validated_save()
+            else:
+                self.diffsync.job.log_warning(
+                    message=f"IPAddress {_ipaddr.address} is showing unassigned from an Interface so can't be marked primary."
+                )
         if "tags" in attrs:
             if attrs.get("tags"):
                 nautobot.update_tags(tagged_obj=_ipaddr, new_tags=attrs["tags"])
