@@ -652,8 +652,7 @@ class NautobotDevice(Device):
                             )
                         queryset.delete()
         except OrmDevice.DoesNotExist:
-            pass
-
+            diffsync.job.log_warning(message=f"Unable to find Device {device} to assign software to.")
         new_assoc = RelationshipAssociation(
             relationship_id=diffsync.relationship_map["Software on Device"],
             source_type=ContentType.objects.get_for_model(SoftwareLCM),
