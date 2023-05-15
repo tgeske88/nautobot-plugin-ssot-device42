@@ -283,7 +283,7 @@ class NautobotAdapter(DiffSync):
                     for dev in self.objects_to_create["devices"]:
                         dev.validated_save()
                 except ValidationError as err:
-                    self.job.log_warning(message=f"Error with creating device. {err}")
+                    self.job.log_warning(message=f"Error with saving device {dev.name}. {err}")
                 except VirtualChassis.DoesNotExist as err:
                     self.job.log_warning(message=f"Error with creating device as VirtualChassis doesn't exist. {err}")
         if len(self.objects_to_create["ports"]) > 0:
@@ -382,7 +382,9 @@ class NautobotAdapter(DiffSync):
                     try:
                         dev = Device.objects.get(id=dev_ip[0])
                     except Device.DoesNotExist as err:
-                        self.job.log_warning(message=f"Unable to find Device {dev_ip[0]} to assign primary IP. {err}")
+                        self.job.log_warning(
+                            message=f"Unable to find Device {dev_ip[0].name} to assign primary IP. {err}"
+                        )
                     try:
                         ipaddr = IPAddress.objects.get(id=dev_ip[1])
                         ipaddr.validated_save()
@@ -402,7 +404,7 @@ class NautobotAdapter(DiffSync):
                             self.job.log_warning(message=f"Unable to assign primary IP to {dev}. {err}")
                     except IPAddress.DoesNotExist as err:
                         self.job.log_warning(
-                            message=f"Unable to find IP Address {dev_ip[1]} to assign primary IP. {err}"
+                            message=f"Unable to find IP Address {dev_ip[1].address} to assign primary IP. {err}"
                         )
                     except ValidationError as err:
                         self.job.log_warning(message=f"Unable to save IP Address {dev_ip[1]} for {dev}. {err}")
