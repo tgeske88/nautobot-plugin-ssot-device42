@@ -1040,7 +1040,6 @@ class Device42Adapter(DiffSync):
                     vendor=panel["vendor"],
                     model=panel["model_name"],
                     size=panel["size"] if panel.get("size") else 1.0,
-                    depth="Half Depth" if panel["depth"] == 2 else "Full Depth",
                     position=panel["position"],
                     orientation="front" if panel.get("orientation") == "Front" else "rear",
                     num_ports=panel["number_of_ports"],

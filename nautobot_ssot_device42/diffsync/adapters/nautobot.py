@@ -586,7 +586,6 @@ class NautobotAdapter(DiffSync):
                     vendor=dev.device_type.manufacturer.name,
                     model=dev.device_type.model,
                     size=dev.device_type.u_height,
-                    depth="Full Depth" if dev.device_type.is_full_depth else "Half Depth",
                     position=dev.position,
                     orientation=dev.face if dev.face else "rear",
                     num_ports=len(FrontPort.objects.filter(device__name=dev.name)),

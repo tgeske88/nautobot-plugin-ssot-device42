@@ -15,8 +15,6 @@ class PatchPanel(DiffSyncModel):
         "in_service",
         "vendor",
         "model",
-        "size",
-        "depth",
         "orientation",
         "position",
         "num_ports",
@@ -31,8 +29,6 @@ class PatchPanel(DiffSyncModel):
     in_service: bool
     vendor: str
     model: str
-    size: float
-    depth: str
     orientation: str
     position: Optional[float]
     num_ports: int
