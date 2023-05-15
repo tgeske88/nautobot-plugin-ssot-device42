@@ -267,10 +267,10 @@ def get_software_version_from_lcm(relations: dict):
     version = ""
     if LIFECYCLE_MGMT:
         _softwarelcm = Relationship.objects.get(name="Software on Device")
-        for _, relationships in relations.items():
-            for relationship, queryset in relationships.items():
-                if relationship == _softwarelcm and len(queryset) > 0:
-                    version = queryset[0].source.version
+        if _softwarelcm in relations["destination"]:
+            if len(relations["destination"][_softwarelcm]) > 0:
+                if getattr(relations["destination"][_softwarelcm][0], "version"):
+                    version = relations["destination"][_softwarelcm][0].version
     return version
 
 
