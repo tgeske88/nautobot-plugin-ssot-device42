@@ -269,8 +269,8 @@ def get_software_version_from_lcm(relations: dict):
         _softwarelcm = Relationship.objects.get(name="Software on Device")
         if _softwarelcm in relations["destination"]:
             if len(relations["destination"][_softwarelcm]) > 0:
-                if getattr(relations["destination"][_softwarelcm][0], "version"):
-                    version = relations["destination"][_softwarelcm][0].version
+                if hasattr(relations["destination"][_softwarelcm][0].source, "version"):
+                    version = relations["destination"][_softwarelcm][0].source.version
     return version
 
 
