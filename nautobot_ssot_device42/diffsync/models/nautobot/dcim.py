@@ -573,9 +573,16 @@ class NautobotDevice(Device):
                 _dev.virtual_chassis_id = _vc
                 _dev.vc_position = self.vc_position
                 if attrs.get("master_device"):
-                    for vc in self.diffsync.objects_to_create["clusters"]:
-                        if vc.name == attrs["cluster_host"]:
-                            vc.master = _dev
+                    try:
+                        vc = OrmVC.objects.get(id=_vc)
+                        vc.master = _dev
+                        vc.validated_save()
+                    except OrmVC.DoesNotExist:
+                        for vc in self.diffsync.objects_to_create["clusters"]:
+                            if vc.name == _clus_host:
+                                vc = self.diffsync.objects_to_create["clusters"].pop(vc)
+                                vc.master = _dev
+                                vc.validated_save()
             except KeyError:
                 self.diffsync.job.log_warning(message=f"Unable to find Virtual Chassis {_clus_host}")
         if "vc_position" in attrs:
