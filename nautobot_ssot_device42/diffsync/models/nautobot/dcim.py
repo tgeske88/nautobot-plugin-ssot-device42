@@ -760,8 +760,9 @@ class NautobotPort(Port):
             _port.validated_save()
             return super().update(attrs)
         except ValidationError as err:
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_debug(message=f"Validation error for updating Port: {err}")
+            self.diffsync.job.log_warning(
+                message=f"Validation error for updating Port {_port.name} for {_port.device.name}: {err}"
+            )
             return None
 
     def delete(self):
