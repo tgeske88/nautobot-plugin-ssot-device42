@@ -70,6 +70,7 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.job = Device42DataSource()
         self.job.log_info = MagicMock()
         self.job.log_warning = MagicMock()
+        self.job.kwargs["debug"] = True
         self.job.job_result = JobResult.objects.create(
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
@@ -141,6 +142,14 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {f"{port['device_name']}__{port['port_name']}" for port in PORTS_WO_VLANS_FIXTURE},
             {port.get_unique_id() for port in self.device42.get_all("port")},
+        )
+
+    def test_load_buildings_duplicate_site(self):
+        """Validate functionality of the load_buildings() function when duplicate site is loaded."""
+        self.device42.load_buildings()
+        self.device42.load_buildings()
+        self.job.log_warning.assert_called_with(
+            message="Microsoft HQ is already loaded. ('Object Microsoft HQ already present', building \"Microsoft HQ\")"
         )
 
     def test_assign_version_to_master_devices_with_valid_os_version(self):
