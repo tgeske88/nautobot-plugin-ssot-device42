@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.6.0 (2023-05-19)
+### Feature
+* ✨ Set Master device OS version to same as first device in stack. ([`8a8fa07`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/8a8fa07736ac99bc439854a0f99196513a5b9a5b))
+
+### Fix
+* 🐛 Ensure Hardware Model name doesn't have trailing dash. ([`674a75d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/674a75d88b8887b022ed4a957191be13d632fa88))
+* 🐛 Correct creationg of tags list for IPAddress so it doesn't result in None. ([`f3386c1`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/f3386c1b4937b7e34aa763bdd210d737a0e07ba3))
+* 🐛 Correct how to pull version from RelationshipAssociation for DLC App ([`dac6c9b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/dac6c9b34b3d28349e42ce1cdd4626110be45d1a))
+* 🐛 Correct CustomFields create/update to ensure name & slug use underscore and not dashes. ([`58a0888`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/58a088824d098f0f07d612b145c5f8f54700247e))
+* 🐛 Use getattr, not hasattr ([`aa59fe9`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/aa59fe9d0c92d2f777c6afc254563155f20b0cea))
+* 🐛 Use attrs device value for finding Interface and logging when updating Device for IPAddr. ([`5dded08`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/5dded08c6f784a15538bea61d13e7e788dd6dd24))
+* 🐛 Add exception handling for ValidationError in IPAddress updates. ([`47311fc`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/47311fc4f5af1c0d59f373744f3bd110cc7ddd71))
+* 🐛 Add check for IPAddress being assigned before setting primary on Device. ([`7affe2c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/7affe2cb1cc8a1014717e917506461c1bd489157))
+* 🐛 Do validated save when changing Interface to ensure done for primary update. ([`7cb7ef1`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/7cb7ef196bc45e9c3e7c084dbce9b5659744edee))
+* 🐛 Add step to unassign primary IP if update has a device change. ([`110572e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/110572e292cd1614d24e8dcea2d76758a390b812))
+* 🐛 Add check for version defined when assigning master device a version ([`2853dae`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/2853daee6940ac4169c8ba858e805d008102225b))
+* 🐛 Correct var used in log statement ([`6d7ab67`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/6d7ab6798d8646f0dc4b3565c57ea05402f5a82f))
+* Save IPAddress when updating device/intf. ([`9d61025`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/9d61025d1e90b3c49169e57afd4360e6ca276654))
+* 🐛 Update IPAddress primary update to update immediately instead of at end of Job. ([`4ffd8de`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/4ffd8de5876490366f88334ef8170afaecc3c453))
+* Correct var to pop is vlan, not the ID ([`d56ca3b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/d56ca3b69f65621bcc6b30fc8714b996c510ad2a))
+* ♻️ Redo how newly created VLANs on Ports are handled. ([`920e788`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/920e78852e35679abc80b6fcbdf87b8614e12276))
+* 🐛 Ensure tags are pulled in query for ports with VLANs. ([`0137004`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/0137004aa50c692517fc91691a716ee4b0e47d91))
+* 🐛 Set default role_color to empty string instead of None for typing ([`ba3ca96`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/ba3ca963142a62b12de671d1c6245ef977558ad3))
+* 🐛 Don't slugify CustomField name, specify slug of name. Simplify method. ([`27174e7`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/27174e7fe1d985d379d664501a68345568ad6ee9))
+* Ensure MTU of 1500 is used as default to match Nautobot. ([`19fa7c7`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/19fa7c7a1478a6c604476b7f239d41f88f490804))
+* 🐛 Correct port status to decommissioning, also handle port with only up_admin. ([`c408a3b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/c408a3b845cd06e5afa934f3ecaa5cfd416b97e5))
+* 🐛 Ensure that IP Address is assigned to device to mark as primary. ([`8426b07`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/8426b07ebc819b2c8032a7c65b1898d6f4cc54ab))
+* ♻️ Change VLAN tagging to occur in sync_complete. ([`ffc1c1a`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/ffc1c1af870500307d190a091356c565b17ab150))
+* 🐛 Change tagged VLAN assignment to set with list of VLANs. ([`6367d9d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/6367d9de97907aa751060a31dcd735daae9f694f))
+* Ensure site_name is slug form everywhere so everything aligns ([`9be1ea7`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/9be1ea70b3cf555e34353a6c272f0ebd1d1df492))
+* 🐛 Add check if VLAN was added to objects_to_create and do validated_save so port update works. ([`c45c8b9`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/c45c8b92669e6d509ddb8bb266fa7788369083cd))
+* 🐛 Add check for VLAN loaded and if not, load one to ensure there's one to be tagged. ([`21363cc`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/21363cc7716cc804c0a98c8dac0c777595055b1d))
+
+### Documentation
+* 🧑‍💻 Add logging statement if IPAddress to be marked primary shows unassigned. ([`09bd75e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/09bd75e96a75b53a82cfc91020b948fb4d769b2b))
+* ♻️ Redo logs to show device name or address in failure instead of UUID. ([`1c3bd36`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/1c3bd361d91bffbc805ac2245d52fedb74695252))
+* 🚨 Add err to log statement ([`b180262`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/b1802620d11d27531fecadf6df9f405c84a93696))
+* 🔊 Move logs about being unable to find port from behind debug. ([`57689c6`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/57689c6e6a025c75be50fccd974f2d502c0ec32d))
+* 🔊 Correct log to use subnet object for full CIDR being deleted. ([`6370642`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/637064205b7cd9528a5805fead59bc24858182b9))
+* 🔊 Remove debug check for log of skipping device for DNS queries. ([`371d48e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/371d48e00cfa982f376d057d6f7d6cbf0b2a2f8d))
+* 🧑‍💻 Add additional logging during DNS check process. ([`70e57f3`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/70e57f3fbbc9ab30158212cff694297054d81d39))
+* 📝 Fix docstring ([`2819ed4`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/2819ed4e9ed0893ea8982dbbbc542b7ae1c3dcb5))
+* 🧑‍💻 Add some logging so user is aware Port is being updated. ([`44f4836`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/44f48369678faaad5a8bb8c250f438abda4c76f4))
+* 📝 Fix project name in links ([`46656a3`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/46656a3a7581de43db16c9cef1057b5a52d46200))
+* 📝 Fix links for CHANGELOG ([`5860377`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/5860377d7c104b6ad2524ef1ab6875a0de235c4c))
+
+### Performance
+* ⚡️ Adding select_related to Nautobot load functions to improve speed of pulling data. ([`53b9190`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/53b919040a809389959f7c38664f811e5bd2fe98))
+
 ## v1.5.1 (2023-03-31)
 
 ### Fix
