@@ -10,6 +10,8 @@ from nautobot.circuits.models import CircuitType
 from nautobot.dcim.models import Device, DeviceRole, Interface, Platform
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Relationship, Tag
+from nautobot.ipam.models import IPAddress
+from nautobot.utilities.utils import slugify_dashes_to_underscores
 from netutils.lib_mapper import ANSIBLE_LIB_MAPPER_REVERSE, NAPALM_LIB_MAPPER_REVERSE
 from taggit.managers import TaggableManager
 from nautobot_ssot_device42.diffsync.models.base.dcim import Device as NautobotDevice
@@ -32,7 +34,7 @@ def get_random_color() -> str:
     return f"{random.randint(0, 0xFFFFFF):06x}"
 
 
-def verify_device_role(diffsync, role_name: str, role_color: str = None) -> UUID:
+def verify_device_role(diffsync, role_name: str, role_color: str = "") -> UUID:
     """Verifies DeviceRole object exists in Nautobot. If not, creates it.
 
     Args:
@@ -64,7 +66,7 @@ def verify_platform(diffsync, platform_name: str, manu: UUID) -> UUID:
         manu (UUID): The ID (primary key) of platform manufacturer.
 
     Returns:
-        UUID: UUID for found or created DeviceRole object.
+        UUID: UUID for found or created Platform object.
     """
     if ANSIBLE_LIB_MAPPER_REVERSE.get(platform_name):
         _name = ANSIBLE_LIB_MAPPER_REVERSE[platform_name]
@@ -213,22 +215,24 @@ def update_custom_fields(new_cfields: dict, update_obj: object):
         new_cfields (OrderedDict): Dictionary of CustomFields on object to be updated to match.
         update_obj (object): Object to be updated with CustomFields.
     """
-    obj_contenttype = ContentType.objects.get_for_model(type(update_obj))
     current_cf = get_custom_field_dict(update_obj.get_custom_fields())
     for old_cf, old_cf_dict in current_cf.items():
         if old_cf not in new_cfields:
-            removed_cf = CustomField.objects.get(label=old_cf_dict["key"], content_types=obj_contenttype)
+            removed_cf = CustomField.objects.get(
+                label=old_cf_dict["key"], content_types=ContentType.objects.get_for_model(type(update_obj))
+            )
             removed_cf.delete()
     for new_cf, new_cf_dict in new_cfields.items():
         if new_cf not in current_cf:
             _cf_dict = {
-                "name": slugify(new_cf_dict["key"]),
+                "name": slugify_dashes_to_underscores(new_cf_dict["key"]),
+                "slug": slugify_dashes_to_underscores(new_cf_dict["key"]),
                 "type": CustomFieldTypeChoices.TYPE_TEXT,
                 "label": new_cf_dict["key"],
             }
-            field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-            field.content_types.add(obj_contenttype.id)
-        update_obj.custom_field_data.update({slugify(new_cf_dict["key"]): new_cf_dict["value"]})
+            field, _ = CustomField.objects.get_or_create(name=_cf_dict["name"], defaults=_cf_dict)
+            field.content_types.add(ContentType.objects.get_for_model(type(update_obj)).id)
+        update_obj.custom_field_data.update({slugify_dashes_to_underscores(new_cf_dict["key"]): new_cf_dict["value"]})
 
 
 def verify_circuit_type(circuit_type: str) -> CircuitType:
@@ -263,10 +267,10 @@ def get_software_version_from_lcm(relations: dict):
     version = ""
     if LIFECYCLE_MGMT:
         _softwarelcm = Relationship.objects.get(name="Software on Device")
-        for _, relationships in relations.items():
-            for relationship, queryset in relationships.items():
-                if relationship == _softwarelcm and len(queryset) > 0:
-                    version = queryset[0].source.version
+        if _softwarelcm in relations["destination"]:
+            if len(relations["destination"][_softwarelcm]) > 0:
+                if hasattr(relations["destination"][_softwarelcm][0].source, "version"):
+                    version = relations["destination"][_softwarelcm][0].source.version
     return version
 
 
@@ -325,23 +329,6 @@ def get_cf_version_map():
     return version_map
 
 
-def find_site(diffsync, site_id: UUID):
-    """Find Site name using it's UUID.
-
-    Args:
-        diffsync (obj): DiffSync adapter with site_map.
-        site_id (UUID): UUID of Site to be found.
-
-    Returns:
-        str: Name of Site matching site_id if found. Returns blank string if Site not found.
-    """
-    site_name = ""
-    for site, obj_id in diffsync.site_map.items():
-        if obj_id == site_id:
-            site_name = site
-    return site_name
-
-
 def apply_vlans_to_port(diffsync, device_name: str, mode: str, vlans: list, port: Interface):
     """Determine appropriate VLANs to add to a Port link.
 
@@ -354,14 +341,30 @@ def apply_vlans_to_port(diffsync, device_name: str, mode: str, vlans: list, port
     """
     try:
         dev = diffsync.get(NautobotDevice, device_name)
-        site_name = find_site(diffsync=diffsync, site_id=dev.site_id)
+        site_name = slugify(dev.building)
     except ObjectNotFound:
         site_name = "global"
     if mode == "access" and len(vlans) == 1:
         _vlan = vlans[0]
         port.untagged_vlan_id = diffsync.vlan_map[site_name][_vlan]
     else:
+        tagged_vlans = []
         for _vlan in vlans:
             tagged_vlan = diffsync.vlan_map[site_name][_vlan]
             if tagged_vlan:
-                port.tagged_vlans.add(tagged_vlan)
+                tagged_vlans.append(tagged_vlan)
+        diffsync.objects_to_create["tagged_vlans"].append((port, tagged_vlans))
+
+
+def unassign_primary(ipaddr: IPAddress):
+    """Handle unassigning primary IP address from a Device.
+
+    Args:
+        ipaddr (IPAddress): IP Address that's set to primary and needs to be unset.
+    """
+    _dev = ipaddr.assigned_object.device
+    if hasattr(ipaddr, "primary_ip4_for"):
+        _dev.primary_ip4 = None
+    elif hasattr(ipaddr, "primary_ip6_for"):
+        _dev.primary_ip6 = None
+    _dev.validated_save()

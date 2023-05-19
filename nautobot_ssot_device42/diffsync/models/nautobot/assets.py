@@ -13,13 +13,9 @@ def find_site(diffsync, attrs):
     """Method to determine Site for Patch Panel based upon object attributes."""
     pp_site = False
     try:
-        if attrs.get("building") is not None:
+        if attrs.get("building"):
             pp_site = diffsync.site_map[slugify(attrs["building"])]
-        elif attrs.get("room") is not None and attrs.get("rack") is not None:
-            rack = diffsync.get(NautobotRack, {"name": attrs["rack"], "group": attrs["room"]})
-            site_name = rack.building
-            pp_site = diffsync.site_map[slugify(site_name)]
-        elif attrs.get("rack") is not None:
+        elif attrs.get("room") and attrs.get("rack"):
             rack = diffsync.get(NautobotRack, {"name": attrs["rack"], "group": attrs["room"]})
             site_name = rack.building
             pp_site = diffsync.site_map[slugify(site_name)]
@@ -95,10 +91,6 @@ class NautobotPatchPanel(PatchPanel):
                 ppanel.status_id = self.diffsync.status_map["offline"]
         if "vendor" in attrs and "model" in attrs:
             ppanel.device_type = DeviceType.objects.get(model=attrs["model"])
-        if attrs.get("size"):
-            ppanel.device_type.u_height = int(attrs["size"])
-        if attrs.get("depth"):
-            ppanel.device_type.is_full_depth = bool(attrs["depth"] == "Full Depth")
         if "orientation" in attrs:
             ppanel.face = attrs["orientation"]
         if "position" in attrs:

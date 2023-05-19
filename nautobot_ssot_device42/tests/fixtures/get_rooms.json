@@ -17,7 +17,9 @@
                     "value": null
                 }
             ],
-            "tags": []
+            "tags": [
+                "sitecode-aus"
+            ]
         },
         {
             "building": "Apple Park",
@@ -34,7 +36,9 @@
                     "value": null
                 }
             ],
-            "tags": []
+            "tags": [
+                "sitecode-sfo"
+            ]
         },
         {
             "building": "Microsoft HQ",
@@ -51,7 +55,9 @@
                     "value": null
                 }
             ],
-            "tags": []
+            "tags": [
+                "sitecode-sea"
+            ]
         },
         {
             "building": "Microsoft HQ",
@@ -68,7 +74,9 @@
                     "value": null
                 }
             ],
-            "tags": []
+            "tags": [
+                "sitecode-sea"
+            ]
         }
     ],
     "offset": 0

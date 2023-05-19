@@ -3,6 +3,7 @@
         "vlan_ids": [
             "1"
         ],
+        "netport_pk": 4,
         "port_name": "GigabitEthernet1/0/1",
         "description": "GigabitEthernet1/0/1",
         "up": true,
@@ -12,6 +13,7 @@
         "port_type": "physical",
         "port_speed": "1.0 Gbps",
         "mtu": 1518,
-        "device": "core-router.testexample.com"
+        "tags": "first-tag,second-tag",
+        "device_name": "core-router.testexample.com"
     }
 ]

@@ -149,9 +149,10 @@ class TestUtilsDevice42(TestCase):
 
     port_statuses = [
         ("active", {"up": True, "up_admin": True}, "active"),
-        ("decommissioned", {"up": False, "up_admin": False}, "decommissioned"),
+        ("decommissioning", {"up": False, "up_admin": False}, "decommissioning"),
         ("failed", {"up": False, "up_admin": True}, "failed"),
         ("planned", {}, "planned"),
+        ("up_admin", {"up_admin": True}, "active"),
     ]
 
     @parameterized.expand(port_statuses, skip_on_empty=True)
@@ -423,7 +424,7 @@ class TestDevice42Api(TestCase):  # pylint: disable=too-many-public-methods
         test_query = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_with_vlans_sent.json")
         responses.add(
             responses.GET,
-            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.netport_pk, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.second_device_fk, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.netport_pk, n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.second_device_fk, d.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
+            "https://device42.testexample.com/services/data/v1.0/query/?query=SELECT array_agg( distinct concat (v.vlan_pk)) AS vlan_pks, n.netport_pk, n.port AS port_name, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.tags, n.second_device_fk, d.name AS device_name FROM view_vlan_v1 v LEFT JOIN view_vlan_on_netport_v1 vn ON vn.vlan_fk = v.vlan_pk LEFT JOIN view_netport_v1 n ON n.netport_pk = vn.netport_fk LEFT JOIN view_device_v1 d ON d.device_pk = n.device_fk WHERE n.port is not null GROUP BY n.netport_pk, n.port, n.description, n.up, n.up_admin, n.discovered_type, n.hwaddress, n.port_type, n.port_speed, n.mtu, n.tags, n.second_device_fk, d.name&output_type=json&_paging=1&_return_as_object=1&_max_results=1000",
             json=test_query,
             status=200,
         )

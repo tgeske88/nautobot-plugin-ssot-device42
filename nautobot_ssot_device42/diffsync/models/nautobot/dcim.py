@@ -19,8 +19,7 @@ from nautobot.dcim.models import Rack as OrmRack
 from nautobot.dcim.models import RackGroup as OrmRackGroup
 from nautobot.dcim.models import Site as OrmSite
 from nautobot.dcim.models import VirtualChassis as OrmVC
-from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField, RelationshipAssociation
+from nautobot.extras.models import RelationshipAssociation
 from nautobot.extras.models import Status as OrmStatus
 from nautobot_ssot_device42.constant import DEFAULTS, INTF_SPEED_MAP, PLUGIN_CFG
 from nautobot_ssot_device42.diffsync.models.base.dcim import (
@@ -70,15 +69,7 @@ class NautobotBuilding(Building):
             if _facility:
                 new_site.facility = _facility.upper()
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmSite).id)
-                new_site.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_site)
         diffsync.objects_to_create["sites"].append(new_site)
         diffsync.site_map[slugify(ids["name"])] = new_site.id
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -139,15 +130,7 @@ class NautobotRoom(Room):
             description=attrs["notes"] if attrs.get("notes") else "",
         )
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmRackGroup).id)
-                new_rg.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_rg)
         diffsync.objects_to_create["rooms"].append(new_rg)
         if slugify(ids["building"]) not in diffsync.room_map:
             diffsync.room_map[slugify(ids["building"])] = {}
@@ -196,15 +179,7 @@ class NautobotRack(Rack):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 new_rack.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmRack).id)
-                new_rack.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_rack)
         diffsync.objects_to_create["racks"].append(new_rack)
         if slugify(ids["building"]) not in diffsync.rack_map:
             diffsync.rack_map[slugify(ids["building"])] = {}
@@ -261,15 +236,7 @@ class NautobotVendor(Vendor):
                 slug=slugify(ids["name"]),
             )
             if attrs.get("custom_fields"):
-                for _cf in attrs["custom_fields"].values():
-                    _cf_dict = {
-                        "name": slugify(_cf["key"]),
-                        "type": CustomFieldTypeChoices.TYPE_TEXT,
-                        "label": _cf["key"],
-                    }
-                    field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                    field.content_types.add(ContentType.objects.get_for_model(OrmManufacturer).id)
-                    new_manu.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+                nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_manu)
             diffsync.objects_to_create["vendors"].append(new_manu)
             diffsync.vendor_map[slugify(ids["name"])] = new_manu.id
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -317,15 +284,7 @@ class NautobotHardware(Hardware):
                 is_full_depth=bool(attrs.get("depth") == "Full Depth"),
             )
             if attrs.get("custom_fields"):
-                for _cf in attrs["custom_fields"].values():
-                    _cf_dict = {
-                        "name": slugify(_cf["key"]),
-                        "type": CustomFieldTypeChoices.TYPE_TEXT,
-                        "label": _cf["key"],
-                    }
-                    field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                    field.content_types.add(ContentType.objects.get_for_model(OrmDeviceType).id)
-                    new_dt.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+                nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_dt)
             diffsync.objects_to_create["devicetypes"].append(new_dt)
             diffsync.devicetype_map[slugify(ids["name"])] = new_dt.id
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -383,15 +342,7 @@ class NautobotCluster(Cluster):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 new_vc.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVC).id)
-                new_vc.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_vc)
         diffsync.objects_to_create["clusters"].append(new_vc)
         diffsync.cluster_map[ids["name"]] = new_vc.id
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -511,15 +462,7 @@ class NautobotDevice(Device):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 new_device.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmDevice).id)
-                new_device.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_device)
         diffsync.objects_to_create["devices"].append(new_device)
         diffsync.device_map[ids["name"]] = new_device.id
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
@@ -579,28 +522,16 @@ class NautobotDevice(Device):
                 _os = attrs["os"]
             else:
                 _os = self.os
-            if LIFECYCLE_MGMT:
-                if attrs.get("os_version"):
+            if attrs.get("os_version"):
+                if LIFECYCLE_MGMT:
                     soft_lcm = self._add_software_lcm(
                         diffsync=self.diffsync,
                         os=_os,
                         version=attrs["os_version"],
                         manufacturer=_dev.device_type.manufacturer.id,
                     )
-                    self._assign_version_to_device(diffsync=self.diffsync, device=self.uuid, software_lcm=soft_lcm)
-                elif attrs["os_version"] == "":
-                    relations = _dev.get_relationships()
-                    software_relation_id = self.diffsync.relationship_map["Software on Device"]
-                    for _, relationships in relations.items():
-                        for relationship, queryset in relationships.items():
-                            if relationship.id == software_relation_id:
-                                if self.diffsync.job.kwargs.get("debug"):
-                                    self.diffsync.job.log_warning(
-                                        message=f"Deleting Software Version Relationship for {_dev.name} as Device42 shows no version."
-                                    )
-                                queryset.delete()
-            else:
-                if attrs.get("os_version"):
+                    self._assign_version_to_device(diffsync=self.diffsync, device=_dev.id, software_lcm=soft_lcm)
+                else:
                     attrs["custom_fields"].append(
                         {
                             "key": "OS Version",
@@ -642,11 +573,18 @@ class NautobotDevice(Device):
                 _dev.virtual_chassis_id = _vc
                 _dev.vc_position = self.vc_position
                 if attrs.get("master_device"):
-                    for vc in self.diffsync.objects_to_create["clusters"]:
-                        if vc.name == attrs["cluster_host"]:
-                            vc.master = _dev
+                    try:
+                        vc = OrmVC.objects.get(id=_vc)
+                        vc.master = _dev
+                        vc.validated_save()
+                    except OrmVC.DoesNotExist:
+                        for vc in self.diffsync.objects_to_create["clusters"]:
+                            if vc.name == _clus_host:
+                                vc = self.diffsync.objects_to_create["clusters"].pop(vc)
+                                vc.master = _dev
+                                vc.validated_save()
             except KeyError:
-                self.diffsync.job.log_warning(message=f"Unable to find Virtual Chassis {attrs['cluster_host']}")
+                self.diffsync.job.log_warning(message=f"Unable to find Virtual Chassis {_clus_host}")
         if "vc_position" in attrs:
             # need to ensure the new position isn't already taken
             try:
@@ -721,8 +659,7 @@ class NautobotDevice(Device):
                             )
                         queryset.delete()
         except OrmDevice.DoesNotExist:
-            pass
-
+            diffsync.job.log_warning(message=f"Unable to find Device {device} to assign software to.")
         new_assoc = RelationshipAssociation(
             relationship_id=diffsync.relationship_map["Software on Device"],
             source_type=ContentType.objects.get_for_model(SoftwareLCM),
@@ -761,20 +698,11 @@ class NautobotPort(Port):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 new_intf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmInterface).id)
-                new_intf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_intf)
         if attrs.get("vlans"):
             nautobot.apply_vlans_to_port(
                 diffsync=diffsync, device_name=ids["device"], mode=attrs["mode"], vlans=attrs["vlans"], port=new_intf
             )
-
         diffsync.objects_to_create["ports"].append(new_intf)
         if ids["device"] not in diffsync.port_map:
             diffsync.port_map[ids["device"]] = {}
@@ -786,6 +714,7 @@ class NautobotPort(Port):
     def update(self, attrs):
         """Update Interface object in Nautobot."""
         _port = OrmInterface.objects.get(id=self.uuid)
+        self.diffsync.job.log_info(message=f"Updating Port {_port.name} on {_port.device.name} with {attrs}")
         if "enabled" in attrs:
             _port.enabled = is_truthy(attrs["enabled"])
         if "mtu" in attrs:
@@ -816,6 +745,14 @@ class NautobotPort(Port):
                 _device = attrs["device"]
             else:
                 _device = self.device
+            # must ensure any new VLANs that are created
+            for update_vlan in attrs["vlans"]:
+                for vlan in self.diffsync.objects_to_create["vlans"]:
+                    if vlan.vid == update_vlan and vlan.site == _port.device.site:
+                        new_vlan = self.diffsync.objects_to_create["vlans"].pop(
+                            self.diffsync.objects_to_create["vlans"].index(vlan)
+                        )
+                        new_vlan.validated_save()
             nautobot.apply_vlans_to_port(
                 diffsync=self.diffsync, device_name=_device, mode=_mode, vlans=attrs["vlans"], port=_port
             )
@@ -823,8 +760,9 @@ class NautobotPort(Port):
             _port.validated_save()
             return super().update(attrs)
         except ValidationError as err:
-            if self.diffsync.job.kwargs.get("debug"):
-                self.diffsync.job.log_debug(message=f"Validation error for updating Port: {err}")
+            self.diffsync.job.log_warning(
+                message=f"Validation error for updating Port {_port.name} for {_port.device.name}: {err}"
+            )
             return None
 
     def delete(self):

@@ -5,8 +5,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.forms import ValidationError
 from django.utils.text import slugify
 from nautobot.dcim.models import Interface as OrmInterface
-from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField
 from nautobot.extras.models import Status as OrmStatus
 from nautobot.ipam.models import VLAN as OrmVLAN
 from nautobot.ipam.models import VRF as OrmVRF
@@ -29,15 +27,7 @@ class NautobotVRFGroup(VRFGroup):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _vrf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmVRF).id)
-                _vrf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_vrf)
         diffsync.objects_to_create["vrfs"].append(_vrf)
         diffsync.vrf_map[ids["name"]] = _vrf.id
         return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
@@ -95,15 +85,7 @@ class NautobotSubnet(Subnet):
             for _tag in nautobot.get_tags(attrs["tags"]):
                 _pf.tags.add(_tag)
         if attrs.get("custom_fields"):
-            for _cf in attrs["custom_fields"].values():
-                _cf_dict = {
-                    "name": slugify(_cf["key"]),
-                    "type": CustomFieldTypeChoices.TYPE_TEXT,
-                    "label": _cf["key"],
-                }
-                field, _ = CustomField.objects.get_or_create(name=slugify(_cf_dict["name"]), defaults=_cf_dict)
-                field.content_types.add(ContentType.objects.get_for_model(OrmPrefix).id)
-                _pf.custom_field_data.update({_cf_dict["name"]: _cf["value"]})
+            nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=_pf)
         diffsync.objects_to_create["prefixes"].append(_pf)
         if vrf_name not in diffsync.prefix_map:
             diffsync.prefix_map[vrf_name] = {}
@@ -135,8 +117,8 @@ class NautobotSubnet(Subnet):
         """
         if PLUGIN_CFG.get("delete_on_sync"):
             super().delete()
-            self.diffsync.job.log_info(message=f"Prefix {self.network} will be deleted.")
             subnet = OrmPrefix.objects.get(id=self.uuid)
+            self.diffsync.job.log_info(message=f"Prefix {subnet.prefix} will be deleted.")
             self.diffsync.objects_to_delete["subnet"].append(subnet)  # pylint: disable=protected-access
         return self
 
@@ -181,10 +163,9 @@ class NautobotIPAddress(IPAddress):
                         (diffsync.device_map[attrs["device"]], _ip.id)
                     )
             except KeyError:
-                if diffsync.job.kwargs.get("debug"):
-                    diffsync.job.log_debug(
-                        message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}.",
-                    )
+                diffsync.job.log_debug(
+                    message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}.",
+                )
         if attrs.get("interface"):
             if re.search(r"[Ll]oopback", attrs["interface"]):
                 _ip.role = "loopback"
@@ -225,54 +206,70 @@ class NautobotIPAddress(IPAddress):
             _ipaddr.description = attrs["label"] if attrs.get("label") else ""
         if attrs.get("device") and attrs.get("interface"):
             _device = attrs["device"]
+            if self.primary:
+                nautobot.unassign_primary(_ipaddr)
             try:
                 intf = OrmInterface.objects.get(device__name=_device, name=attrs["interface"])
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
-
-                if attrs.get("primary"):
-                    self.diffsync.objects_to_create["device_primary_ip"].append(
-                        (self.diffsync.device_map[attrs["device"]], self.uuid)
+                try:
+                    _ipaddr.validated_save()
+                except ValidationError as err:
+                    self.diffsync.job.log_warning(
+                        message=f"Failure updating Device & Interface for {_ipaddr.address}. {err}"
                     )
             except OrmInterface.DoesNotExist as err:
-                if self.diffsync.job.kwargs.get("debug"):
-                    self.diffsync.job.log_debug(
-                        message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
-                    )
+                self.diffsync.job.log_warning(
+                    message=f"Unable to find Interface {attrs['interface']} for {attrs['device']}. {err}"
+                )
         elif attrs.get("device"):
             try:
-                intf = OrmInterface.objects.get(device=_ipaddr.assigned_object.device, name=self.interface)
+                intf = OrmInterface.objects.get(device__name=attrs["device"], name=self.interface)
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf.id
-                _dev = _ipaddr.assigned_object.device
-                if hasattr(_ipaddr, "primary_ip4_for"):
-                    _dev.primary_ip4 = None
-                elif hasattr(_ipaddr, "primary_ip6_for"):
-                    _dev.primary_ip6 = None
-                if _dev:
-                    _dev.validated_save()
+                nautobot.unassign_primary(_ipaddr)
             except OrmInterface.DoesNotExist as err:
-                if self.diffsync.job.kwargs.get("debug"):
-                    self.diffsync.job.log_debug(
-                        message=f"Unable to find Interface {attrs['interface']} for {str(_ipaddr.assigned_object.device)} {err}"
-                    )
+                self.diffsync.job.log_debug(
+                    message=f"Unable to find Interface {attrs['interface'] if attrs.get('interface') else self.interface} for {attrs['device']} {err}"
+                )
         elif attrs.get("interface"):
+            try:
+                OrmInterface.objects.get(name=attrs["interface"], device__name=self.device)
+            except OrmInterface.DoesNotExist:
+                for port in self.diffsync.objects_to_create["ports"]:
+                    if port.name == attrs["interface"] and port.device.name == self.device:
+                        try:
+                            port.validated_save()
+                        except ValidationError as err:
+                            self.diffsync.job.log_warning(
+                                message=f"Failure saving port {port.name} for IPAddress {_ipaddr.address}. {err}"
+                            )
             try:
                 if attrs.get("device") and attrs["device"] in self.diffsync.port_map:
                     intf = self.diffsync.port_map[attrs["device"]][attrs["interface"]]
-                    if attrs.get("primary"):
-                        self.diffsync.objects_to_create["device_primary_ip"].append(
-                            (self.diffsync.device_map[attrs["device"]], self.uuid)
-                        )
                 else:
                     intf = self.diffsync.port_map[self.device][attrs["interface"]]
                 _ipaddr.assigned_object_type = ContentType.objects.get(app_label="dcim", model="interface")
                 _ipaddr.assigned_object_id = intf
+                try:
+                    _ipaddr.validated_save()
+                except ValidationError as err:
+                    self.diffsync.job.log_warning(message=f"Failure updating Interface for {_ipaddr.address}. {err}")
             except KeyError as err:
-                if self.diffsync.job.kwargs.get("debug"):
-                    self.diffsync.job.log_debug(
-                        message=f"Unable to find Interface {self.interface} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
-                    )
+                self.diffsync.job.log_debug(
+                    message=f"Unable to find Interface {attrs['interface']} for {attrs['device'] if attrs.get('device') else self.device}. {err}"
+                )
+        if attrs.get("primary") or self.primary is True:
+            if getattr(_ipaddr, "assigned_object"):
+                if _ipaddr.family == 4:
+                    _ipaddr.assigned_object.device.primary_ip4 = _ipaddr
+                else:
+                    _ipaddr.assigned_object.device.primary_ip6 = _ipaddr
+                _ipaddr.assigned_object.device.validated_save()
+            else:
+                self.diffsync.job.log_warning(
+                    message=f"IPAddress {_ipaddr.address} is showing unassigned from an Interface so can't be marked primary."
+                )
         if "tags" in attrs:
             if attrs.get("tags"):
                 nautobot.update_tags(tagged_obj=_ipaddr, new_tags=attrs["tags"])
@@ -325,11 +322,11 @@ class NautobotVLAN(VLAN):
             nautobot.update_custom_fields(new_cfields=attrs["custom_fields"], update_obj=new_vlan)
         if attrs.get("tags"):
             nautobot.update_tags(tagged_obj=new_vlan, new_tags=attrs["tags"])
-        try:
-            new_vlan.validated_save()
-            return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
-        except ValidationError as err:
-            diffsync.job.log_warning(message=f"Error creating VLAN {attrs['name']} {ids['vlan_id']}. {err}")
+        diffsync.objects_to_create["vlans"].append(new_vlan)
+        if _site_name not in diffsync.vlan_map:
+            diffsync.vlan_map[_site_name] = {}
+        diffsync.vlan_map[_site_name][ids["vlan_id"]] = new_vlan.id
+        return super().create(ids=ids, diffsync=diffsync, attrs=attrs)
 
     def update(self, attrs):
         """Update VLAN object in Nautobot."""

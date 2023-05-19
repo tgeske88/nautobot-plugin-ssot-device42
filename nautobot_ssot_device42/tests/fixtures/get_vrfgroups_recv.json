@@ -2,7 +2,10 @@
     {
         "buildings": [],
         "description": "",
-        "tags": [],
+        "tags": [
+            "tag-one",
+            "tag-two"
+        ],
         "groups": "",
         "id": 1,
         "custom_fields": [],
@@ -11,7 +14,9 @@
     {
         "buildings": [],
         "description": "Production environment",
-        "tags": [],
+        "tags": [
+            "test"
+        ],
         "groups": "",
         "id": 2,
         "custom_fields": [],
@@ -20,7 +25,9 @@
     {
         "buildings": [],
         "description": "Development environment",
-        "tags": [],
+        "tags": [
+            "dev"
+        ],
         "groups": "",
         "id": 2,
         "custom_fields": [],
