@@ -2,7 +2,7 @@
 import json
 import uuid
 from unittest.mock import MagicMock, patch
-from diffsync.exceptions import ObjectNotFound
+from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from nautobot.utilities.testing import TransactionTestCase
@@ -195,6 +195,15 @@ class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-
         self.device42.load_rooms()
         self.device42.load_racks()
         self.job.log_warning.assert_called_with(message="Rack 1 is missing Building and Room and won't be imported.")
+
+    def test_load_cluster_duplicate_cluster(self):
+        """Validate functionality of the load_cluster() function when cluster loaded with duplicate cluster."""
+        self.device42.get = MagicMock()
+        self.device42.get.side_effect = ObjectAlreadyExists(message="Duplicate object found.", existing_object=None)
+        self.device42.load_cluster(cluster_info=DEVICE_FIXTURE[3])
+        self.job.log_warning.assert_called_with(
+            message="Cluster stack01.testexample.com already has been added. ('Duplicate object found.', None)"
+        )
 
     def test_load_hardware_models_duplicate_model(self):
         """Validate functionality of the load_hardware_models() function with duplicate model."""
