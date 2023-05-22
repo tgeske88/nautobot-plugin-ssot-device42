@@ -42,7 +42,7 @@ PORTS_WO_VLANS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_
 PORT_CUSTOM_FIELDS = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_custom_fields_recv.json")
 
 
-class Device42AdapterTestCase(TransactionTestCase):
+class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-public-methods
     """Test the Device42Adapter class."""
 
     databases = ("default", "job_logs")
@@ -167,6 +167,16 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.device42.load_buildings()
         self.device42.load_rooms()
         self.job.log_warning.assert_called_with(message="Network Closet is missing Building and won't be imported.")
+
+    def test_load_racks_duplicate_rack(self):
+        """Validate the functionality of the load_racks() function when duplicate rack is loaded."""
+        self.device42.load_buildings()
+        self.device42.load_rooms()
+        self.device42.load_racks()
+        self.device42.load_racks()
+        self.job.log_warning.assert_called_with(
+            message="Rack Rack A already exists. ('Object Rack A__Microsoft HQ__Main IDF already present', rack \"Rack A__Microsoft HQ__Main IDF\")"
+        )
 
     def test_assign_version_to_master_devices_with_valid_os_version(self):
         """Validate functionality of the assign_version_to_master_devices() function with valid os_version."""
