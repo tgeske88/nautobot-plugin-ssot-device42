@@ -345,6 +345,7 @@ class Device42Adapter(DiffSync):
             _clus = self.device42_clusters[cluster_info["name"]]
             _tags = cluster_info["tags"] if cluster_info.get("tags") else []
             if PLUGIN_CFG.get("ignore_tag") and PLUGIN_CFG["ignore_tag"] in _tags:
+                self.job.log_warning(message=f"Cluster {cluster_info['name']} has ignore tag so skipping.")
                 return
             if len(_tags) > 1:
                 _tags.sort()
