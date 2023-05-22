@@ -254,10 +254,6 @@ class Device42Adapter(DiffSync):
             if len(_tags) > 1:
                 _tags.sort()
             if record.get("building") and record.get("room"):
-                if record["building"] not in self.rack_elevations:
-                    self.rack_elevations[record["building"]] = {}
-                if record["room"] not in self.rack_elevations[record["building"]]:
-                    self.rack_elevations[record["building"]][record["room"]] = {}
                 self.rack_elevations[record["building"]][record["room"]][record["name"]] = {
                     slot: [] for slot in range(1, record["size"] + 1)
                 }
