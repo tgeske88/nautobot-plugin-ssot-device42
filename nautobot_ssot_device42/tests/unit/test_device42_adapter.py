@@ -161,6 +161,13 @@ class Device42AdapterTestCase(TransactionTestCase):
             message="Secondary IDF is already loaded. ('Object Secondary IDF__Microsoft HQ already present', room \"Secondary IDF__Microsoft HQ\")"
         )
 
+    def test_load_rooms_missing_building(self):
+        """Validate functionality of the load_rooms() function when room loaded with missing building."""
+        ROOM_FIXTURE[0]["building"] = ""
+        self.device42.load_buildings()
+        self.device42.load_rooms()
+        self.job.log_warning.assert_called_with(message="Network Closet is missing Building and won't be imported.")
+
     def test_assign_version_to_master_devices_with_valid_os_version(self):
         """Validate functionality of the assign_version_to_master_devices() function with valid os_version."""
         self.device42.device42_clusters = {"cluster1": {"members": [self.mock_device]}}
