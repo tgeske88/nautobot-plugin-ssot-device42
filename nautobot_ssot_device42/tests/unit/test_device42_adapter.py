@@ -196,6 +196,14 @@ class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-
         self.device42.load_racks()
         self.job.log_warning.assert_called_with(message="Rack 1 is missing Building and Room and won't be imported.")
 
+    def test_load_hardware_models_duplicate_model(self):
+        """Validate functionality of the load_hardware_models() function with duplicate model."""
+        self.device42.load_hardware_models()
+        self.device42.load_hardware_models()
+        self.job.log_warning.assert_called_with(
+            message="Hardware model already exists. ('Object FPR-2130 already present', hardware \"FPR-2130\")"
+        )
+
     def test_assign_version_to_master_devices_with_valid_os_version(self):
         """Validate functionality of the assign_version_to_master_devices() function with valid os_version."""
         self.device42.device42_clusters = {"cluster1": {"members": [self.mock_device]}}
