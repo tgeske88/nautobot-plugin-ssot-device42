@@ -205,6 +205,18 @@ class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-
             message="Cluster stack01.testexample.com already has been added. ('Duplicate object found.', None)"
         )
 
+    @patch(
+        "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
+        {"ignore_tag": "TEST"},
+    )
+    def test_load_cluster_ignore_tag(self):
+        """Validate functionality of the load_cluster() function when cluster has ignore tag."""
+        self.device42.load_cluster(cluster_info=DEVICE_FIXTURE[3])
+        self.job.log_info.assert_called_once_with(message="Cluster stack01.testexample.com being loaded from Device42.")
+        self.job.log_warning.assert_called_once_with(
+            message="Cluster stack01.testexample.com has ignore tag so skipping."
+        )
+
     def test_load_hardware_models_duplicate_model(self):
         """Validate functionality of the load_hardware_models() function with duplicate model."""
         self.device42.load_hardware_models()
