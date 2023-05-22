@@ -40,6 +40,8 @@ CLUSTER_MEMBER_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_
 PORTS_W_VLANS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_with_vlans_recv.json")
 PORTS_WO_VLANS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_wo_vlans_recv.json")
 PORT_CUSTOM_FIELDS = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_custom_fields_recv.json")
+IPADDRESS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ip_addrs.json")
+IPADDRESS_CF_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ipaddr_custom_fields_recv.json")
 
 
 class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-public-methods
@@ -66,6 +68,8 @@ class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-
         self.d42_client.get_ports_with_vlans.return_value = PORTS_W_VLANS_FIXTURE
         self.d42_client.get_ports_wo_vlans.return_value = PORTS_WO_VLANS_FIXTURE
         self.d42_client.get_port_custom_fields.return_value = PORT_CUSTOM_FIELDS
+        self.d42_client.get_ip_addrs.return_value = IPADDRESS_FIXTURE
+        self.d42_client.get_ipaddr_custom_fields.return_value = IPADDRESS_CF_FIXTURE
 
         self.job = Device42DataSource()
         self.job.log_info = MagicMock()
@@ -142,6 +146,11 @@ class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-
         self.assertEqual(
             {f"{port['device_name']}__{port['port_name']}" for port in PORTS_WO_VLANS_FIXTURE},
             {port.get_unique_id() for port in self.device42.get_all("port")},
+        )
+        self.device42.load_ip_addresses()
+        self.assertEqual(
+            {f"{ipaddr['ip_address']}/{ipaddr['netmask']}__{ipaddr['vrf']}" for ipaddr in IPADDRESS_FIXTURE},
+            {ipaddr.get_unique_id() for ipaddr in self.device42.get_all("ipaddr")},
         )
 
     def test_load_buildings_duplicate_site(self):
