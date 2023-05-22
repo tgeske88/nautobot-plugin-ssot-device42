@@ -178,6 +178,15 @@ class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-
             message="Rack Rack A already exists. ('Object Rack A__Microsoft HQ__Main IDF already present', rack \"Rack A__Microsoft HQ__Main IDF\")"
         )
 
+    def test_load_racks_missing_building_and_room(self):
+        """Validate functionality of the load_racks() function when rack loaded with missing building and room."""
+        RACK_FIXTURE[0]["building"] = ""
+        RACK_FIXTURE[0]["room"] = ""
+        self.device42.load_buildings()
+        self.device42.load_rooms()
+        self.device42.load_racks()
+        self.job.log_warning.assert_called_with(message="Rack 1 is missing Building and Room and won't be imported.")
+
     def test_assign_version_to_master_devices_with_valid_os_version(self):
         """Validate functionality of the assign_version_to_master_devices() function with valid os_version."""
         self.device42.device42_clusters = {"cluster1": {"members": [self.mock_device]}}
