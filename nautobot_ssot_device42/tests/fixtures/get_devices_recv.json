@@ -325,6 +325,7 @@
         "hw_model": "Cisco WS-C2960X-48LPD-L",
         "hddraid_type": null,
         "type": "physical",
+        "building": "Dell - Round Rock 2",
         "hddcount": null,
         "manufacturer": "Cisco Systems Inc",
         "device_external_links": [],
