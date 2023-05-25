@@ -37,7 +37,8 @@
         "device_external_links": [],
         "start_at": 5.0,
         "tags": [
-            "Lab", "SEA"
+            "Lab",
+            "SEA"
         ],
         "hw_model_id": 15,
         "in_service": true,
@@ -115,7 +116,8 @@
         "device_external_links": [],
         "start_at": 16.0,
         "tags": [
-            "nautobot-dc-core", "SFO"
+            "nautobot-dc-core",
+            "SFO"
         ],
         "hw_model_id": 14,
         "in_service": true,
@@ -208,7 +210,8 @@
         "device_external_links": [],
         "start_at": 20.0,
         "tags": [
-            "Lab", "SFO"
+            "Lab",
+            "SFO"
         ],
         "hw_model_id": 15,
         "in_service": true,
@@ -271,7 +274,10 @@
         "type": "cluster",
         "hddcount": null,
         "device_external_links": [],
-        "tags": ["AUS", "TEST"],
+        "tags": [
+            "AUS",
+            "TEST"
+        ],
         "hw_model_id": null,
         "in_service": true,
         "hddsize": null,
@@ -329,7 +335,10 @@
         "hddcount": null,
         "manufacturer": "Cisco Systems Inc",
         "device_external_links": [],
-        "tags": ["AUS", "TEST"],
+        "tags": [
+            "AUS",
+            "TEST"
+        ],
         "hw_model_id": 103,
         "in_service": true,
         "hddsize": null,
