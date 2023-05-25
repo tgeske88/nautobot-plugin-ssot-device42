@@ -225,6 +225,14 @@ class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-
             message="Cluster stack01.testexample.com has ignore tag so skipping."
         )
 
+    def test_load_devices_with_blank_building(self):
+        """Validate functionality of the load_devices_and_clusters() function when device has a blank building."""
+        self.device42.load_hardware_models()
+        self.device42.load_devices_and_clusters()
+        self.job.log_warning.assert_called_with(
+            message="Device stack01.testexample.com can't be loaded as we're unable to find associated Building."
+        )
+
     def test_assign_version_to_master_devices_with_valid_os_version(self):
         """Validate functionality of the assign_version_to_master_devices() function with valid os_version."""
         self.device42.device42_clusters = {"cluster1": {"members": [self.mock_device]}}
