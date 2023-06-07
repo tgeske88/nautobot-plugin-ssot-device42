@@ -15,7 +15,7 @@
             }
         ],
         "tags": [
-            "sitecode-aus"
+            "sitecode-aus", "AUS"
         ]
     },
     {
@@ -34,7 +34,7 @@
             }
         ],
         "tags": [
-            "sitecode-sfo"
+            "sitecode-sfo", "SFO"
         ]
     },
     {
@@ -53,7 +53,7 @@
             }
         ],
         "tags": [
-            "sitecode-sea"
+            "sitecode-sea", "SEA"
         ]
     },
     {
@@ -72,7 +72,7 @@
             }
         ],
         "tags": [
-            "sitecode-sea"
+            "sitecode-sea", "SEA"
         ]
     }
 ]

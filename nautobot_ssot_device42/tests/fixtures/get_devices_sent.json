@@ -40,7 +40,8 @@
             "device_external_links": [],
             "start_at": 5.0,
             "tags": [
-                "Lab"
+                "Lab",
+                "SEA"
             ],
             "hw_model_id": 15,
             "in_service": true,
@@ -118,7 +119,8 @@
             "device_external_links": [],
             "start_at": 16.0,
             "tags": [
-                "nautobot-dc-core"
+                "nautobot-dc-core",
+                "SFO"
             ],
             "hw_model_id": 14,
             "in_service": true,
@@ -211,7 +213,8 @@
             "device_external_links": [],
             "start_at": 20.0,
             "tags": [
-                "Lab"
+                "Lab",
+                "SFO"
             ],
             "hw_model_id": 15,
             "in_service": true,
@@ -274,7 +277,10 @@
             "type": "cluster",
             "hddcount": null,
             "device_external_links": [],
-            "tags": [],
+            "tags": [
+                "AUS",
+                "TEST"
+            ],
             "hw_model_id": null,
             "in_service": true,
             "hddsize": null,
@@ -328,10 +334,14 @@
             "hw_model": "Cisco WS-C2960X-48LPD-L",
             "hddraid_type": null,
             "type": "physical",
+            "building": "Dell - Round Rock 2",
             "hddcount": null,
             "manufacturer": "Cisco Systems Inc",
             "device_external_links": [],
-            "tags": [],
+            "tags": [
+                "AUS",
+                "TEST"
+            ],
             "hw_model_id": 103,
             "in_service": true,
             "hddsize": null,

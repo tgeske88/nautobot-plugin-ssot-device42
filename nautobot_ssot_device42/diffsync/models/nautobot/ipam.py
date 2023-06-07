@@ -237,7 +237,7 @@ class NautobotIPAddress(IPAddress):
                 OrmInterface.objects.get(name=attrs["interface"], device__name=self.device)
             except OrmInterface.DoesNotExist:
                 for port in self.diffsync.objects_to_create["ports"]:
-                    if port.name == attrs["interface"] and port.device.name == self.device:
+                    if port.name == attrs["interface"] and port.device_id == self.diffsync.device_map[self.device]:
                         try:
                             port.validated_save()
                         except ValidationError as err:

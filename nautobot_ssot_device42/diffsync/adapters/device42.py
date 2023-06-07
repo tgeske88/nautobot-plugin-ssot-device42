@@ -254,10 +254,6 @@ class Device42Adapter(DiffSync):
             if len(_tags) > 1:
                 _tags.sort()
             if record.get("building") and record.get("room"):
-                if record["building"] not in self.rack_elevations:
-                    self.rack_elevations[record["building"]] = {}
-                if record["room"] not in self.rack_elevations[record["building"]]:
-                    self.rack_elevations[record["building"]][record["room"]] = {}
                 self.rack_elevations[record["building"]][record["room"]][record["name"]] = {
                     slot: [] for slot in range(1, record["size"] + 1)
                 }
@@ -349,6 +345,7 @@ class Device42Adapter(DiffSync):
             _clus = self.device42_clusters[cluster_info["name"]]
             _tags = cluster_info["tags"] if cluster_info.get("tags") else []
             if PLUGIN_CFG.get("ignore_tag") and PLUGIN_CFG["ignore_tag"] in _tags:
+                self.job.log_warning(message=f"Cluster {cluster_info['name']} has ignore tag so skipping.")
                 return
             if len(_tags) > 1:
                 _tags.sort()

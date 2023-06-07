@@ -2,7 +2,7 @@
 import json
 import uuid
 from unittest.mock import MagicMock, patch
-from diffsync.exceptions import ObjectNotFound
+from diffsync.exceptions import ObjectAlreadyExists, ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from nautobot.utilities.testing import TransactionTestCase
@@ -40,9 +40,11 @@ CLUSTER_MEMBER_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_
 PORTS_W_VLANS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_with_vlans_recv.json")
 PORTS_WO_VLANS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ports_wo_vlans_recv.json")
 PORT_CUSTOM_FIELDS = load_json("./nautobot_ssot_device42/tests/fixtures/get_port_custom_fields_recv.json")
+IPADDRESS_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ip_addrs.json")
+IPADDRESS_CF_FIXTURE = load_json("./nautobot_ssot_device42/tests/fixtures/get_ipaddr_custom_fields_recv.json")
 
 
-class Device42AdapterTestCase(TransactionTestCase):
+class Device42AdapterTestCase(TransactionTestCase):  # pylint: disable=too-many-public-methods
     """Test the Device42Adapter class."""
 
     databases = ("default", "job_logs")
@@ -66,10 +68,13 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.d42_client.get_ports_with_vlans.return_value = PORTS_W_VLANS_FIXTURE
         self.d42_client.get_ports_wo_vlans.return_value = PORTS_WO_VLANS_FIXTURE
         self.d42_client.get_port_custom_fields.return_value = PORT_CUSTOM_FIELDS
+        self.d42_client.get_ip_addrs.return_value = IPADDRESS_FIXTURE
+        self.d42_client.get_ipaddr_custom_fields.return_value = IPADDRESS_CF_FIXTURE
 
         self.job = Device42DataSource()
         self.job.log_info = MagicMock()
         self.job.log_warning = MagicMock()
+        self.job.kwargs["debug"] = True
         self.job.job_result = JobResult.objects.create(
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
@@ -141,6 +146,91 @@ class Device42AdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {f"{port['device_name']}__{port['port_name']}" for port in PORTS_WO_VLANS_FIXTURE},
             {port.get_unique_id() for port in self.device42.get_all("port")},
+        )
+        self.device42.load_ip_addresses()
+        self.assertEqual(
+            {f"{ipaddr['ip_address']}/{ipaddr['netmask']}__{ipaddr['vrf']}" for ipaddr in IPADDRESS_FIXTURE},
+            {ipaddr.get_unique_id() for ipaddr in self.device42.get_all("ipaddr")},
+        )
+
+    def test_load_buildings_duplicate_site(self):
+        """Validate functionality of the load_buildings() function when duplicate site is loaded."""
+        self.device42.load_buildings()
+        self.device42.load_buildings()
+        self.job.log_warning.assert_called_with(
+            message="Microsoft HQ is already loaded. ('Object Microsoft HQ already present', building \"Microsoft HQ\")"
+        )
+
+    def test_load_rooms_duplicate_room(self):
+        """Validate functionality of the load_rooms() function when duplicate room is loaded."""
+        self.device42.load_buildings()
+        self.device42.load_rooms()
+        self.device42.load_rooms()
+        self.job.log_warning.assert_called_with(
+            message="Secondary IDF is already loaded. ('Object Secondary IDF__Microsoft HQ already present', room \"Secondary IDF__Microsoft HQ\")"
+        )
+
+    def test_load_rooms_missing_building(self):
+        """Validate functionality of the load_rooms() function when room loaded with missing building."""
+        ROOM_FIXTURE[0]["building"] = ""
+        self.device42.load_buildings()
+        self.device42.load_rooms()
+        self.job.log_warning.assert_called_with(message="Network Closet is missing Building and won't be imported.")
+
+    def test_load_racks_duplicate_rack(self):
+        """Validate the functionality of the load_racks() function when duplicate rack is loaded."""
+        self.device42.load_buildings()
+        self.device42.load_rooms()
+        self.device42.load_racks()
+        self.device42.load_racks()
+        self.job.log_warning.assert_called_with(
+            message="Rack Rack A already exists. ('Object Rack A__Microsoft HQ__Main IDF already present', rack \"Rack A__Microsoft HQ__Main IDF\")"
+        )
+
+    def test_load_racks_missing_building_and_room(self):
+        """Validate functionality of the load_racks() function when rack loaded with missing building and room."""
+        RACK_FIXTURE[0]["building"] = ""
+        RACK_FIXTURE[0]["room"] = ""
+        self.device42.load_buildings()
+        self.device42.load_rooms()
+        self.device42.load_racks()
+        self.job.log_warning.assert_called_with(message="Rack 1 is missing Building and Room and won't be imported.")
+
+    def test_load_hardware_models_duplicate_model(self):
+        """Validate functionality of the load_hardware_models() function with duplicate model."""
+        self.device42.load_hardware_models()
+        self.device42.load_hardware_models()
+        self.job.log_warning.assert_called_with(
+            message="Hardware model already exists. ('Object FPR-2130 already present', hardware \"FPR-2130\")"
+        )
+
+    def test_load_cluster_duplicate_cluster(self):
+        """Validate functionality of the load_cluster() function when cluster loaded with duplicate cluster."""
+        self.device42.get = MagicMock()
+        self.device42.get.side_effect = ObjectAlreadyExists(message="Duplicate object found.", existing_object=None)
+        self.device42.load_cluster(cluster_info=DEVICE_FIXTURE[3])
+        self.job.log_warning.assert_called_with(
+            message="Cluster stack01.testexample.com already has been added. ('Duplicate object found.', None)"
+        )
+
+    @patch(
+        "nautobot_ssot_device42.diffsync.adapters.device42.PLUGIN_CFG",
+        {"ignore_tag": "TEST"},
+    )
+    def test_load_cluster_ignore_tag(self):
+        """Validate functionality of the load_cluster() function when cluster has ignore tag."""
+        self.device42.load_cluster(cluster_info=DEVICE_FIXTURE[3])
+        self.job.log_info.assert_called_once_with(message="Cluster stack01.testexample.com being loaded from Device42.")
+        self.job.log_warning.assert_called_once_with(
+            message="Cluster stack01.testexample.com has ignore tag so skipping."
+        )
+
+    def test_load_devices_with_blank_building(self):
+        """Validate functionality of the load_devices_and_clusters() function when device has a blank building."""
+        self.device42.load_hardware_models()
+        self.device42.load_devices_and_clusters()
+        self.job.log_warning.assert_called_with(
+            message="Device stack01.testexample.com can't be loaded as we're unable to find associated Building."
         )
 
     def test_assign_version_to_master_devices_with_valid_os_version(self):

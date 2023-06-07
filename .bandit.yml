@@ -1,5 +1,6 @@
 ---
-skips: ["B311", "B101"]
+skips: ["B311"]
 # No need to check for security issues in the test scripts!
 exclude_dirs:
   - "./tests/"
+  - "./.venv/"
