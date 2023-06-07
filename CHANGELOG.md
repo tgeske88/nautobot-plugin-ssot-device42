@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.7.0 (2023-06-07)
+
+### Fix
+
+* 🔧 Setting default settings for all required settings. ([`c99bcbc`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/c99bcbcb42071598b693b352a8b115060bda4ba4))
+* 🐛 Validate using Device ID instead of name ([`e8ebe04`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/e8ebe04700332694ef9daa379a9da21dc44b3120))
+
+### Documentation
+
+* 📄 Add Apache 2.0 license ([`83d0ceb`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/83d0cebbdfca6ad25b6f20d89d69cb1d92559c0d))
+* 📝 Add log about skipping cluster if ignore_tag found. ([`4504336`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/45043368e753598bdfa5bccf63c133e219585586))
+
 ## v1.6.0 (2023-05-19)
 ### Feature
 * ✨ Set Master device OS version to same as first device in stack. ([`8a8fa07`](https://github.com/networktocode-llc/nautobot-plugin-ssot-device42/commit/8a8fa07736ac99bc439854a0f99196513a5b9a5b))
